@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- This is a placeholder for your click sound file (e.g., click.mp3) -->
+    <button_sound class="mp3"></button_sound>
+</shape>

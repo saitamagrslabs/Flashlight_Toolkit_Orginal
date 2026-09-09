@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#3020C2C8">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="135"
+                android:startColor="#FF16213E"
+                android:centerColor="#FF1A1A2E"
+                android:endColor="#FF0F0F17" />
+            <corners android:radius="16dp" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#FF20C2C8" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="sweep"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#0020C2C8"
+                android:centerColor="#2020C2C8"
+                android:endColor="#0020C2C8" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+</ripple>
