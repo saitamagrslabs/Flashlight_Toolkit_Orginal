@@ -6,11 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.google.android.gms.ads.MobileAds
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ProcessLifecycleOwner
-import android.content.Intent
-import com.saitamagrs.flashnow.services.FlashlightTimerService
+
 class MyApplication : Application() {
 
     companion object {
@@ -24,34 +20,8 @@ class MyApplication : Application() {
         MobileAds.initialize(this) {}
 
         createNotificationChannels()
-        // OBSERVE APP FOREGROUND/BACKGROUND STATE
-        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onStart(owner: LifecycleOwner) {
-                // App opened - Resume timer/flash
-                val intent = Intent(this@MyApplication, FlashlightTimerService::class.java).apply {
-                    action = FlashlightTimerService.ACTION_RESUME_TIMER
-                }
-                startService(intent)
-            }
-
-            override fun onStop(owner: LifecycleOwner) {
-                // App minimized - Pause timer/flash
-                val intent = Intent(this@MyApplication, FlashlightTimerService::class.java).apply {
-                    action = FlashlightTimerService.ACTION_PAUSE_TIMER
-                }
-                startService(intent)
-            }
-        })
-
-
-
     }
-    private fun sendCommandToService(action: String) {
-        val intent = Intent(this, FlashlightTimerService::class.java).apply {
-            this.action = action
-        }
-        startService(intent)
-    }
+
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Timer notification channel
