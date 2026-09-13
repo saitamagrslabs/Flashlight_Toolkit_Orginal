@@ -62,7 +62,7 @@ class FlashlightTimerService : Service() {
 
         if (intent == null || action == null) {
             // Android system service recreation due to START_STICKY or started without action
-            restoreTimerState(autoResumeIfRunning = true)
+            restoreTimerState(autoResumeIfRunning = true, resumeIfPaused = false)
             return START_STICKY
         }
 
@@ -85,21 +85,23 @@ class FlashlightTimerService : Service() {
             ACTION_STOP_TIMER -> stopTimer()
             ACTION_PAUSE_TIMER -> {
                 if (!isTimerRunning) {
-                    restoreTimerState(autoResumeIfRunning = false)
+                    restoreTimerState(autoResumeIfRunning = false, resumeIfPaused = false)
                 }
                 pauseTimer()
             }
             ACTION_RESUME_TIMER -> {
                 if (!isTimerRunning) {
-                    restoreTimerState(autoResumeIfRunning = true)
-                } else {
+                    restoreTimerState(autoResumeIfRunning = true, resumeIfPaused = true)
+                } else if (isPaused) {
                     resumeTimer()
+                } else {
+                    Log.d(TAG, "ACTION_RESUME_TIMER received but timer is already running")
                 }
             }
             else -> {
                 Log.w(TAG, "Unknown action received: $action")
                 if (!isTimerRunning) {
-                    restoreTimerState(autoResumeIfRunning = true)
+                    restoreTimerState(autoResumeIfRunning = true, resumeIfPaused = false)
                 }
             }
         }
@@ -108,6 +110,7 @@ class FlashlightTimerService : Service() {
 
     private fun startCountDown(millis: Long) {
         countDownTimer?.cancel()
+        countDownTimer = null
         countDownTimer = object : CountDownTimer(millis, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 if (isTimerRunning && !isPaused) {
@@ -144,6 +147,8 @@ class FlashlightTimerService : Service() {
     private fun resumeTimer() {
         if (isTimerRunning) {
             isPaused = false
+            countDownTimer?.cancel()
+            countDownTimer = null
             val endTime = System.currentTimeMillis() + remainingMillis
             saveTimerState(
                 isRunning = true,
@@ -188,7 +193,7 @@ class FlashlightTimerService : Service() {
         stopSelf()
     }
 
-    private fun restoreTimerState(autoResumeIfRunning: Boolean) {
+    private fun restoreTimerState(autoResumeIfRunning: Boolean, resumeIfPaused: Boolean = false) {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val isRunning = prefs.getBoolean(PREF_KEY_TIMER_RUNNING, false)
         val isPausedPref = prefs.getBoolean(PREF_KEY_IS_PAUSED, false)
@@ -216,17 +221,31 @@ class FlashlightTimerService : Service() {
 
         // SCENARIO G: Active timer marked paused
         if (isPausedPref) {
-            Log.d(TAG, "restoreTimerState: Restoring paused timer (remaining=$remainingTime, total=$totalDuration)")
+            if (remainingTime <= 0L) {
+                Log.d(TAG, "restoreTimerState: Paused timer has no remaining time. Finishing.")
+                finishTimer()
+                return
+            }
+
+            Log.d(
+                TAG,
+                "restoreTimerState: Restoring paused timer (remaining=$remainingTime, total=$totalDuration, resumeIfPaused=$resumeIfPaused)"
+            )
             countDownTimer?.cancel()
             countDownTimer = null
             totalDurationMillis = totalDuration
             remainingMillis = remainingTime
             isTimerRunning = true
             isPaused = true
-            // Do not automatically turn the flashlight on.
-            // Do not automatically resume the countdown.
-            // Do not acquire a WakeLock unless the timer is actually resumed.
-            updateForegroundNotification()
+
+            if (resumeIfPaused) {
+                resumeTimer()
+            } else {
+                // Do not automatically turn the flashlight on.
+                // Do not automatically resume the countdown.
+                // Do not acquire a WakeLock unless the timer is actually resumed.
+                updateForegroundNotification()
+            }
             return
         }
 
