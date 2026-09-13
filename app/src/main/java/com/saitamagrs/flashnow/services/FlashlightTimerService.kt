@@ -40,6 +40,13 @@ class FlashlightTimerService : Service() {
         const val CHANNEL_ID = "flashlight_timer_channel"
         const val PACKAGE_NAME = "com.saitamagrs.flashnow"
         private const val WAKELOCK_BUFFER_MILLIS = 60000L // 60 seconds safety buffer
+
+        const val PREFS_NAME = "timer_prefs"
+        const val PREF_KEY_TIMER_RUNNING = "timer_running"
+        const val PREF_KEY_IS_PAUSED = "is_paused"
+        const val PREF_KEY_TOTAL_DURATION = "total_duration"
+        const val PREF_KEY_REMAINING_TIME = "remaining_time"
+        const val PREF_KEY_END_TIME = "end_time_millis"
     }
 
     override fun onCreate() {
@@ -51,26 +58,50 @@ class FlashlightTimerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
-        Log.d(TAG, "onStartCommand: $action")
+        Log.d(TAG, "onStartCommand: action=$action, flags=$flags, startId=$startId")
+
+        if (intent == null || action == null) {
+            // Android system service recreation due to START_STICKY or started without action
+            restoreTimerState(autoResumeIfRunning = true)
+            return START_STICKY
+        }
 
         when (action) {
             ACTION_START_TIMER -> {
-                val mins = intent?.getLongExtra(EXTRA_DURATION_MINUTES, 0L) ?: 0L
+                val mins = intent.getLongExtra(EXTRA_DURATION_MINUTES, 0L)
                 if (mins > 0) {
-                    // Handle existing timer and WakeLock safely on start or restart
+                    // Cancel any existing timer and reset state safely on start
                     countDownTimer?.cancel()
+                    countDownTimer = null
                     totalDurationMillis = mins * 60 * 1000L
                     remainingMillis = totalDurationMillis
                     isTimerRunning = true
-                    acquireWakeLock(totalDurationMillis)
+                    isPaused = false
                     resumeTimer() // Start logic
                 } else {
                     Log.w(TAG, "ACTION_START_TIMER received with invalid duration: $mins minutes")
                 }
             }
             ACTION_STOP_TIMER -> stopTimer()
-            ACTION_PAUSE_TIMER -> pauseTimer()
-            ACTION_RESUME_TIMER -> resumeTimer()
+            ACTION_PAUSE_TIMER -> {
+                if (!isTimerRunning) {
+                    restoreTimerState(autoResumeIfRunning = false)
+                }
+                pauseTimer()
+            }
+            ACTION_RESUME_TIMER -> {
+                if (!isTimerRunning) {
+                    restoreTimerState(autoResumeIfRunning = true)
+                } else {
+                    resumeTimer()
+                }
+            }
+            else -> {
+                Log.w(TAG, "Unknown action received: $action")
+                if (!isTimerRunning) {
+                    restoreTimerState(autoResumeIfRunning = true)
+                }
+            }
         }
         return START_STICKY
     }
@@ -81,6 +112,7 @@ class FlashlightTimerService : Service() {
             override fun onTick(millisUntilFinished: Long) {
                 if (isTimerRunning && !isPaused) {
                     remainingMillis = millisUntilFinished
+                    updatePersistedRemainingTime(remainingMillis)
                     broadcastTick(remainingMillis, totalDurationMillis)
                 }
             }
@@ -93,9 +125,17 @@ class FlashlightTimerService : Service() {
     private fun pauseTimer() {
         if (isTimerRunning && !isPaused) {
             isPaused = true
-            getSharedPreferences("timer_prefs", Context.MODE_PRIVATE).edit().putBoolean("is_paused", true).apply()
             countDownTimer?.cancel()
+            countDownTimer = null
+            saveTimerState(
+                isRunning = true,
+                isPaused = true,
+                totalDuration = totalDurationMillis,
+                remainingTime = remainingMillis,
+                endTime = 0L
+            )
             try { FlashlightManager.turnOffFlashlight(this) } catch (e: Exception) {}
+            releaseWakeLock()
             updateNotification() // Updates UI to "Paused"
             Log.d(TAG, "Timer Paused")
         }
@@ -104,7 +144,15 @@ class FlashlightTimerService : Service() {
     private fun resumeTimer() {
         if (isTimerRunning) {
             isPaused = false
-            getSharedPreferences("timer_prefs", Context.MODE_PRIVATE).edit().putBoolean("is_paused", false).apply()
+            val endTime = System.currentTimeMillis() + remainingMillis
+            saveTimerState(
+                isRunning = true,
+                isPaused = false,
+                totalDuration = totalDurationMillis,
+                remainingTime = remainingMillis,
+                endTime = endTime
+            )
+            acquireWakeLock(remainingMillis)
             try { FlashlightManager.turnOnFlashlight(this) } catch (e: Exception) {}
             startCountDown(remainingMillis)
             updateForegroundNotification() // Sets up Foreground status + live countdown
@@ -114,12 +162,17 @@ class FlashlightTimerService : Service() {
 
     private fun stopTimer() {
         isTimerRunning = false
+        isPaused = false
         countDownTimer?.cancel()
+        countDownTimer = null
         finishTimer()
     }
 
     private fun finishTimer() {
         isTimerRunning = false
+        isPaused = false
+        countDownTimer?.cancel()
+        countDownTimer = null
         try { FlashlightManager.turnOffFlashlight(this) } catch (e: Exception) {}
         clearTimerPreferences()
         broadcastTimerFinished()
@@ -133,6 +186,108 @@ class FlashlightTimerService : Service() {
             stopForeground(true)
         }
         stopSelf()
+    }
+
+    private fun restoreTimerState(autoResumeIfRunning: Boolean) {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val isRunning = prefs.getBoolean(PREF_KEY_TIMER_RUNNING, false)
+        val isPausedPref = prefs.getBoolean(PREF_KEY_IS_PAUSED, false)
+        val totalDuration = prefs.getLong(PREF_KEY_TOTAL_DURATION, 0L)
+        val remainingTime = prefs.getLong(PREF_KEY_REMAINING_TIME, 0L)
+        val endTime = prefs.getLong(PREF_KEY_END_TIME, 0L)
+
+        // SCENARIO I: If there is NO active timer
+        if (!isRunning) {
+            Log.d(TAG, "restoreTimerState: No active timer in preferences.")
+            stopSelf()
+            return
+        }
+
+        // SCENARIO H / Requirement 11: Invalid or corrupted state
+        if (totalDuration <= 0L || remainingTime < 0L || remainingTime > totalDuration) {
+            Log.w(
+                TAG,
+                "restoreTimerState: Invalid persisted state (total=$totalDuration, remaining=$remainingTime, isPaused=$isPausedPref). Clearing state."
+            )
+            clearTimerPreferences()
+            stopSelf()
+            return
+        }
+
+        // SCENARIO G: Active timer marked paused
+        if (isPausedPref) {
+            Log.d(TAG, "restoreTimerState: Restoring paused timer (remaining=$remainingTime, total=$totalDuration)")
+            countDownTimer?.cancel()
+            countDownTimer = null
+            totalDurationMillis = totalDuration
+            remainingMillis = remainingTime
+            isTimerRunning = true
+            isPaused = true
+            // Do not automatically turn the flashlight on.
+            // Do not automatically resume the countdown.
+            // Do not acquire a WakeLock unless the timer is actually resumed.
+            updateForegroundNotification()
+            return
+        }
+
+        // SCENARIO F: Active timer NOT paused
+        val effectiveRemaining: Long = if (endTime > 0L) {
+            val now = System.currentTimeMillis()
+            val timeUntilEnd = endTime - now
+            if (timeUntilEnd <= 0L) {
+                Log.d(TAG, "restoreTimerState: Timer finished while process was killed (endTime=$endTime, now=$now).")
+                finishTimer()
+                return
+            } else if (timeUntilEnd <= totalDuration) {
+                timeUntilEnd
+            } else {
+                remainingTime
+            }
+        } else {
+            remainingTime
+        }
+
+        if (effectiveRemaining <= 0L) {
+            Log.d(TAG, "restoreTimerState: Effective remaining time <= 0. Finishing timer.")
+            finishTimer()
+            return
+        }
+
+        Log.d(TAG, "restoreTimerState: Restoring active timer (remaining=$effectiveRemaining, total=$totalDuration)")
+        countDownTimer?.cancel()
+        countDownTimer = null
+        totalDurationMillis = totalDuration
+        remainingMillis = effectiveRemaining
+        isTimerRunning = true
+        isPaused = false
+
+        if (autoResumeIfRunning) {
+            resumeTimer()
+        }
+    }
+
+    private fun saveTimerState(
+        isRunning: Boolean,
+        isPaused: Boolean,
+        totalDuration: Long,
+        remainingTime: Long,
+        endTime: Long = 0L
+    ) {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
+            putBoolean(PREF_KEY_TIMER_RUNNING, isRunning)
+            putBoolean(PREF_KEY_IS_PAUSED, isPaused)
+            putLong(PREF_KEY_TOTAL_DURATION, totalDuration)
+            putLong(PREF_KEY_REMAINING_TIME, remainingTime)
+            putLong(PREF_KEY_END_TIME, endTime)
+            apply()
+        }
+    }
+
+    private fun updatePersistedRemainingTime(remaining: Long) {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
+            putLong(PREF_KEY_REMAINING_TIME, remaining)
+            apply()
+        }
     }
 
     private fun updateForegroundNotification() {
@@ -256,12 +411,19 @@ class FlashlightTimerService : Service() {
     }
 
     private fun clearTimerPreferences() {
-        getSharedPreferences("timer_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
+            putBoolean(PREF_KEY_TIMER_RUNNING, false)
+            putBoolean(PREF_KEY_IS_PAUSED, false)
+            putLong(PREF_KEY_TOTAL_DURATION, 0L)
+            putLong(PREF_KEY_REMAINING_TIME, 0L)
+            putLong(PREF_KEY_END_TIME, 0L)
+            apply()
+        }
     }
 
     private fun formatTime(ms: Long): String {
         val s = ms / 1000
-        return String.format("%02d:%02d", s / 60, s % 60)
+        return String.format(java.util.Locale.US, "%02d:%02d", s / 60, s % 60)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -272,6 +434,7 @@ class FlashlightTimerService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         countDownTimer?.cancel()
+        countDownTimer = null
         serviceScope.cancel()
         releaseWakeLock()
     }
