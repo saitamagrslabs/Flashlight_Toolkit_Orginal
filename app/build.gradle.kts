@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.saitamagrs.flashnow"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.saitamagrs.flashnow"
@@ -16,6 +16,15 @@ android {
         versionName = "1.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
@@ -28,6 +37,7 @@ android {
             )
         }
         debug {
+            signingConfig = signingConfigs.getByName("debugConfig")
             enableUnitTestCoverage = true
             enableAndroidTestCoverage = true
         }

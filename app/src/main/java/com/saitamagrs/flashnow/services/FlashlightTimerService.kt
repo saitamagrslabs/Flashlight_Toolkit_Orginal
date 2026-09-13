@@ -39,12 +39,14 @@ class FlashlightTimerService : Service() {
         const val NOTIFICATION_ID = 101
         const val CHANNEL_ID = "flashlight_timer_channel"
         const val PACKAGE_NAME = "com.saitamagrs.flashnow"
+        private const val WAKELOCK_BUFFER_MILLIS = 60000L // 60 seconds safety buffer
     }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        acquireWakeLock()
+        // WakeLock is intentionally not acquired here.
+        // It is acquired after timer duration is received and validated in onStartCommand.
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,12 +55,17 @@ class FlashlightTimerService : Service() {
 
         when (action) {
             ACTION_START_TIMER -> {
-                val mins = intent.getLongExtra(EXTRA_DURATION_MINUTES, 0)
-                if (mins > 0 && !isTimerRunning) {
-                    totalDurationMillis = mins * 60 * 1000
+                val mins = intent?.getLongExtra(EXTRA_DURATION_MINUTES, 0L) ?: 0L
+                if (mins > 0) {
+                    // Handle existing timer and WakeLock safely on start or restart
+                    countDownTimer?.cancel()
+                    totalDurationMillis = mins * 60 * 1000L
                     remainingMillis = totalDurationMillis
                     isTimerRunning = true
+                    acquireWakeLock(totalDurationMillis)
                     resumeTimer() // Start logic
+                } else {
+                    Log.w(TAG, "ACTION_START_TIMER received with invalid duration: $mins minutes")
                 }
             }
             ACTION_STOP_TIMER -> stopTimer()
@@ -117,7 +124,7 @@ class FlashlightTimerService : Service() {
         clearTimerPreferences()
         broadcastTimerFinished()
         closeApp()
-        if (wakeLock?.isHeld == true) wakeLock?.release()
+        releaseWakeLock()
         //stopForeground(true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -177,13 +184,48 @@ class FlashlightTimerService : Service() {
         return builder.build()
     }
 
-    // ... (Keep existing acquireWakeLock, createNotificationChannel, broadcastTick, etc.)
-    private fun acquireWakeLock() {
+    private fun acquireWakeLock(durationMillis: Long) {
+        if (durationMillis <= 0) {
+            Log.w(TAG, "Cannot acquire WakeLock with non-positive duration: $durationMillis")
+            return
+        }
+
         try {
-            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "FlashNow:TimerWakeLock")
-            wakeLock?.acquire(totalDurationMillis + 60000L) // Auto-release after duration + 1m
-        } catch (e: Exception) {}
+            // Safely release any existing WakeLock before acquiring a new one to prevent leaks
+            releaseWakeLock()
+
+            val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+            if (powerManager == null) {
+                Log.e(TAG, "PowerManager not available, cannot acquire WakeLock")
+                return
+            }
+
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "FlashNow:TimerWakeLock"
+            ).apply {
+                setReferenceCounted(false)
+            }
+
+            val timeout = durationMillis + WAKELOCK_BUFFER_MILLIS
+            wakeLock?.acquire(timeout)
+            Log.d(TAG, "WakeLock acquired with timeout: $timeout ms")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to acquire WakeLock", e)
+        }
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
+                Log.d(TAG, "WakeLock released")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to release WakeLock", e)
+        } finally {
+            wakeLock = null
+        }
     }
 
     private fun createNotificationChannel() {
@@ -231,7 +273,7 @@ class FlashlightTimerService : Service() {
         super.onDestroy()
         countDownTimer?.cancel()
         serviceScope.cancel()
-        if (wakeLock?.isHeld == true) wakeLock?.release()
+        releaseWakeLock()
     }
 
     override fun onBind(intent: Intent): IBinder? = null

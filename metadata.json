@@ -1,0 +1,6 @@
+{
+  "name": "Flashlight Toolkit",
+  "description": "Flashlight Toolkit application with strobe, morse code, screen light, and timer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
