@@ -128,19 +128,6 @@ class HomeFragment : BaseAdFragment() {
         
 
 
-        // Register for flashlight state changes
-
-
-        FlashlightManager.addFlashlightStateListener { isOn ->
-            requireActivity().runOnUiThread {
-                //updateUI()
-                // Update your UI based on flashlight state
-                // binding.flashToggle.isChecked = isOn
-                // binding.flashToggle.text = if (isOn) "FLASH ON" else "FLASH OFF"
-            }
-        }
-
-
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
@@ -861,8 +848,6 @@ class HomeFragment : BaseAdFragment() {
         mediaPlayer?.release()
         mediaPlayer = null
         _binding = null
-        // Remove listener to prevent memory leaks
-        FlashlightManager.removeFlashlightStateListener { /* your listener */ }
 
         // Unregister broadcast receiver
         try {
