@@ -1,6 +1,7 @@
 package com.saitamagrs.flashnow.viewmodels
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.asFlow
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,7 +40,7 @@ class HomeViewModelTest {
     @Test
     fun `sosActive should be false by default`() = runTest {
         // Then
-        viewModel.sosActive.test {
+        viewModel.sosActive.asFlow().test {
             assertEquals(false, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -48,7 +49,7 @@ class HomeViewModelTest {
     @Test
     fun `strobeActive should be false by default`() = runTest {
         // Then
-        viewModel.strobeActive.test {
+        viewModel.strobeActive.asFlow().test {
             assertEquals(false, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -60,7 +61,7 @@ class HomeViewModelTest {
         viewModel.setSosActive(true)
 
         // Then
-        viewModel.sosActive.test {
+        viewModel.sosActive.asFlow().test {
             assertEquals(true, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -75,7 +76,7 @@ class HomeViewModelTest {
         viewModel.setSosActive(false)
 
         // Then
-        viewModel.sosActive.test {
+        viewModel.sosActive.asFlow().test {
             assertEquals(false, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -87,7 +88,7 @@ class HomeViewModelTest {
         viewModel.setStrobeActive(true)
 
         // Then
-        viewModel.strobeActive.test {
+        viewModel.strobeActive.asFlow().test {
             assertEquals(true, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -102,7 +103,7 @@ class HomeViewModelTest {
         viewModel.setStrobeActive(false)
 
         // Then
-        viewModel.strobeActive.test {
+        viewModel.strobeActive.asFlow().test {
             assertEquals(false, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -116,7 +117,7 @@ class HomeViewModelTest {
         viewModel.setSosActive(true)
 
         // Then
-        viewModel.sosActive.test {
+        viewModel.sosActive.asFlow().test {
             assertEquals(true, awaitItem()) // Latest value should be true
             cancelAndIgnoreRemainingEvents()
         }
@@ -130,7 +131,7 @@ class HomeViewModelTest {
         viewModel.setStrobeActive(true)
 
         // Then
-        viewModel.strobeActive.test {
+        viewModel.strobeActive.asFlow().test {
             assertEquals(true, awaitItem()) // Latest value should be true
             cancelAndIgnoreRemainingEvents()
         }
@@ -143,12 +144,12 @@ class HomeViewModelTest {
         viewModel.setStrobeActive(false)
 
         // Then
-        viewModel.sosActive.test {
+        viewModel.sosActive.asFlow().test {
             assertEquals(true, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
 
-        viewModel.strobeActive.test {
+        viewModel.strobeActive.asFlow().test {
             assertEquals(false, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }

@@ -6,10 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.media.AudioFormat
-import android.media.AudioRecord
 import android.media.MediaPlayer
-import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -35,13 +32,12 @@ import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.databinding.FragmentHomeBinding
 import com.saitamagrs.flashnow.services.NotificationAlertService
 import com.saitamagrs.flashnow.utils.AppConstants
+import com.saitamagrs.flashnow.utils.ClapDetector
 import com.saitamagrs.flashnow.utils.FlashlightManager
 import com.saitamagrs.flashnow.utils.PermissionManager
 import com.saitamagrs.flashnow.utils.TimerManager
 import com.saitamagrs.flashnow.viewmodels.HomeViewModel
 import kotlin.apply
-import kotlin.concurrent.thread
-import kotlin.math.abs
 
 class HomeFragment : BaseAdFragment() {
 
@@ -59,13 +55,7 @@ class HomeFragment : BaseAdFragment() {
     private var strobeRunnable: Runnable? = null
     private var sosRunnable: Runnable? = null
 
-    private var audioRecord: AudioRecord? = null
-    private var isListeningForClaps = false
-    private lateinit var audioThread: Thread
-    private var isClapOnCooldown = false
-    private val noiseHistory = mutableListOf<Double>()
-    private val CLAP_MULTIPLIER = 15.0
-    private var minAmplitudeThreshold = 9000
+    private var clapDetector: ClapDetector? = null
 
     private var pendingFlashlightAction: (() -> Unit)? = null
 
@@ -517,82 +507,33 @@ class HomeFragment : BaseAdFragment() {
         updateUI()
     }
 
-    private fun startListeningForClaps(){
-        if(isListeningForClaps) return
+    private fun startListeningForClaps() {
+        if (clapDetector?.isListening == true) return
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.w("HomeFragment", "Cannot start clap detection: Permission not granted")
             binding.clapSwitch.isChecked = false
             return
         }
-        val sharedPreferences = requireContext().getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
-        minAmplitudeThreshold = sharedPreferences.getInt(AppConstants.KEY_SENSITIVITY, 9000)
 
-        isListeningForClaps = true
-        audioThread = thread(name = "ClapDetectionThread",start = true) {
-            val sampleRate = 44100
-            val channelConfig = AudioFormat.CHANNEL_IN_MONO
-            val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-            val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-            try {
-                val buffer = ShortArray(minBufferSize)
-                audioRecord = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channelConfig, audioFormat, minBufferSize)
-
-                if (audioRecord?.state == AudioRecord.STATE_INITIALIZED) {
-                    audioRecord?.startRecording()
-                    while(isListeningForClaps){
-                        if(audioRecord?.read(buffer, 0, minBufferSize) ?: 0 > 0) processAudioBuffer(buffer)
-                    }
-                } else {
-                    Log.e("HomeFragment", "AudioRecord failed to initialize")
-                }
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "Error in audio thread", e)
-            } finally {
-                try {
-                    audioRecord?.stop()
-                    audioRecord?.release()
-                } catch (e: IllegalStateException) {
-                    Log.e("HomeFragment", "Error stopping audio record", e)
-                }
-                audioRecord = null
-            }
-        }
-    }
-
-    private fun stopListeningForClaps(){
-        isListeningForClaps = false
-        try {
-            audioRecord?.stop()
-        } catch (e: IllegalStateException) {
-            // Ignore if already stopped
-        }
-    }
-
-    private fun processAudioBuffer(buffer: ShortArray){
-        var peakAmplitude = 0.0
-        for (s in buffer) { peakAmplitude = maxOf(peakAmplitude, abs(s.toDouble())) }
-
-        val averageNoise = if (noiseHistory.isEmpty()) 0.0 else noiseHistory.average()
-        val isClap = peakAmplitude > averageNoise * CLAP_MULTIPLIER && peakAmplitude > minAmplitudeThreshold
-
-        if (isClap && !isClapOnCooldown) {
-            isClapOnCooldown = true
-            handler.postDelayed({ isClapOnCooldown = false }, 1200)
-            handler.post {
+        if (clapDetector == null) {
+            clapDetector = ClapDetector(requireContext().applicationContext) {
                 if (isAdded) {
-                runFlashlightAction {
-                    if (isFlashlightOn()) stopAllPatterns() else {
-                        FlashlightManager.turnOnFlashlight(requireContext())
-                        // ✅ Update status when clap turns it ON
-
-                        updateUI()
+                    runFlashlightAction {
+                        if (isFlashlightOn()) {
+                            stopAllPatterns()
+                        } else {
+                            FlashlightManager.turnOnFlashlight(requireContext())
+                            updateUI()
+                        }
                     }
-                } }
+                }
             }
-        } else if (peakAmplitude < averageNoise * 1.5) {
-            noiseHistory.add(peakAmplitude)
-            if (noiseHistory.size > 50) noiseHistory.removeAt(0)
         }
+        clapDetector?.startListening()
+    }
+
+    private fun stopListeningForClaps() {
+        clapDetector?.stopListening()
     }
     // Also check before using flashlight in other features
     private fun useFlashlightInOtherFeature() {
@@ -834,8 +775,8 @@ class HomeFragment : BaseAdFragment() {
     }
 
     override fun onDestroyView() {
-
-
+        clapDetector?.release()
+        clapDetector = null
 
         super.onDestroyView()
 
