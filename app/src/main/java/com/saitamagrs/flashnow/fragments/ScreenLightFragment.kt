@@ -5,9 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.media.AudioFormat
-import android.media.AudioRecord
-import android.media.MediaRecorder
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -30,8 +27,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.databinding.FragmentScreenLightBinding
 import com.saitamagrs.flashnow.utils.AppConstants
-import kotlin.concurrent.thread
-import kotlin.math.abs
+import com.saitamagrs.flashnow.utils.ClapDetector
 
 enum class ScreenPattern { NONE, POLICE, PARTY, STROBE, CANDLE }
 
@@ -54,17 +50,7 @@ class ScreenLightFragment : BaseAdFragment() {
     private var currentPatternRunnable: Runnable? = null
 
     // --- Clap Detection Fields ---
-    private var audioRecord: AudioRecord? = null
-
-    @Volatile
-    private var isListeningForClaps = false
-    private lateinit var audioThread: Thread
-
-    @Volatile
-    private var isClapOnCooldown = false
-    private val noiseHistory = mutableListOf<Double>()
-    private val CLAP_MULTIPLIER = 12.0
-    private var minAmplitudeThreshold = 12000
+    private var clapDetector: ClapDetector? = null
 
     private val requestAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -129,56 +115,19 @@ class ScreenLightFragment : BaseAdFragment() {
         }
     }
 
-    private fun startListeningForClaps(){
-        if(isListeningForClaps) return
-
-        val sharedPreferences = requireContext().getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
-        minAmplitudeThreshold = sharedPreferences.getInt(AppConstants.KEY_SENSITIVITY, 12000)
-
-        isListeningForClaps = true
-        audioThread = thread(start = true) {
-            val sampleRate = 44100
-            val channelConfig = AudioFormat.CHANNEL_IN_MONO
-            val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-            val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-            try {
-                val buffer = ShortArray(minBufferSize)
-                audioRecord = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channelConfig, audioFormat, minBufferSize)
-                audioRecord?.startRecording()
-                while(isListeningForClaps){
-                    if(audioRecord?.read(buffer, 0, minBufferSize) ?: 0 > 0) processAudioBuffer(buffer)
+    private fun startListeningForClaps() {
+        if (clapDetector == null) {
+            clapDetector = ClapDetector(requireContext().applicationContext) {
+                if (isAdded) {
+                    toggleScreenLight()
                 }
-                audioRecord?.stop()
-                audioRecord?.release()
-            } catch (e: Exception) { e.printStackTrace() }
+            }
         }
+        clapDetector?.startListening()
     }
 
-    private fun stopListeningForClaps(){
-        isListeningForClaps = false
-        try {
-            audioRecord?.stop()
-            audioRecord?.release()
-            audioRecord = null
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun processAudioBuffer(buffer: ShortArray){
-        var peakAmplitude = 0.0
-        for (s in buffer) { peakAmplitude = maxOf(peakAmplitude, abs(s.toDouble())) }
-        val averageNoise = if (noiseHistory.isEmpty()) 0.0 else noiseHistory.average()
-        val isClap = peakAmplitude > averageNoise * CLAP_MULTIPLIER && peakAmplitude > minAmplitudeThreshold
-
-        if (isClap && !isClapOnCooldown) {
-            isClapOnCooldown = true
-            handler.postDelayed({ isClapOnCooldown = false }, 1200)
-            handler.post { toggleScreenLight() }
-        } else if (peakAmplitude < averageNoise * 1.5) {
-            noiseHistory.add(peakAmplitude)
-            if (noiseHistory.size > 50) noiseHistory.removeAt(0)
-        }
+    private fun stopListeningForClaps() {
+        clapDetector?.stopListening()
     }
 
     private fun toggleScreenLight() {
@@ -258,7 +207,8 @@ class ScreenLightFragment : BaseAdFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        stopListeningForClaps() // Ensure listener is stopped
+        clapDetector?.release()
+        clapDetector = null
         stopAllPatterns()
         handler.removeCallbacksAndMessages(null)
         selectedColorView = null
