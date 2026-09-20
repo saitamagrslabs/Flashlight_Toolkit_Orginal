@@ -127,10 +127,12 @@ class HomeFragment : BaseAdFragment() {
         // Initialize flashlight
         val flashlightController = FlashlightManager.getInstance(requireContext())
 
-         flashlightStateListener = { isOn ->
+        flashlightStateListener = { _ ->
             if (isAdded) {
-                requireActivity().runOnUiThread {
-                    updateUI()
+                handler.post {
+                    if (isAdded && _binding != null) {
+                        updateUI()
+                    }
                 }
             }
         }
@@ -192,7 +194,8 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun runFlashlightAction(action: () -> Unit) {
-        if (TimerFragment.isTimerRunningInBackground) {
+        val timerManager = TimerManager(requireContext())
+        if (timerManager.isTimerRunning()) {
             showTimerInterferenceWarning()
             return
         }
@@ -447,8 +450,8 @@ class HomeFragment : BaseAdFragment() {
 
 
     private fun stopAllPatterns(turnOffFlash: Boolean = true) {
-        handler.removeCallbacks(strobeRunnable ?: Runnable {})
-        handler.removeCallbacks(sosRunnable ?: Runnable {})
+        strobeRunnable?.let { handler.removeCallbacks(it) }
+        sosRunnable?.let { handler.removeCallbacks(it) }
         strobeRunnable = null
         sosRunnable = null
 
@@ -535,32 +538,11 @@ class HomeFragment : BaseAdFragment() {
     private fun stopListeningForClaps() {
         clapDetector?.stopListening()
     }
-    // Also check before using flashlight in other features
-    private fun useFlashlightInOtherFeature() {
-        if (TimerFragment.isTimerRunningInBackground) {
-            showTimerInterferenceWarning()
-            return
-        }
-
-        // Proceed with using flashlight
-        // Your flashlight code here...
-    }
 
     private fun stopRunningTimer() {
         // Stop the running timer
         val timerManager = TimerManager(requireContext())
         timerManager.stopTimer()
-
-        // Reset the state
-        TimerFragment.isTimerRunningInBackground = false
-        TimerFragment.isLockModeActive = false
-        // Reset SharedPreferences
-        val prefs = requireContext().getSharedPreferences("timer_prefs", Context.MODE_PRIVATE)
-        prefs.edit().apply {
-            putBoolean("timer_running", false)
-            putBoolean("lock_mode_enabled", false)
-            apply()
-        }
 
         // Ensure flashlight is off
         try {
@@ -628,7 +610,8 @@ class HomeFragment : BaseAdFragment() {
         checkNotificationPermission()
 
         // Check if timer is running from other features
-        if (TimerFragment.isTimerRunningInBackground) {
+        val timerManager = TimerManager(requireContext())
+        if (timerManager.isTimerRunning()) {
             showTimerInterferenceWarning()
         }
 
@@ -697,20 +680,21 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun checkNotificationPermission() {
+        if (!isAdded) return
+        val context = context ?: return
         val isEnabled = isNotificationServiceEnabled()
-        val sharedPrefs = requireContext().getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        val sharedPrefs = context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
         val prefEnabled = sharedPrefs.getBoolean(AppConstants.KEY_NOTIFICATION_SWITCH, false)
 
-        requireActivity().runOnUiThread {
-            // Update switch state based on actual permission
-            binding.notificationSwitch.isChecked = isEnabled && prefEnabled
+        val currentBinding = _binding ?: return
+        // Update switch state based on actual permission
+        currentBinding.notificationSwitch.isChecked = isEnabled && prefEnabled
 
-            if (prefEnabled && !isEnabled) {
-                // User wants it enabled but permission not granted
-                showPermissionReminder()
-            } else if (isEnabled && prefEnabled) {
-               // Toast.makeText(requireContext(), "Notification alerts ready", Toast.LENGTH_SHORT).show()
-            }
+        if (prefEnabled && !isEnabled) {
+            // User wants it enabled but permission not granted
+            showPermissionReminder()
+        } else if (isEnabled && prefEnabled) {
+           // Toast.makeText(requireContext(), "Notification alerts ready", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -718,8 +702,7 @@ class HomeFragment : BaseAdFragment() {
     private val notificationPermissionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == NotificationAlertService.ACTION_NOTIFICATION_ACCESS_CHANGED) {
-                // Update UI when permission is granted
-                requireActivity().runOnUiThread {
+                if (isAdded) {
                     checkNotificationPermission()
                 }
             }

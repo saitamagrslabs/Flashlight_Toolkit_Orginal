@@ -46,6 +46,9 @@ class TimerManager(private val context: Context) {
             }
             context.startService(serviceIntent)
 
+            // Reset lock mode state in preferences to prevent stale lock mode
+            resetLockModeState()
+
             Log.d("TimerManager", "Stop command sent to foreground service")
 
         } catch (e: Exception) {
@@ -54,11 +57,20 @@ class TimerManager(private val context: Context) {
     }
 
     fun isTimerRunning(): Boolean {
-        // You can check service state if needed
-        return false
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(PREF_KEY_TIMER_RUNNING, false)
+    }
+
+    private fun resetLockModeState() {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(PREF_KEY_LOCK_MODE_ENABLED, false).apply()
     }
 
     companion object {
+        private const val PREFS_NAME = "timer_prefs"
+        private const val PREF_KEY_TIMER_RUNNING = "timer_running"
+        private const val PREF_KEY_LOCK_MODE_ENABLED = "lock_mode_enabled"
+
         val presetDurations = listOf(
             TimerPreset(1, "1 mins", "Quick test"),
             TimerPreset(5, "5 mins", "Quick use"),
