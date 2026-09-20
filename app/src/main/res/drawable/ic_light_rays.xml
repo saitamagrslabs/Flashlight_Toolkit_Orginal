@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="300dp"
+    android:height="300dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Group of rays, rotated to create a full circle -->
+    <group android:rotation="0" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="15" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="30" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="45" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="60" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="75" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="90" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="105" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="120" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="135" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="150" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="165" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="180" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="195" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="210" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="225" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="240" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="255" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="270" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="285" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="300" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="315" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="330" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+    <group android:rotation="345" android:pivotX="50" android:pivotY="50">
+        <path android:pathData="M50,50 L0,0" android:strokeColor="#44FFFFFF" android:strokeWidth="0.5"/>
+    </group>
+</vector>

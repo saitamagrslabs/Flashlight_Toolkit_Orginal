@@ -1,0 +1,35 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.FlashNow" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Set the custom toolbar style to be used by default -->
+        <item name="toolbarStyle">@style/App.Toolbar</item>
+        
+        <!-- Set the status bar color to match the toolbar -->
+        <item name="android:statusBarColor">#FF0F0F17</item>
+
+        <!-- Ensure status bar text and icons are light -->
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+
+        <!-- Use the correct theme attribute for MaterialToolbar's popup -->
+        <item name="popupTheme">@style/App.PopupMenuTheme</item>
+    </style>
+
+    <style name="Theme.FlashNow" parent="Base.Theme.FlashNow" />
+
+    <!-- 1. Custom WIDGET style for the Toolbar's layout -->
+    <style name="App.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">#FF0F0F17</item>
+    </style>
+
+    <!-- 2. Custom THEME OVERLAY for the Toolbar's colors -->
+    <style name="App.Toolbar.Theme" parent="ThemeOverlay.Material3.Toolbar.Surface">
+        <item name="colorControlNormal">@color/accent_blue</item> <!-- This controls the color of the overflow icon -->
+        <item name="titleTextColor">@color/accent_blue</item>
+    </style>
+
+    <!-- A Theme Overlay for the Popup Menu -->
+    <style name="App.PopupMenuTheme" parent="ThemeOverlay.Material3.Dark">
+        <item name="colorSurface">#FF0F0F17</item>
+    </style>
+
+</resources>

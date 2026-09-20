@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Flashlight Toolkit</string>
+    <string name="toggle_flash">Toggle Flash</string>
+    <string name="test_banner_ad">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="home_screen_banner_ad">ca-app-pub-6408632516283961/2020439194</string>
+    <string name="morse_screen_banner_ad">ca-app-pub-6408632516283961/9072932701</string>
+    <string name="screen_light_banner_ad">ca-app-pub-6408632516283961/1274333738</string>
+    <string name="timer_screen_banner_ad">ca-app-pub-6408632516283961/3684874656</string>
+</resources>
