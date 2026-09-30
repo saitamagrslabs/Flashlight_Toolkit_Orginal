@@ -1,7 +1,13 @@
 package com.saitamagrs.flashnow.fragments
 
+import android.annotation.SuppressLint
+import android.graphics.Color
+import android.graphics.PorterDuff
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -10,13 +16,32 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.saitamagrs.flashnow.R
+import com.saitamagrs.flashnow.databinding.DialogSelectBulbTypeBinding
 import com.saitamagrs.flashnow.databinding.FragmentLightBulbBinding
+import com.saitamagrs.flashnow.lightbulb.BulbType
+import com.saitamagrs.flashnow.lightbulb.LightBulbState
+import kotlin.math.abs
 
 class LightBulbFragment : Fragment() {
 
+    private enum class GestureMode {
+        NONE,
+        VERTICAL,
+        HORIZONTAL
+    }
+
     private var _binding: FragmentLightBulbBinding? = null
     private val binding get() = _binding!!
+
+    private var state = LightBulbState()
+    private var originalBrightness: Float = -1.0f
+
+    private val hideHudHandler = Handler(Looper.getMainLooper())
+    private val hideHudRunnable = Runnable {
+        _binding?.tvBrightnessHud?.visibility = View.GONE
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,51 +52,284 @@ class LightBulbFragment : Fragment() {
         return binding.root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        setupUI()
+        setupDualGestureListener()
+        updateRenderState()
+    }
+
+    private fun setupUI() {
+        binding.btnBackLightBulb.setOnClickListener {
+            activity?.onBackPressedDispatcher?.onBackPressed()
+        }
+
+        binding.btnSelectBulbType.setOnClickListener {
+            showBulbTypeSelectionDialog()
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupDualGestureListener() {
+        var startY = 0f
+        var startX = 0f
+        var initialBrightness = 100
+        var gestureMode = GestureMode.NONE
+
+        binding.containerLightDisplay.setOnTouchListener { view, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    startY = event.rawY
+                    startX = event.rawX
+                    initialBrightness = state.brightnessPercent
+                    gestureMode = GestureMode.NONE
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.rawX - startX
+                    val deltaY = startY - event.rawY // positive when dragging UP
+
+                    // Determine gesture orientation lock mode if not locked yet
+                    if (gestureMode == GestureMode.NONE) {
+                        val absX = abs(deltaX)
+                        val absY = abs(deltaY)
+                        if (absX > 30f || absY > 30f) {
+                            gestureMode = if (absX > absY * 1.25f) {
+                                GestureMode.HORIZONTAL
+                            } else {
+                                GestureMode.VERTICAL
+                            }
+                        }
+                    }
+
+                    when (gestureMode) {
+                        GestureMode.VERTICAL -> {
+                            // Vertical Drag: Adjust Brightness (0% -> 100%)
+                            val viewHeight = view.height.coerceAtLeast(1)
+                            val brightnessChange = ((deltaY / viewHeight) * 100).toInt()
+                            val newBrightness = (initialBrightness + brightnessChange).coerceIn(0, 100)
+
+                            if (newBrightness != state.brightnessPercent) {
+                                state = state.copyWithBrightness(newBrightness)
+                                updateRenderState()
+                            }
+
+                            // Show Brightness HUD
+                            hideHudHandler.removeCallbacks(hideHudRunnable)
+                            binding.tvBrightnessHud.text = "${state.brightnessPercent}%"
+                            binding.tvBrightnessHud.visibility = View.VISIBLE
+                        }
+                        GestureMode.HORIZONTAL -> {
+                            // Horizontal Drag: Visual swipe hint indicator
+                            hideHudHandler.removeCallbacks(hideHudRunnable)
+                            binding.tvBrightnessHud.text = if (deltaX < 0) "Next Bulb →" else "← Prev Bulb"
+                            binding.tvBrightnessHud.visibility = View.VISIBLE
+                        }
+                        GestureMode.NONE -> {}
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val totalDeltaX = event.rawX - startX
+
+                    when (gestureMode) {
+                        GestureMode.HORIZONTAL -> {
+                            // Execute Bulb Switch on Horizontal Swipe
+                            if (totalDeltaX < -100f) {
+                                // Swipe LEFT -> Next Bulb
+                                state = state.getNextBulb()
+                                updateRenderState()
+                                showTemporaryHud("‹  ${state.selectedBulb.displayName}  ›")
+                            } else if (totalDeltaX > 100f) {
+                                // Swipe RIGHT -> Previous Bulb
+                                state = state.getPreviousBulb()
+                                updateRenderState()
+                                showTemporaryHud("‹  ${state.selectedBulb.displayName}  ›")
+                            } else {
+                                hideHudHandler.postDelayed(hideHudRunnable, 300)
+                            }
+                        }
+                        GestureMode.VERTICAL -> {
+                            hideHudHandler.postDelayed(hideHudRunnable, 800)
+                        }
+                        GestureMode.NONE -> {
+                            // Single tap toggles light power ON/OFF
+                            state = state.copyWithPower(!state.isLit)
+                            updateRenderState()
+                        }
+                    }
+                    gestureMode = GestureMode.NONE
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun showTemporaryHud(text: String) {
+        hideHudHandler.removeCallbacks(hideHudRunnable)
+        binding.tvBrightnessHud.text = text
+        binding.tvBrightnessHud.visibility = View.VISIBLE
+        hideHudHandler.postDelayed(hideHudRunnable, 1000)
+    }
+
+    private fun showBulbTypeSelectionDialog() {
+        val context = context ?: return
+        val dialog = BottomSheetDialog(context)
+        val dialogBinding = DialogSelectBulbTypeBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+
+        // Highlight currently selected checkmark
+        dialogBinding.checkBulbStandard.visibility = if (state.selectedBulb.type == BulbType.STANDARD) View.VISIBLE else View.GONE
+        dialogBinding.checkBulbTube.visibility = if (state.selectedBulb.type == BulbType.TUBE_LIGHT) View.VISIBLE else View.GONE
+        dialogBinding.checkBulbSpotlight.visibility = if (state.selectedBulb.type == BulbType.SPOTLIGHT) View.VISIBLE else View.GONE
+        dialogBinding.checkBulbTorch.visibility = if (state.selectedBulb.type == BulbType.TORCH) View.VISIBLE else View.GONE
+        dialogBinding.checkBulbEdison.visibility = if (state.selectedBulb.type == BulbType.EDISON) View.VISIBLE else View.GONE
+        dialogBinding.checkBulbSmart.visibility = if (state.selectedBulb.type == BulbType.SMART) View.VISIBLE else View.GONE
+        dialogBinding.checkBulbCandle.visibility = if (state.selectedBulb.type == BulbType.CANDLE) View.VISIBLE else View.GONE
+
+        val selectType: (BulbType) -> Unit = { selectedType ->
+            state = state.copyWithBulb(selectedType)
+            updateRenderState()
+            dialog.dismiss()
+        }
+
+        dialogBinding.itemBulbStandard.setOnClickListener { selectType(BulbType.STANDARD) }
+        dialogBinding.itemBulbTube.setOnClickListener { selectType(BulbType.TUBE_LIGHT) }
+        dialogBinding.itemBulbSpotlight.setOnClickListener { selectType(BulbType.SPOTLIGHT) }
+        dialogBinding.itemBulbTorch.setOnClickListener { selectType(BulbType.TORCH) }
+        dialogBinding.itemBulbEdison.setOnClickListener { selectType(BulbType.EDISON) }
+        dialogBinding.itemBulbSmart.setOnClickListener { selectType(BulbType.SMART) }
+        dialogBinding.itemBulbCandle.setOnClickListener { selectType(BulbType.CANDLE) }
+
+        dialog.show()
+    }
+
+    private fun updateRenderState() {
+        if (_binding == null) return
+
+        val bulb = state.selectedBulb
+        val isLit = state.isLit
+        val brightness = state.brightnessPercent
+
+        // 1. Load Transparent Light Source Illustration
+        binding.ivBulbIllustration.setImageResource(bulb.illustrationResId)
+        binding.tvOverlayBulbName.text = bulb.displayName
+
+        // 2. Hide ALL Type-Specific Illumination Views
+        hideAllIlluminationGlows()
+
+        // 3. Render 100% High-Brightness White Illumination for ALL Bulbs when LIT (Matching Tube Light)
+        if (isLit) {
+            val baseAlpha = (brightness / 100f).coerceIn(0.0f, 1.0f)
+
+            val activeGlowView = when (bulb.type) {
+                BulbType.STANDARD -> binding.viewGlowBroad
+                BulbType.TUBE_LIGHT -> binding.viewGlowLinear
+                BulbType.SPOTLIGHT -> binding.viewGlowCone
+                BulbType.TORCH -> binding.viewGlowNarrow
+                BulbType.EDISON -> binding.viewGlowEdison
+                BulbType.SMART -> binding.viewGlowSmart
+                BulbType.CANDLE -> binding.viewGlowCandle
+            }
+
+            activeGlowView.visibility = if (brightness > 0) View.VISIBLE else View.INVISIBLE
+            activeGlowView.alpha = baseAlpha
+
+            // Display transparent PNG image in full crisp detail over high-brightness white background
+            binding.ivBulbIllustration.clearColorFilter()
+            binding.ivBulbIllustration.alpha = 1.0f
+
+            binding.tvOverlayHint.text = if (brightness > 0) "Swipe ↕ brightness ($brightness%) • ↔ change bulb" else "Swipe up to increase brightness"
+        } else {
+            // Darken view when OFF
+            binding.ivBulbIllustration.setColorFilter(Color.parseColor("#90000000"), PorterDuff.Mode.MULTIPLY)
+            binding.ivBulbIllustration.alpha = 0.35f
+            binding.tvOverlayHint.text = "Tap screen to turn ON"
+        }
+
+        // 4. Update Window Screen Brightness
+        applyScreenBrightness()
+    }
+
+    private fun hideAllIlluminationGlows() {
+        binding.viewGlowBroad.visibility = View.GONE
+        binding.viewGlowLinear.visibility = View.GONE
+        binding.viewGlowCone.visibility = View.GONE
+        binding.viewGlowNarrow.visibility = View.GONE
+        binding.viewGlowEdison.visibility = View.GONE
+        binding.viewGlowSmart.visibility = View.GONE
+        binding.viewGlowCandle.visibility = View.GONE
+    }
+
+    private fun applyScreenBrightness() {
+        val activity = activity ?: return
+        val layoutParams = activity.window.attributes
+
+        if (state.isLit) {
+            val brightnessFloat = (state.brightnessPercent / 100f).coerceIn(0.05f, 1.0f)
+            layoutParams.screenBrightness = brightnessFloat
+        } else {
+            layoutParams.screenBrightness = 0.01f
+        }
+
+        activity.window.attributes = layoutParams
+    }
+
     override fun onResume() {
         super.onResume()
-        // Hide the system UI for an immersive experience
         hideSystemUI()
-        
-        // Set screen brightness to full for the light bulb effect
-        val layoutParams = requireActivity().window.attributes
-        layoutParams.screenBrightness = 1.0f
-        requireActivity().window.attributes = layoutParams
+
+        // Capture original screen brightness
+        activity?.window?.attributes?.let {
+            originalBrightness = it.screenBrightness
+        }
+
+        // Keep screen on while fragment active
+        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        applyScreenBrightness()
     }
 
     override fun onPause() {
         super.onPause()
-        // Restore the system UI when leaving the fragment
         showSystemUI()
-        
-        // Reset screen brightness to system default when leaving
-        val layoutParams = requireActivity().window.attributes
-        layoutParams.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-        requireActivity().window.attributes = layoutParams
+
+        // Clear KEEP_SCREEN_ON flag
+        activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // Restore original screen brightness safely
+        activity?.window?.attributes?.let { layoutParams ->
+            if (originalBrightness < 0) {
+                layoutParams.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            } else {
+                layoutParams.screenBrightness = originalBrightness
+            }
+            activity?.window?.attributes = layoutParams
+        }
     }
 
     private fun hideSystemUI() {
-        // Hide the toolbar in the main activity
         activity?.findViewById<Toolbar>(R.id.toolbar)?.visibility = View.GONE
 
-        // Hide the status and navigation bars for a truly immersive experience
-        val window = requireActivity().window
+        val window = activity?.window ?: return
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
         insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        insetsController.hide(WindowInsetsCompat.Type.systemBars()) // This hides both status and navigation bars
+        insetsController.hide(WindowInsetsCompat.Type.systemBars())
     }
 
     private fun showSystemUI() {
-        // Show the toolbar in the main activity
         activity?.findViewById<Toolbar>(R.id.toolbar)?.visibility = View.VISIBLE
 
-        // Show the status and navigation bars
-        val window = requireActivity().window
+        val window = activity?.window ?: return
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-        insetsController.show(WindowInsetsCompat.Type.systemBars()) // This shows both status and navigation bars
+        insetsController.show(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        hideHudHandler.removeCallbacksAndMessages(null)
         _binding = null
     }
 }

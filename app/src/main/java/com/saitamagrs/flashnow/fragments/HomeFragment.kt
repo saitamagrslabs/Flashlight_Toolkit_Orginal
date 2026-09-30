@@ -79,6 +79,10 @@ class HomeFragment : BaseAdFragment() {
     private val requestCameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
+        if (!isAdded || _binding == null || isDetached) {
+            pendingFlashlightAction = null
+            return@registerForActivityResult
+        }
         if (isGranted) {
             pendingFlashlightAction?.invoke()
         } else {
@@ -94,6 +98,7 @@ class HomeFragment : BaseAdFragment() {
     private val requestAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
+        if (!isAdded || _binding == null || isDetached) return@registerForActivityResult
         if (isGranted) {
             startListeningForClaps()
         } else {
@@ -422,6 +427,7 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun openScreenLight() {
+        if (!isAdded || isDetached || _binding == null) return
         if (isNavigating) return // GUARD
         isNavigating = true
         stopAllPatterns(true)
@@ -433,16 +439,19 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun openLightBulbScreen() {
+        if (!isAdded || isDetached || _binding == null) return
         if (isNavigating) return // GUARD
         isNavigating = true
         stopAllPatterns(true)
         parentFragmentManager.beginTransaction()
+            .setCustomAnimations(R.anim.slide_in_left, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_left)
             .replace(R.id.fragment_container, LightBulbFragment())
             .addToBackStack(null)
             .commit()
     }
 
     private fun openMorseCodeFragment() {
+        if (!isAdded || isDetached || _binding == null) return
         if (isNavigating) return // GUARD
         isNavigating = true
         stopAllPatterns(true)
@@ -454,6 +463,7 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun openTimerFragment() {
+        if (!isAdded || isDetached || _binding == null) return
         if (isNavigating) return // GUARD
         isNavigating = true
         stopAllPatterns(false)
@@ -497,9 +507,10 @@ class HomeFragment : BaseAdFragment() {
             var strobeState = true
             override fun run() {
                 if (viewModel.strobeActive.value != true) return
+                val currentContext = context ?: return
 
-                if (strobeState) FlashlightManager.turnOnFlashlight(requireContext())
-                else FlashlightManager.turnOffFlashlight(requireContext())
+                if (strobeState) FlashlightManager.turnOnFlashlight(currentContext)
+                else FlashlightManager.turnOffFlashlight(currentContext)
                 strobeState = !strobeState
                 handler.postDelayed(this, 100)
             }
@@ -520,9 +531,10 @@ class HomeFragment : BaseAdFragment() {
             var isFlashing = true
             override fun run() {
                 if (viewModel.sosActive.value != true) return
+                val currentContext = context ?: return
 
-                if (isFlashing) FlashlightManager.turnOnFlashlight(requireContext())
-                else FlashlightManager.turnOffFlashlight(requireContext())
+                if (isFlashing) FlashlightManager.turnOnFlashlight(currentContext)
+                else FlashlightManager.turnOffFlashlight(currentContext)
                 isFlashing = !isFlashing
                 val delay = sosPattern[index]
                 index = (index + 1) % sosPattern.size
@@ -534,6 +546,7 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun startListeningForClaps() {
+        if (!isAdded || _binding == null || isDetached) return
         if (clapDetector?.isListening == true) return
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.w("HomeFragment", "Cannot start clap detection: Permission not granted")
@@ -581,13 +594,6 @@ class HomeFragment : BaseAdFragment() {
         // Show message
         Toast.makeText(requireContext(), "Timer stopped", Toast.LENGTH_SHORT).show()
     }
-    private fun navigateToTimerFragment() {
-        val timerFragment = TimerFragment()
-        requireActivity().supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, timerFragment)
-            .addToBackStack("timer")
-            .commit()
-    }
     private fun showTimerInterferenceWarning() {
         // Check if dialog is already showing to prevent duplicates
         if (timerWarningDialog?.isShowing == true) return
@@ -603,7 +609,7 @@ class HomeFragment : BaseAdFragment() {
             }
             .setNegativeButton("Go to Timer") { _, _ ->
                 // Go back to timer fragment
-                navigateToTimerFragment()
+                openTimerFragment()
                 timerWarningDialog = null
             }
             .setCancelable(false)
@@ -737,7 +743,7 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun showNotificationPermissionDialog() {
-        if (!isAdded || isDetached) return
+        if (!isAdded || !isResumed || isDetached) return
         val currentContext = context ?: return
         if (notificationPermissionDialog?.isShowing == true) return
 

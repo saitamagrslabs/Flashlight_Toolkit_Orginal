@@ -1,7 +1,163 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/bulb_image"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/light_bulb_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:src="@drawable/image_bulb_background"
-    android:scaleType="centerCrop" />
+    android:background="#FF090A0F">
+
+    <!-- FULL SCREEN HIGH-INTENSITY BRIGHT LIGHT DISPLAY CONTAINER -->
+    <FrameLayout
+        android:id="@+id/container_light_display"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 1. BROAD Illumination Full-Screen High-Brightness White Glow (Standard Bulb) -->
+        <View
+            android:id="@+id/view_glow_broad"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_light_broad_standard"
+            android:visibility="gone" />
+
+        <!-- 2. LINEAR Illumination Full-Screen High-Brightness White Wash (Tube Light) -->
+        <View
+            android:id="@+id/view_glow_linear"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_light_linear_tube"
+            android:visibility="gone" />
+
+        <!-- 3. DIRECTIONAL Full-Screen High-Brightness White Glow (Spotlight) -->
+        <View
+            android:id="@+id/view_glow_cone"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_light_cone_spotlight"
+            android:visibility="gone" />
+
+        <!-- 4. CONCENTRATED Full-Screen High-Brightness White Glow (Torch Bulb) -->
+        <View
+            android:id="@+id/view_glow_narrow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_light_narrow_torch"
+            android:visibility="gone" />
+
+        <!-- 5. DECORATIVE Full-Screen High-Brightness Soft White Glow (Edison Bulb) -->
+        <View
+            android:id="@+id/view_glow_edison"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_light_filament_edison"
+            android:visibility="gone" />
+
+        <!-- 6. DIFFUSED Full-Screen High-Brightness Soft White Glow (Smart Bulb) -->
+        <View
+            android:id="@+id/view_glow_smart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_light_diffuser_smart"
+            android:visibility="gone" />
+
+        <!-- 7. CANDLE Full-Screen High-Brightness Soft White Glow (Candle Bulb) -->
+        <View
+            android:id="@+id/view_glow_candle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_light_flame_candle"
+            android:visibility="gone" />
+
+        <!-- Full-Screen Transparent Light Source Graphic (Dominant Hero Graphic Touching Screen Edges) -->
+        <ImageView
+            android:id="@+id/iv_bulb_illustration"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:paddingHorizontal="4dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp"
+            android:contentDescription="Selected Light Source Visual"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_bulb_standard" />
+
+    </FrameLayout>
+
+    <!-- Top-Left Floating Overlay Back Button -->
+    <ImageButton
+        android:id="@+id/btn_back_light_bulb"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_overlay_circle"
+        android:contentDescription="Back"
+        android:padding="12dp"
+        android:src="@drawable/ic_back"
+        app:tint="@color/white" />
+
+    <!-- Top-Right Floating Overlay Light Source Type Selector Button -->
+    <ImageButton
+        android:id="@+id/btn_select_bulb_type"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_overlay_circle"
+        android:contentDescription="Select Light Source Type"
+        android:padding="12dp"
+        android:src="@drawable/ic_lightbulb"
+        app:tint="@color/white" />
+
+    <!-- Brightness & Gesture Navigation HUD Popup Text -->
+    <TextView
+        android:id="@+id/tv_brightness_hud"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="@drawable/bg_overlay_pill"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="12dp"
+        android:text="100%"
+        android:textColor="@color/white"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <!-- Bottom Overlay Information & Gesture Indicator Pill -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/bg_overlay_pill"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp">
+
+        <TextView
+            android:id="@+id/tv_overlay_bulb_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Standard Bulb"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_overlay_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Swipe ↕ for brightness • ↔ to change bulb"
+            android:textColor="#B0FFFFFF"
+            android:textSize="11sp" />
+
+    </LinearLayout>
+
+</RelativeLayout>

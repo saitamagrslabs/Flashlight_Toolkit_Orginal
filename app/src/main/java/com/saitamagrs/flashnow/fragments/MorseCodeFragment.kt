@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,25 +13,48 @@ import android.widget.GridLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.setMargins
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.ads.AdView
 import com.google.android.material.card.MaterialCardView
 import com.saitamagrs.flashnow.MainActivity
 import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.databinding.FragmentMorseCodeBinding
+import com.saitamagrs.flashnow.morse.core.MorseCodec
+import com.saitamagrs.flashnow.morse.core.MorseProtocol
+import com.saitamagrs.flashnow.morse.receiver.MorseReceiverEngine
+import com.saitamagrs.flashnow.morse.sender.MorseSenderEngine
 import com.saitamagrs.flashnow.utils.FlashlightController
 import com.saitamagrs.flashnow.utils.MorseCodeManager
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import java.util.concurrent.Executors
 
 class MorseCodeFragment : BaseAdFragment() {
+
+    companion object {
+        private const val TAG = "MorseCodeFragment"
+    }
 
     private var _binding: FragmentMorseCodeBinding? = null
     private val binding get() = _binding!!
     override val adView: AdView? get() = binding.adView
 
     private lateinit var morseCodeManager: MorseCodeManager
+    private lateinit var morseSenderEngine: MorseSenderEngine
+    private lateinit var morseReceiverEngine: MorseReceiverEngine
+
+    private var cameraProvider: ProcessCameraProvider? = null
+    private val cameraExecutor = Executors.newSingleThreadExecutor()
+    private var isReceiverActive = false
+
     private var hasCameraPermission = false
 
     private val requestCameraPermissionLauncher = registerForActivityResult(
@@ -38,7 +62,7 @@ class MorseCodeFragment : BaseAdFragment() {
     ) { isGranted ->
         hasCameraPermission = isGranted
         if (!isGranted) {
-            Toast.makeText(requireContext(), "Camera permission needed for flashlight", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Camera permission required for Morse features", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -60,14 +84,18 @@ class MorseCodeFragment : BaseAdFragment() {
 
         val flashlightController = FlashlightController(requireContext())
         morseCodeManager = MorseCodeManager(flashlightController)
+        morseSenderEngine = MorseSenderEngine(requireContext())
+        morseReceiverEngine = MorseReceiverEngine()
 
-        setupUI()
+        setupModeToggle()
+        setupSenderUI()
+        setupReceiverUI()
+        observeSenderEngine()
+        observeReceiverEngine()
         populateEmergencySignalsGrid()
-        setupStatusListener()
         setupMorsePreview()
 
-        // Initially enable all controls
-        setControlsEnabled(true)
+        (activity as? MainActivity)?.setToolbarTitle("Morse Communicator")
     }
 
     private fun checkCameraPermission() {
@@ -77,61 +105,83 @@ class MorseCodeFragment : BaseAdFragment() {
         }
     }
 
-    private fun setupUI() {
+    private fun setupModeToggle() {
+        binding.toggleModeGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                when (checkedId) {
+                    R.id.btn_mode_sender -> {
+                        stopReceiver()
+                        binding.containerSender.visibility = View.VISIBLE
+                        binding.containerReceiver.visibility = View.GONE
+                    }
+                    R.id.btn_mode_receiver -> {
+                        morseSenderEngine.stopTransmission()
+                        morseCodeManager.stopFlashing()
+                        binding.containerSender.visibility = View.GONE
+                        binding.containerReceiver.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }
+    }
+
+    // ================= SENDER LOGIC =================
+
+    private fun setupSenderUI() {
         binding.btnSendCustom.setOnClickListener {
             if (!hasCameraPermission) {
                 Toast.makeText(requireContext(), "Camera permission required", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            if (morseCodeManager.isFlashing()) return@setOnClickListener // extra safety
+            if (morseSenderEngine.isTransmitting.value) return@setOnClickListener
+
             val message = binding.etCustomMessage.text.toString().trim()
             if (message.isNotEmpty()) {
-                morseCodeManager.flashCustomMessage(message)
+                morseSenderEngine.startTransmission(message)
             } else {
                 Toast.makeText(requireContext(), "Enter a message", Toast.LENGTH_SHORT).show()
             }
         }
 
         binding.btnStop.setOnClickListener {
+            morseSenderEngine.stopTransmission()
             morseCodeManager.stopFlashing()
         }
-
-        (activity as? MainActivity)?.setToolbarTitle("Morse Code")
     }
 
-    private fun setupStatusListener() {
-        morseCodeManager.setOnStatusChangeListener { isFlashing ->
-            requireActivity().runOnUiThread {
-                if (isFlashing) {
-                    binding.tvStatus.text = "Flashing..."
+    private fun observeSenderEngine() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseSenderEngine.isTransmitting.collectLatest { isTransmitting ->
+                if (isTransmitting) {
+                    binding.tvStatus.text = "Transmitting Optical Morse..."
                     binding.ivStatus.setImageResource(R.drawable.ic_power_on)
                     binding.ivStatus.setColorFilter(ContextCompat.getColor(requireContext(), R.color.accent_green))
                     binding.btnStop.visibility = View.VISIBLE
-                    setControlsEnabled(false) // disable start buttons
+                    setSenderControlsEnabled(false)
                 } else {
-                    binding.tvStatus.text = "Ready to transmit"
+                    binding.tvStatus.text = morseSenderEngine.statusText.value
                     binding.ivStatus.setImageResource(R.drawable.ic_power_off)
                     binding.ivStatus.setColorFilter(ContextCompat.getColor(requireContext(), R.color.text_secondary))
                     binding.btnStop.visibility = View.GONE
-                    setControlsEnabled(true) // enable start buttons
+                    setSenderControlsEnabled(true)
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseSenderEngine.statusText.collectLatest { status ->
+                if (!morseSenderEngine.isTransmitting.value) {
+                    binding.tvStatus.text = status
                 }
             }
         }
     }
 
-    /**
-     * Enable or disable all buttons that start a new transmission:
-     * - emergency signal cards (inside grid)
-     * - custom "FLASH MESSAGE" button
-     */
-    private fun setControlsEnabled(enabled: Boolean) {
-        // Emergency signal cards
+    private fun setSenderControlsEnabled(enabled: Boolean) {
         for (i in 0 until binding.gridEmergencySignals.childCount) {
             binding.gridEmergencySignals.getChildAt(i).isEnabled = enabled
         }
-        // Custom message button
         binding.btnSendCustom.isEnabled = enabled
-        // Visual feedback
         binding.btnSendCustom.alpha = if (enabled) 1.0f else 0.5f
     }
 
@@ -142,8 +192,8 @@ class MorseCodeFragment : BaseAdFragment() {
             override fun afterTextChanged(s: Editable?) {
                 val text = s?.toString()?.trim()
                 if (!text.isNullOrEmpty()) {
-                    val morse = morseCodeManager.convertToMorse(text.uppercase())
-                    binding.tvMorsePreview.text = morse
+                    val morse = MorseCodec.encode(text)
+                    binding.tvMorsePreview.text = "Protocol Frame: [Preamble '...'] -> $morse"
                 } else {
                     binding.tvMorsePreview.text = "Morse code will appear here"
                 }
@@ -157,7 +207,6 @@ class MorseCodeFragment : BaseAdFragment() {
 
         for ((signalName, morseCode) in signals) {
             val cardView = LayoutInflater.from(requireContext()).inflate(R.layout.item_emergency_signal, gridLayout, false) as MaterialCardView
-
             val signalNameTextView = cardView.findViewById<TextView>(R.id.tv_signal_name)
             val morseCodeTextView = cardView.findViewById<TextView>(R.id.tv_morse_code)
 
@@ -169,8 +218,7 @@ class MorseCodeFragment : BaseAdFragment() {
                     Toast.makeText(requireContext(), "Camera permission required", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                if (morseCodeManager.isFlashing()) return@setOnClickListener // extra safety
-                flashSignal(signalName)
+                morseSenderEngine.startTransmission(signalName)
             }
 
             val params = GridLayout.LayoutParams().apply {
@@ -184,14 +232,129 @@ class MorseCodeFragment : BaseAdFragment() {
         }
     }
 
-    private fun flashSignal(signalName: String) {
-        morseCodeManager.flashPredefinedSignal(signalName)
-        Toast.makeText(requireContext(), "Flashing: $signalName", Toast.LENGTH_SHORT).show()
+    // ================= RECEIVER LOGIC =================
+
+    private fun setupReceiverUI() {
+        binding.btnToggleReceiver.setOnClickListener {
+            if (!hasCameraPermission) {
+                Toast.makeText(requireContext(), "Camera permission required for Receiver", Toast.LENGTH_SHORT).show()
+                checkCameraPermission()
+                return@setOnClickListener
+            }
+
+            if (isReceiverActive) {
+                stopReceiver()
+            } else {
+                startReceiver()
+            }
+        }
+
+        binding.btnResetReceiver.setOnClickListener {
+            morseReceiverEngine.reset()
+        }
+    }
+
+    private fun startReceiver() {
+        val context = context ?: return
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        cameraProviderFuture.addListener({
+            try {
+                cameraProvider = cameraProviderFuture.get()
+                bindCameraUseCases()
+                isReceiverActive = true
+                binding.btnToggleReceiver.text = "STOP RECEIVER"
+                binding.btnToggleReceiver.setBackgroundColor(ContextCompat.getColor(context, R.color.accent_red))
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start camera provider", e)
+                Toast.makeText(context, "Error initializing camera receiver", Toast.LENGTH_SHORT).show()
+            }
+        }, ContextCompat.getMainExecutor(context))
+    }
+
+    private fun bindCameraUseCases() {
+        val provider = cameraProvider ?: return
+
+        val preview = Preview.Builder().build().also {
+            it.setSurfaceProvider(binding.viewFinderReceiver.surfaceProvider)
+        }
+
+        val imageAnalysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build().also {
+                it.setAnalyzer(cameraExecutor, morseReceiverEngine)
+            }
+
+        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+        try {
+            provider.unbindAll()
+            provider.bindToLifecycle(
+                viewLifecycleOwner,
+                cameraSelector,
+                preview,
+                imageAnalysis
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Camera use case binding failed", e)
+        }
+    }
+
+    private fun stopReceiver() {
+        cameraProvider?.unbindAll()
+        isReceiverActive = false
+        if (_binding != null) {
+            binding.btnToggleReceiver.text = "START RECEIVER"
+            binding.btnToggleReceiver.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.accent_green))
+        }
+    }
+
+    private fun observeReceiverEngine() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseReceiverEngine.rawLuminance.collectLatest { luma ->
+                val thresh = morseReceiverEngine.threshold.value
+                val isLightOn = morseReceiverEngine.isLightOn.value
+                val stateText = if (isLightOn) "LIGHT: ON" else "LIGHT: OFF"
+                binding.tvLumaMetrics.text = String.format("Luma: %.1f | Thresh: %.1f | %s", luma, thresh, stateText)
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseReceiverEngine.preambleDetected.collectLatest { synced ->
+                if (synced) {
+                    binding.tvReceiverSync.text = "Preamble: SYNCED ('...')"
+                    binding.tvReceiverSync.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green))
+                } else {
+                    binding.tvReceiverSync.text = "Waiting for preamble ('...')"
+                    binding.tvReceiverSync.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_red))
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseReceiverEngine.currentSymbols.collectLatest { symbols ->
+                binding.tvDetectedSymbols.text = "Current Symbols: ${symbols.ifEmpty { "-" }}"
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseReceiverEngine.decodedText.collectLatest { decoded ->
+                binding.tvDecodedMessage.text = decoded.ifEmpty { "[Decoded text will appear here]" }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseReceiverEngine.debugLog.collectLatest { debug ->
+                binding.tvReceiverDebug.text = "Debug: $debug"
+            }
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        morseSenderEngine.release()
         morseCodeManager.stopFlashing()
+        stopReceiver()
+        cameraExecutor.shutdown()
         _binding = null
     }
 }
