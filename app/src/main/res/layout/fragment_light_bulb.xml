@@ -4,71 +4,65 @@
     android:id="@+id/light_bulb_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF090A0F">
+    android:background="#FF05070D">
 
-    <!-- FULL SCREEN HIGH-INTENSITY BRIGHT LIGHT DISPLAY CONTAINER -->
+    <!-- FULL SCREEN MULTI-LAYER HYBRID LIGHT ENVIRONMENT CONTAINER -->
     <FrameLayout
         android:id="@+id/container_light_display"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- 1. BROAD Illumination Full-Screen High-Brightness White Glow (Standard Bulb) -->
+        <!-- LAYER E: TYPE-SPECIFIC ENVIRONMENTAL ILLUMINATION BEAM & SPILL LAYERS -->
         <View
-            android:id="@+id/view_glow_broad"
+            android:id="@+id/view_env_standard"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_light_broad_standard"
+            android:background="@drawable/glow_env_standard"
             android:visibility="gone" />
 
-        <!-- 2. LINEAR Illumination Full-Screen High-Brightness White Wash (Tube Light) -->
         <View
-            android:id="@+id/view_glow_linear"
+            android:id="@+id/view_env_tube"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_light_linear_tube"
+            android:background="@drawable/glow_env_tube"
             android:visibility="gone" />
 
-        <!-- 3. DIRECTIONAL Full-Screen High-Brightness White Glow (Spotlight) -->
         <View
-            android:id="@+id/view_glow_cone"
+            android:id="@+id/view_env_spotlight"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_light_cone_spotlight"
+            android:background="@drawable/glow_env_spotlight"
             android:visibility="gone" />
 
-        <!-- 4. CONCENTRATED Full-Screen High-Brightness White Glow (Torch Bulb) -->
         <View
-            android:id="@+id/view_glow_narrow"
+            android:id="@+id/view_env_torch"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_light_narrow_torch"
+            android:background="@drawable/glow_env_torch"
             android:visibility="gone" />
 
-        <!-- 5. DECORATIVE Full-Screen High-Brightness Soft White Glow (Edison Bulb) -->
         <View
-            android:id="@+id/view_glow_edison"
+            android:id="@+id/view_env_edison"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_light_filament_edison"
+            android:background="@drawable/glow_env_edison"
             android:visibility="gone" />
 
-        <!-- 6. DIFFUSED Full-Screen High-Brightness Soft White Glow (Smart Bulb) -->
         <View
-            android:id="@+id/view_glow_smart"
+            android:id="@+id/view_env_smart"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_light_diffuser_smart"
+            android:background="@drawable/glow_env_smart"
             android:visibility="gone" />
 
-        <!-- 7. CANDLE Full-Screen High-Brightness Soft White Glow (Candle Bulb) -->
         <View
-            android:id="@+id/view_glow_candle"
+            android:id="@+id/view_env_candle"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_light_flame_candle"
+            android:background="@drawable/glow_env_candle"
             android:visibility="gone" />
 
-        <!-- Full-Screen Transparent Light Source Graphic (Dominant Hero Graphic Touching Screen Edges) -->
+        <!-- LAYER B: REALISTIC TRANSPARENT LIGHT-SOURCE BODY ASSET -->
         <ImageView
             android:id="@+id/iv_bulb_illustration"
             android:layout_width="match_parent"
@@ -80,6 +74,56 @@
             android:contentDescription="Selected Light Source Visual"
             android:scaleType="fitCenter"
             android:src="@drawable/img_bulb_standard" />
+
+        <!-- LAYER C & D: TYPE-SPECIFIC INTERNAL EMITTER & EMISSION BLOOM LAYERS -->
+        <View
+            android:id="@+id/view_emitter_standard"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/glow_emitter_standard"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/view_emitter_tube"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/glow_emitter_tube"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/view_emitter_spotlight"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/glow_emitter_spotlight"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/view_emitter_torch"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/glow_emitter_torch"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/view_emitter_edison"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/glow_emitter_edison"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/view_emitter_smart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/glow_emitter_smart"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/view_emitter_candle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/glow_emitter_candle"
+            android:visibility="gone" />
 
     </FrameLayout>
 

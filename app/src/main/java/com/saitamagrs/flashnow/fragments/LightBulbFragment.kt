@@ -23,6 +23,7 @@ import com.saitamagrs.flashnow.databinding.FragmentLightBulbBinding
 import com.saitamagrs.flashnow.lightbulb.BulbType
 import com.saitamagrs.flashnow.lightbulb.LightBulbState
 import kotlin.math.abs
+import kotlin.math.pow
 
 class LightBulbFragment : Fragment() {
 
@@ -213,38 +214,55 @@ class LightBulbFragment : Fragment() {
         val isLit = state.isLit
         val brightness = state.brightnessPercent
 
-        // 1. Load Transparent Light Source Illustration
+        // 1. Load Transparent Light Source Illustration Body Asset
         binding.ivBulbIllustration.setImageResource(bulb.illustrationResId)
         binding.tvOverlayBulbName.text = bulb.displayName
 
-        // 2. Hide ALL Type-Specific Illumination Views
+        // 2. Hide ALL Type-Specific Environmental & Internal Emitter Layer Views
         hideAllIlluminationGlows()
 
-        // 3. Render 100% High-Brightness White Illumination for ALL Bulbs when LIT (Matching Tube Light)
+        // 3. Render Multi-Layer Hybrid Asset Simulation when LIT
         if (isLit) {
-            val baseAlpha = (brightness / 100f).coerceIn(0.0f, 1.0f)
+            // Nonlinear natural perception brightness curve: 0-10% dim, 25% low, 50% medium, 75% bright, 100% full
+            val rawRatio = (brightness / 100f).coerceIn(0.0f, 1.0f)
+            val effectiveIntensity = rawRatio.toDouble().pow(1.4).toFloat()
 
-            val activeGlowView = when (bulb.type) {
-                BulbType.STANDARD -> binding.viewGlowBroad
-                BulbType.TUBE_LIGHT -> binding.viewGlowLinear
-                BulbType.SPOTLIGHT -> binding.viewGlowCone
-                BulbType.TORCH -> binding.viewGlowNarrow
-                BulbType.EDISON -> binding.viewGlowEdison
-                BulbType.SMART -> binding.viewGlowSmart
-                BulbType.CANDLE -> binding.viewGlowCandle
+            // Active Type-Specific Environmental Illumination Layer
+            val activeEnvView = when (bulb.type) {
+                BulbType.STANDARD -> binding.viewEnvStandard
+                BulbType.TUBE_LIGHT -> binding.viewEnvTube
+                BulbType.SPOTLIGHT -> binding.viewEnvSpotlight
+                BulbType.TORCH -> binding.viewEnvTorch
+                BulbType.EDISON -> binding.viewEnvEdison
+                BulbType.SMART -> binding.viewEnvSmart
+                BulbType.CANDLE -> binding.viewEnvCandle
             }
 
-            activeGlowView.visibility = if (brightness > 0) View.VISIBLE else View.INVISIBLE
-            activeGlowView.alpha = baseAlpha
+            // Active Type-Specific Internal Emitter Core Layer
+            val activeEmitterView = when (bulb.type) {
+                BulbType.STANDARD -> binding.viewEmitterStandard
+                BulbType.TUBE_LIGHT -> binding.viewEmitterTube
+                BulbType.SPOTLIGHT -> binding.viewEmitterSpotlight
+                BulbType.TORCH -> binding.viewEmitterTorch
+                BulbType.EDISON -> binding.viewEmitterEdison
+                BulbType.SMART -> binding.viewEmitterSmart
+                BulbType.CANDLE -> binding.viewEmitterCandle
+            }
 
-            // Display transparent PNG image in full crisp detail over high-brightness white background
+            activeEnvView.visibility = if (brightness > 0) View.VISIBLE else View.INVISIBLE
+            activeEnvView.alpha = effectiveIntensity
+
+            activeEmitterView.visibility = if (brightness > 0) View.VISIBLE else View.INVISIBLE
+            activeEmitterView.alpha = (effectiveIntensity * 1.15f).coerceIn(0.0f, 1.0f)
+
+            // Display transparent light source body asset in full detail with luminous emission
             binding.ivBulbIllustration.clearColorFilter()
-            binding.ivBulbIllustration.alpha = 1.0f
+            binding.ivBulbIllustration.alpha = 0.5f + (effectiveIntensity * 0.5f)
 
             binding.tvOverlayHint.text = if (brightness > 0) "Swipe ↕ brightness ($brightness%) • ↔ change bulb" else "Swipe up to increase brightness"
         } else {
-            // Darken view when OFF
-            binding.ivBulbIllustration.setColorFilter(Color.parseColor("#90000000"), PorterDuff.Mode.MULTIPLY)
+            // Power OFF State: Visible unlit physical body in dark environment, no environmental illumination
+            binding.ivBulbIllustration.setColorFilter(Color.parseColor("#80151520"), PorterDuff.Mode.MULTIPLY)
             binding.ivBulbIllustration.alpha = 0.35f
             binding.tvOverlayHint.text = "Tap screen to turn ON"
         }
@@ -254,13 +272,21 @@ class LightBulbFragment : Fragment() {
     }
 
     private fun hideAllIlluminationGlows() {
-        binding.viewGlowBroad.visibility = View.GONE
-        binding.viewGlowLinear.visibility = View.GONE
-        binding.viewGlowCone.visibility = View.GONE
-        binding.viewGlowNarrow.visibility = View.GONE
-        binding.viewGlowEdison.visibility = View.GONE
-        binding.viewGlowSmart.visibility = View.GONE
-        binding.viewGlowCandle.visibility = View.GONE
+        binding.viewEnvStandard.visibility = View.GONE
+        binding.viewEnvTube.visibility = View.GONE
+        binding.viewEnvSpotlight.visibility = View.GONE
+        binding.viewEnvTorch.visibility = View.GONE
+        binding.viewEnvEdison.visibility = View.GONE
+        binding.viewEnvSmart.visibility = View.GONE
+        binding.viewEnvCandle.visibility = View.GONE
+
+        binding.viewEmitterStandard.visibility = View.GONE
+        binding.viewEmitterTube.visibility = View.GONE
+        binding.viewEmitterSpotlight.visibility = View.GONE
+        binding.viewEmitterTorch.visibility = View.GONE
+        binding.viewEmitterEdison.visibility = View.GONE
+        binding.viewEmitterSmart.visibility = View.GONE
+        binding.viewEmitterCandle.visibility = View.GONE
     }
 
     private fun applyScreenBrightness() {

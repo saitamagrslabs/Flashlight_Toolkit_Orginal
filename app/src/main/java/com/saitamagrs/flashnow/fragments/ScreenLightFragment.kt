@@ -59,7 +59,7 @@ class ScreenLightFragment : BaseAdFragment() {
             startListeningForClaps()
         } else {
             Toast.makeText(requireContext(), "Permission Denied", Toast.LENGTH_SHORT).show()
-            if(isAdded) binding.clapSwitchScreen.isChecked = false
+            if (isAdded) binding.clapSwitchScreen.isChecked = false
         }
     }
 
@@ -91,6 +91,13 @@ class ScreenLightFragment : BaseAdFragment() {
 
     private fun setupBottomSheet() {
         bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheetLayout)
+
+        // Enforce maximum popup height to 50% of available screen display height
+        val displayMetrics = resources.displayMetrics
+        val maxHalfScreenHeight = (displayMetrics.heightPixels * 0.50).toInt()
+        bottomSheetBehavior.maxHeight = maxHalfScreenHeight
+        bottomSheetBehavior.isFitToContents = true
+
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
         binding.touchSurface.setOnClickListener {
             if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
@@ -180,7 +187,7 @@ class ScreenLightFragment : BaseAdFragment() {
         return container
     }
 
-    private fun changeColor(color: Int,fromUser: Boolean = false) {
+    private fun changeColor(color: Int, fromUser: Boolean = false) {
         currentColor = color
         binding.screenLightRoot.setBackgroundColor(color)
         if (fromUser) {
@@ -191,7 +198,6 @@ class ScreenLightFragment : BaseAdFragment() {
     override fun onResume() {
         super.onResume()
         originalBrightness = requireActivity().window.attributes.screenBrightness
-      //  if brightness is < 0 (system default), treat as 1.0 for seekbar
         val brightnessValue = if (originalBrightness < 0) 1.0f else originalBrightness
         binding.seekbarBrightness.progress = (brightnessValue * 100).toInt()
         hideSystemUI()
@@ -221,7 +227,6 @@ class ScreenLightFragment : BaseAdFragment() {
 
     private fun setScreenBrightness(brightness: Float) {
         val layoutParams = requireActivity().window.attributes
-        // A brightness < 0 is the system default. Otherwise, it's a manual value.
         if (brightness < 0) {
             layoutParams.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
         } else {
@@ -230,36 +235,9 @@ class ScreenLightFragment : BaseAdFragment() {
         requireActivity().window.attributes = layoutParams
     }
 
-    /*private fun hideSystemUI() {
-        requireActivity().runOnUiThread {
-            // Force hide the toolbar
-            val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-            toolbar?.visibility = View.GONE
-
-            // Hide system bars
-            val window = requireActivity().window
-            val decorView = window.decorView
-
-            decorView.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_FULLSCREEN
-                    )
-        }
-
-
-        val window = requireActivity().window
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-    }*/
-
     private fun hideSystemUI() {
         requireActivity().runOnUiThread {
-            val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+            val toolbar = requireActivity().findViewById<Toolbar>(R.id.toolbar)
             toolbar?.visibility = View.GONE
 
             val window = requireActivity().window
@@ -331,7 +309,7 @@ class ScreenLightFragment : BaseAdFragment() {
         activePattern = ScreenPattern.NONE
         currentPatternRunnable?.let { handler.removeCallbacks(it) }
         currentPatternRunnable = null
-        changeColor(currentColor,fromUser = true)
+        changeColor(currentColor, fromUser = true)
         updatePatternButtonsUI() 
     }
 
@@ -377,7 +355,8 @@ class ScreenLightFragment : BaseAdFragment() {
         currentPatternRunnable = object : Runnable { 
             override fun run() {
                 if (isScreenOn) {
-                binding.screenLightRoot.setBackgroundColor(if (isWhite) Color.WHITE else Color.BLACK) }
+                    binding.screenLightRoot.setBackgroundColor(if (isWhite) Color.WHITE else Color.BLACK)
+                }
                 isWhite = !isWhite
                 handler.postDelayed(this, 100) 
             } 
@@ -397,11 +376,12 @@ class ScreenLightFragment : BaseAdFragment() {
                 val green = (Color.green(baseColor) + flicker).coerceIn(80, 180)
                 val blue = (Color.blue(baseColor) + flicker / 2).coerceIn(0, 50)
                 if (isScreenOn) {
-                changeColor(Color.rgb(red, green, blue)) }
+                    changeColor(Color.rgb(red, green, blue))
+                }
                 handler.postDelayed(this, (100 + Math.random() * 200).toLong()) 
             } 
         }
-        handler.post(currentPatternRunnable!!); 
+        handler.post(currentPatternRunnable!!)
         updatePatternButtonsUI() 
     }
 }
