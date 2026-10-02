@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF0F0F17">
+    android:background="@color/fn_bg_dark">
 
     <!-- AdView at the bottom -->
     <com.google.android.gms.ads.AdView
@@ -23,7 +23,8 @@
         android:id="@+id/scroll_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:padding="8dp"
+        android:overScrollMode="never"
+        android:scrollbars="none"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/adView"
         app:layout_constraintStart_toStartOf="parent"
@@ -32,62 +33,71 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/main_content_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="24dp">
 
-            <!-- Status Indicator -->
+            <!-- Hero Status Badge -->
             <TextView
                 android:id="@+id/tv_status_indicator"
+                style="@style/FlashNow.Text.Caption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_pill"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="4dp"
                 android:text="READY"
-                android:textColor="#FF00D4FF"
-                android:textSize="16sp"
+                android:textColor="@color/fn_primary_blue"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                app:layout_constraintEnd_toEndOf="parent" />
 
             <TextView
                 android:id="@+id/tv_flash_status"
+                style="@style/FlashNow.Text.BodyMedium"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="6dp"
                 android:text="Tap to Turn On"
-                android:textColor="#A9A9A9"
+                android:textColor="@color/fn_text_secondary"
                 app:layout_constraintTop_toBottomOf="@id/tv_status_indicator"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
-                
+                app:layout_constraintEnd_toEndOf="parent" />
+
             <!-- No Flashlight Warning (Initially Hidden) -->
             <TextView
                 android:id="@+id/tv_no_flashlight_warning"
+                style="@style/FlashNow.Text.BodyLarge"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="32dp"
-                android:background="@drawable/bg_button_sos"
+                android:layout_margin="16dp"
+                android:background="@drawable/fn_bg_card_elevated"
                 android:gravity="center"
                 android:padding="16dp"
                 android:text="Flashlight hardware not detected.\nSome features have been disabled.\nYou can still use Screen Light."
-                android:textColor="@color/white"
-                android:textSize="16sp"
+                android:textColor="@color/fn_accent_red"
+                android:textSize="14sp"
                 android:visibility="gone"
                 app:layout_constraintTop_toBottomOf="@id/tv_flash_status"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:visibility="visible" />
 
-            <!-- Main Flashlight Toggle -->
+            <!-- Main Flashlight Hero Toggle -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_flash_toggle"
                 android:layout_width="160dp"
                 android:layout_height="160dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="20dp"
                 android:clickable="true"
+                android:contentDescription="Toggle main flashlight"
                 android:focusable="true"
+                app:cardBackgroundColor="@android:color/transparent"
                 app:cardCornerRadius="80dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="@android:color/transparent"
                 app:layout_constraintTop_toBottomOf="@id/tv_flash_status"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
@@ -103,274 +113,404 @@
                         android:id="@+id/iv_flash_icon"
                         android:layout_width="52dp"
                         android:layout_height="52dp"
+                        android:importantForAccessibility="no"
                         android:src="@drawable/ic_power_off" />
 
                     <TextView
                         android:id="@+id/tv_flash_state"
+                        style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:text="OFF"
-                        android:textColor="#A9A9A9"
+                        android:textColor="@color/fn_text_secondary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- All Feature Buttons -->
+            <!-- Tools Section Header -->
+            <TextView
+                android:id="@+id/tv_tools_section_header"
+                style="@style/FlashNow.Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="TOOLS &amp; UTILITIES"
+                android:textColor="@color/fn_text_tertiary"
+                android:textStyle="bold"
+                app:layout_constraintTop_toBottomOf="@id/card_flash_toggle"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <!-- All Feature Tool Cards -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/btn_sos"
+                style="@style/FlashNow.Card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:clickable="true"
+                android:contentDescription="SOS Emergency Light"
                 android:focusable="true"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardElevation="0dp" >
+                android:foreground="?attr/selectableItemBackground">
+
                 <LinearLayout
-                    android:background="@drawable/selector_button_sos"
-                    android:layout_height="match_parent"
                     android:layout_width="match_parent"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-                    <ImageView
-                        android:layout_height="40dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <FrameLayout
                         android:layout_width="40dp"
-                        android:src="@drawable/ic_sos" />
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_pill">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_sos" />
+                    </FrameLayout>
+
                     <TextView
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
                         android:text="SOS"
-                        android:textColor="@android:color/white" />
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/btn_strobe"
+                style="@style/FlashNow.Card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:clickable="true"
+                android:contentDescription="Strobe Light"
                 android:focusable="true"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardElevation="0dp">
+                android:foreground="?attr/selectableItemBackground">
+
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/selector_button_strobe"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-                    <ImageView
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <FrameLayout
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:src="@drawable/ic_strobe" />
+                        android:background="@drawable/bg_pill">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_strobe" />
+                    </FrameLayout>
+
                     <TextView
+                        style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginStart="10dp"
                         android:text="Strobe"
-                        android:textColor="@android:color/white" />
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/btn_screen_light"
+                style="@style/FlashNow.Card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:clickable="true"
+                android:contentDescription="Screen Light"
                 android:focusable="true"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardElevation="0dp">
+                android:foreground="?attr/selectableItemBackground">
+
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/selector_button_screen_light"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-                    <ImageView
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <FrameLayout
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:src="@drawable/ic_screen_light" />
+                        android:background="@drawable/bg_pill">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_screen_light" />
+                    </FrameLayout>
+
                     <TextView
+                        style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginStart="10dp"
                         android:text="Screen Light"
-                        android:textColor="@android:color/white" />
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/btn_light_bulb"
+                style="@style/FlashNow.Card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:clickable="true"
+                android:contentDescription="Light Bulb Simulation"
                 android:focusable="true"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardElevation="0dp">
+                android:foreground="?attr/selectableItemBackground">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/selector_button_light_bulb"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
 
-                    <ImageView
+                    <FrameLayout
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:src="@drawable/ic_lightbulb" />
+                        android:background="@drawable/bg_pill">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_lightbulb" />
+                    </FrameLayout>
 
                     <TextView
+                        style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginStart="10dp"
                         android:text="Light Bulb"
-                        android:textColor="@android:color/white" />
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/btn_morse_code"
+                style="@style/FlashNow.Card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:clickable="true"
+                android:contentDescription="Morse Code Tools"
                 android:focusable="true"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardElevation="0dp">
+                android:foreground="?attr/selectableItemBackground">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/selector_button_morse"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
 
-                    <ImageView
+                    <FrameLayout
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:src="@drawable/ic_morse_code" />
+                        android:background="@drawable/bg_pill">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_morse_code" />
+                    </FrameLayout>
 
                     <TextView
+                        style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginStart="10dp"
                         android:text="Morse Code"
-                        android:textColor="@android:color/white" />
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-            
+
             <androidx.cardview.widget.CardView
                 android:id="@+id/btn_timer"
+                style="@style/FlashNow.Card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:clickable="true"
+                android:contentDescription="Flashlight Timer"
                 android:focusable="true"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardElevation="0dp">
+                android:foreground="?attr/selectableItemBackground">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/selector_button_timer"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
 
-                    <ImageView
+                    <FrameLayout
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:src="@drawable/ic_timer" />
+                        android:background="@drawable/bg_pill">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_timer" />
+                    </FrameLayout>
 
                     <TextView
+                        style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginStart="10dp"
                         android:text="Timer"
-                        android:textColor="@android:color/white" />
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Flow helper to arrange the grid -->
+            <!-- Flow helper to organize 2-column grid -->
             <androidx.constraintlayout.helper.widget.Flow
                 android:id="@+id/button_flow"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="8dp"
                 app:constraint_referenced_ids="btn_sos,btn_strobe,btn_screen_light,btn_light_bulb,btn_morse_code,btn_timer"
-                app:flow_maxElementsWrap="2"
-                app:flow_wrapMode="chain"
+                app:flow_horizontalGap="10dp"
                 app:flow_horizontalStyle="spread"
-                app:flow_verticalGap="8dp"
-                app:flow_horizontalGap="8dp"
-                app:layout_constraintTop_toBottomOf="@id/card_flash_toggle"
+                app:flow_maxElementsWrap="2"
+                app:flow_verticalGap="10dp"
+                app:flow_wrapMode="chain"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:layout_constraintTop_toBottomOf="@id/tv_tools_section_header" />
 
-            <!-- Features Layout -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/features_layout"
-                android:layout_width="0dp"
+            <!-- Quick Controls Section Header -->
+            <TextView
+                android:id="@+id/tv_quick_controls_header"
+                style="@style/FlashNow.Text.Caption"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:padding="16dp"
-                android:background="@drawable/bg_button_sos"
+                android:text="QUICK CONTROLS"
+                android:textColor="@color/fn_text_tertiary"
+                android:textStyle="bold"
                 app:layout_constraintTop_toBottomOf="@id/button_flow"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <!-- Secondary Features Card -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/features_layout"
+                style="@style/FlashNow.Card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:padding="16dp"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
+                app:layout_constraintTop_toBottomOf="@id/tv_quick_controls_header">
+
+                <!-- Clap Detection Row -->
+                <ImageView
+                    android:id="@+id/iv_clap_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_clap"
+                    app:layout_constraintBottom_toBottomOf="@id/clapSwitch"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/clapSwitch" />
 
                 <TextView
                     android:id="@+id/tv_clap_label"
+                    style="@style/FlashNow.Text.TitleMedium"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
                     android:text="Clap to Toggle Flashlight"
-                    android:textColor="@color/white"
-                    app:layout_constraintTop_toTopOf="@id/clapSwitch"
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="14sp"
                     app:layout_constraintBottom_toBottomOf="@id/clapSwitch"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/clapSwitch"/>
+                    app:layout_constraintEnd_toStartOf="@id/clapSwitch"
+                    app:layout_constraintStart_toEndOf="@id/iv_clap_icon"
+                    app:layout_constraintTop_toTopOf="@id/clapSwitch" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/clapSwitch"
+                    style="@style/FlashNow.Switch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    android:contentDescription="Clap to toggle flashlight switch"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <View
                     android:id="@+id/divider"
                     android:layout_width="0dp"
                     android:layout_height="1dp"
-                    android:background="#40FFFFFF"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="16dp"
-                    app:layout_constraintTop_toBottomOf="@id/clapSwitch"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginBottom="14dp"
+                    android:background="@color/fn_border_subtle"
+                    app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"/>
+                    app:layout_constraintTop_toBottomOf="@id/clapSwitch" />
+
+                <!-- Notification Alerts Row -->
+                <ImageView
+                    android:id="@+id/iv_notification_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_signal"
+                    app:layout_constraintBottom_toBottomOf="@id/notificationSwitch"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/notificationSwitch" />
 
                 <TextView
                     android:id="@+id/tv_notification_label"
+                    style="@style/FlashNow.Text.TitleMedium"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
                     android:text="Notification Alerts"
-                    android:textColor="@color/white"
-                    app:layout_constraintTop_toTopOf="@id/notificationSwitch"
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="14sp"
                     app:layout_constraintBottom_toBottomOf="@id/notificationSwitch"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/notificationSwitch" />
+                    app:layout_constraintEnd_toStartOf="@id/notificationSwitch"
+                    app:layout_constraintStart_toEndOf="@id/iv_notification_icon"
+                    app:layout_constraintTop_toTopOf="@id/notificationSwitch" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/notificationSwitch"
+                    style="@style/FlashNow.Switch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:layout_constraintTop_toBottomOf="@id/divider"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    android:contentDescription="Notification alerts switch"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/divider" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
 

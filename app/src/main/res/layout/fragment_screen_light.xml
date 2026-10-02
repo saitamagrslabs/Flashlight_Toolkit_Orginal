@@ -58,6 +58,7 @@
                 android:paddingVertical="4dp">
 
                 <TextView
+                    android:id="@+id/tv_brightness_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Brightness"
@@ -65,12 +66,25 @@
                     android:textSize="12sp"
                     android:textStyle="bold" />
 
+                <TextView
+                    android:id="@+id/tv_brightness_val"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:minWidth="36dp"
+                    android:gravity="center"
+                    android:contentDescription="Brightness percentage"
+                    android:text="100%"
+                    android:textColor="#AAAAAA"
+                    android:textSize="11sp" />
+
                 <SeekBar
                     android:id="@+id/seekbar_brightness"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="4dp"
+                    android:contentDescription="Adjust Screen Light Brightness"
                     android:max="100"
                     android:progress="100" />
             </LinearLayout>
@@ -110,6 +124,101 @@
                 </HorizontalScrollView>
             </LinearLayout>
 
+            <!-- Speed & Mode Status Section (Compact Horizontal Row) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/bg_bottom_sheet_section"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:id="@+id/tv_mode_status"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Mode: Solid"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/speed_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
+                        android:text="Speed:"
+                        android:textColor="#AAAAAA"
+                        android:textSize="11sp" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/speed_toggle_group"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        app:checkedButton="@id/btn_speed_normal"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_speed_slow"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="28dp"
+                            android:contentDescription="Slow pattern speed"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="38dp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="0dp"
+                            android:text="Slow"
+                            android:textColor="@color/white"
+                            android:textSize="10sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_speed_normal"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="28dp"
+                            android:contentDescription="Normal pattern speed"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="42dp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="0dp"
+                            android:text="Norm"
+                            android:textColor="@color/white"
+                            android:textSize="10sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_speed_fast"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="28dp"
+                            android:contentDescription="Fast pattern speed"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="38dp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="0dp"
+                            android:text="Fast"
+                            android:textColor="@color/white"
+                            android:textSize="10sp" />
+
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+                </LinearLayout>
+            </LinearLayout>
+
             <!-- Patterns Section (2-column compact horizontal grid) -->
             <GridLayout
                 android:layout_width="match_parent"
@@ -124,6 +233,7 @@
                     android:layout_height="44dp"
                     android:layout_columnWeight="1"
                     android:clickable="true"
+                    android:contentDescription="Police pattern"
                     android:focusable="true"
                     app:cardBackgroundColor="@android:color/transparent"
                     app:cardElevation="0dp">
@@ -139,7 +249,7 @@
                         <ImageView
                             android:layout_width="20dp"
                             android:layout_height="20dp"
-                            android:contentDescription="Police Light Pattern"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/ic_police" />
 
                         <TextView
@@ -159,6 +269,7 @@
                     android:layout_height="44dp"
                     android:layout_columnWeight="1"
                     android:clickable="true"
+                    android:contentDescription="Party pattern"
                     android:focusable="true"
                     app:cardBackgroundColor="@android:color/transparent"
                     app:cardElevation="0dp">
@@ -174,7 +285,7 @@
                         <ImageView
                             android:layout_width="20dp"
                             android:layout_height="20dp"
-                            android:contentDescription="Party Light Pattern"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/ic_party" />
 
                         <TextView
@@ -194,6 +305,7 @@
                     android:layout_height="44dp"
                     android:layout_columnWeight="1"
                     android:clickable="true"
+                    android:contentDescription="Strobe pattern"
                     android:focusable="true"
                     app:cardBackgroundColor="@android:color/transparent"
                     app:cardElevation="0dp">
@@ -209,7 +321,7 @@
                         <ImageView
                             android:layout_width="20dp"
                             android:layout_height="20dp"
-                            android:contentDescription="Strobe Light Pattern"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/ic_strobe" />
 
                         <TextView
@@ -229,6 +341,7 @@
                     android:layout_height="44dp"
                     android:layout_columnWeight="1"
                     android:clickable="true"
+                    android:contentDescription="Candle pattern"
                     android:focusable="true"
                     app:cardBackgroundColor="@android:color/transparent"
                     app:cardElevation="0dp">
@@ -244,7 +357,7 @@
                         <ImageView
                             android:layout_width="20dp"
                             android:layout_height="20dp"
-                            android:contentDescription="Candle Light Pattern"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/ic_candle" />
 
                         <TextView
@@ -282,7 +395,8 @@
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/clap_switch_screen"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp" />
+                    android:layout_height="36dp"
+                    android:contentDescription="Clap to toggle screen light" />
             </LinearLayout>
 
             <!-- Compact Modern Back Button -->

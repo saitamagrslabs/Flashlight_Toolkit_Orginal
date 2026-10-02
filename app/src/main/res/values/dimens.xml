@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Legacy Dimensions -->
     <dimen name="color_circle_size">48dp</dimen>
     <dimen name="color_circle_margin">8dp</dimen>
+
+    <!-- ================================================================= -->
+    <!-- FlashNow 4dp Rhythm Spacing Tokens (Phase 6A Foundation)          -->
+    <!-- ================================================================= -->
+    <dimen name="fn_spacing_micro">4dp</dimen>
+    <dimen name="fn_spacing_small">8dp</dimen>
+    <dimen name="fn_spacing_medium">12dp</dimen>
+    <dimen name="fn_spacing_standard">16dp</dimen>
+    <dimen name="fn_spacing_large">24dp</dimen>
+    <dimen name="fn_spacing_xlarge">32dp</dimen>
+
+    <!-- Component Dimension Tokens -->
+    <dimen name="fn_touch_target_min">48dp</dimen>
+    <dimen name="fn_toolbar_height">56dp</dimen>
+    <dimen name="fn_card_corner_radius">16dp</dimen>
+    <dimen name="fn_card_corner_radius_compact">12dp</dimen>
+    <dimen name="fn_button_corner_radius_pill">24dp</dimen>
+    <dimen name="fn_icon_container_size">40dp</dimen>
+    <dimen name="fn_hero_toggle_size">160dp</dimen>
 </resources>

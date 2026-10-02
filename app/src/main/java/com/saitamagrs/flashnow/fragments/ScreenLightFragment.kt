@@ -26,10 +26,10 @@ import com.google.android.gms.ads.AdView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.databinding.FragmentScreenLightBinding
-import com.saitamagrs.flashnow.utils.AppConstants
 import com.saitamagrs.flashnow.utils.ClapDetector
 
 enum class ScreenPattern { NONE, POLICE, PARTY, STROBE, CANDLE }
+enum class PatternSpeed { SLOW, NORMAL, FAST }
 
 class ScreenLightFragment : BaseAdFragment() {
     private var userSelectedColor = Color.WHITE
@@ -43,7 +43,11 @@ class ScreenLightFragment : BaseAdFragment() {
     private var currentColor = Color.WHITE
     private var isScreenOn = true
     private var activePattern = ScreenPattern.NONE
+    private var currentSpeed = PatternSpeed.NORMAL
     private var selectedColorView: View? = null
+
+    // --- Brightness State Separation ---
+    private var screenLightBrightness: Float = 1.0f
     private var originalBrightness: Float = -1.0f
 
     private val handler = Handler(Looper.getMainLooper())
@@ -55,17 +59,30 @@ class ScreenLightFragment : BaseAdFragment() {
     private val requestAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
+        if (_binding == null || !isAdded) return@registerForActivityResult
         if (isGranted) {
             startListeningForClaps()
         } else {
             Toast.makeText(requireContext(), "Permission Denied", Toast.LENGTH_SHORT).show()
-            if (isAdded) binding.clapSwitchScreen.isChecked = false
+            binding.clapSwitchScreen.isChecked = false
         }
     }
 
     private val colors = listOf(
         Color.WHITE, Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW,
         Color.CYAN, Color.MAGENTA, Color.parseColor("#FFA500"), Color.parseColor("#800080")
+    )
+
+    private val colorNames = mapOf(
+        Color.WHITE to "White color",
+        Color.RED to "Red color",
+        Color.BLUE to "Blue color",
+        Color.GREEN to "Green color",
+        Color.YELLOW to "Yellow color",
+        Color.CYAN to "Cyan color",
+        Color.MAGENTA to "Magenta color",
+        Color.parseColor("#FFA500") to "Orange color",
+        Color.parseColor("#800080") to "Purple color"
     )
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -80,6 +97,7 @@ class ScreenLightFragment : BaseAdFragment() {
         setupScreen()
         setupColorPalette()
         setupBrightnessControl()
+        setupSpeedControls()
         setupPatternButtons()
         setupClapSwitch()
         updatePatternButtonsUI()
@@ -92,7 +110,6 @@ class ScreenLightFragment : BaseAdFragment() {
     private fun setupBottomSheet() {
         bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheetLayout)
 
-        // Enforce maximum popup height to 50% of available screen display height
         val displayMetrics = resources.displayMetrics
         val maxHalfScreenHeight = (displayMetrics.heightPixels * 0.50).toInt()
         bottomSheetBehavior.maxHeight = maxHalfScreenHeight
@@ -106,6 +123,33 @@ class ScreenLightFragment : BaseAdFragment() {
                 bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
             }
         }
+    }
+
+    private fun setupSpeedControls() {
+        binding.speedToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                val newSpeed = when (checkedId) {
+                    R.id.btn_speed_slow -> PatternSpeed.SLOW
+                    R.id.btn_speed_fast -> PatternSpeed.FAST
+                    else -> PatternSpeed.NORMAL
+                }
+                if (currentSpeed != newSpeed) {
+                    currentSpeed = newSpeed
+                    updateSpeedButtonsUI()
+                    if (activePattern != ScreenPattern.NONE && isScreenOn) {
+                        restartActivePattern()
+                    }
+                }
+            }
+        }
+        updateSpeedButtonsUI()
+    }
+
+    private fun updateSpeedButtonsUI() {
+        if (_binding == null) return
+        binding.btnSpeedSlow.contentDescription = "Slow pattern speed" + (if (currentSpeed == PatternSpeed.SLOW) ", selected" else "")
+        binding.btnSpeedNormal.contentDescription = "Normal pattern speed" + (if (currentSpeed == PatternSpeed.NORMAL) ", selected" else "")
+        binding.btnSpeedFast.contentDescription = "Fast pattern speed" + (if (currentSpeed == PatternSpeed.FAST) ", selected" else "")
     }
 
     private fun setupClapSwitch() {
@@ -125,7 +169,7 @@ class ScreenLightFragment : BaseAdFragment() {
     private fun startListeningForClaps() {
         if (clapDetector == null) {
             clapDetector = ClapDetector(requireContext().applicationContext) {
-                if (isAdded) {
+                if (_binding != null && isAdded && isResumed) {
                     toggleScreenLight()
                 }
             }
@@ -140,16 +184,24 @@ class ScreenLightFragment : BaseAdFragment() {
     private fun toggleScreenLight() {
         isScreenOn = !isScreenOn
         if (!isScreenOn) {
-            stopAllPatterns() // Stop patterns when off
+            stopPatternRunnable()
+            if (_binding != null) {
+                binding.screenLightRoot.setBackgroundColor(Color.BLACK)
+            }
+        } else {
+            if (activePattern != ScreenPattern.NONE) {
+                restartActivePattern()
+            } else {
+                changeColor(userSelectedColor, fromUser = false)
+            }
         }
-        binding.screenLightRoot.setBackgroundColor(if (isScreenOn) currentColor else Color.BLACK)
     }
 
     private fun setupColorPalette() {
         val colorPalette = binding.colorPalette
         colorPalette.removeAllViews()
-        colors.forEach { color ->
-            val colorView = createColorView(color)
+        colors.forEachIndexed { index, color ->
+            val colorView = createColorView(color, index)
             colorPalette.addView(colorView)
             if (color == currentColor) {
                 colorView.isSelected = true
@@ -158,7 +210,7 @@ class ScreenLightFragment : BaseAdFragment() {
         }
     }
 
-    private fun createColorView(color: Int): View {
+    private fun createColorView(color: Int, index: Int): View {
         val context = requireContext()
         val size = resources.getDimensionPixelSize(R.dimen.color_circle_size)
         val margin = resources.getDimensionPixelSize(R.dimen.color_circle_margin)
@@ -167,6 +219,8 @@ class ScreenLightFragment : BaseAdFragment() {
         val containerParams = FrameLayout.LayoutParams(size, size)
         containerParams.marginEnd = margin
         container.layoutParams = containerParams
+        val pad = (size * 0.10f).toInt().coerceAtLeast(3)
+        container.setPadding(pad, pad, pad, pad)
         container.foreground = ContextCompat.getDrawable(context, R.drawable.bg_color_circle)
 
         val colorCircle = ImageView(context)
@@ -177,70 +231,112 @@ class ScreenLightFragment : BaseAdFragment() {
         colorCircle.background = circleDrawable
         container.addView(colorCircle)
 
+        val baseName = colorNames[color] ?: "Color option ${index + 1}"
+        val isSel = (color == currentColor && activePattern == ScreenPattern.NONE)
+        container.contentDescription = if (isSel) "$baseName, selected" else baseName
+        container.isFocusable = true
+        container.isClickable = true
+
         container.setOnClickListener {
             stopAllPatterns()
-            changeColor(color)
-            selectedColorView?.isSelected = false
-            it.isSelected = true
-            selectedColorView = it
+            changeColor(color, fromUser = true)
+            updateColorSelectionUI(container)
         }
         return container
     }
 
+    private fun updateColorSelectionUI(selectedView: View) {
+        val colorPalette = _binding?.colorPalette ?: return
+        for (i in 0 until colorPalette.childCount) {
+            val child = colorPalette.getChildAt(i)
+            val isTarget = (child == selectedView)
+            child.isSelected = isTarget
+            val color = colors.getOrNull(i)
+            val baseName = colorNames[color] ?: "Color option ${i + 1}"
+            child.contentDescription = if (isTarget) "$baseName, selected" else baseName
+        }
+        selectedColorView = selectedView
+    }
+
     private fun changeColor(color: Int, fromUser: Boolean = false) {
         currentColor = color
-        binding.screenLightRoot.setBackgroundColor(color)
         if (fromUser) {
             userSelectedColor = color
+        }
+        if (_binding != null) {
+            binding.screenLightRoot.setBackgroundColor(if (isScreenOn) currentColor else Color.BLACK)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        originalBrightness = requireActivity().window.attributes.screenBrightness
-        val brightnessValue = if (originalBrightness < 0) 1.0f else originalBrightness
-        binding.seekbarBrightness.progress = (brightnessValue * 100).toInt()
+
+        // Capture system/window brightness on first entry
+        if (originalBrightness < 0) {
+            originalBrightness = requireActivity().window.attributes.screenBrightness
+        }
+
+        // Restore screen light brightness and sync seekbar and percentage text
+        val progressVal = (screenLightBrightness * 100).toInt()
+        _binding?.seekbarBrightness?.progress = progressVal
+        _binding?.tvBrightnessVal?.text = "${progressVal}%"
         hideSystemUI()
-        setScreenBrightness(1.0f)
+        setScreenBrightness(screenLightBrightness)
+
+        // Safely restart active pattern if screen is ON
+        if (activePattern != ScreenPattern.NONE && isScreenOn) {
+            restartActivePattern()
+        }
     }
 
     override fun onPause() {
         super.onPause()
         showSystemUI()
+
+        // Stop pattern Runnables so callbacks do not continue in background
+        stopPatternRunnable()
+
+        // Safely restore original system/window brightness
         setScreenBrightness(originalBrightness)
         stopListeningForClaps()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        stopListeningForClaps()
         clapDetector?.release()
         clapDetector = null
-        stopAllPatterns()
+
+        stopPatternRunnable()
         handler.removeCallbacksAndMessages(null)
+
         selectedColorView = null
         _binding = null
     }
 
     private fun setupScreen() { 
-        binding.screenLightRoot.setBackgroundColor(currentColor) 
+        if (_binding != null) {
+            binding.screenLightRoot.setBackgroundColor(if (isScreenOn) currentColor else Color.BLACK)
+        }
     }
 
     private fun setScreenBrightness(brightness: Float) {
-        val layoutParams = requireActivity().window.attributes
+        val activity = activity ?: return
+        val layoutParams = activity.window.attributes
         if (brightness < 0) {
             layoutParams.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
         } else {
             layoutParams.screenBrightness = brightness.coerceIn(0.01f, 1.0f)
         }
-        requireActivity().window.attributes = layoutParams
+        activity.window.attributes = layoutParams
     }
 
     private fun hideSystemUI() {
-        requireActivity().runOnUiThread {
-            val toolbar = requireActivity().findViewById<Toolbar>(R.id.toolbar)
+        activity?.runOnUiThread {
+            val toolbar = activity?.findViewById<Toolbar>(R.id.toolbar)
             toolbar?.visibility = View.GONE
 
-            val window = requireActivity().window
+            val window = activity?.window ?: return@runOnUiThread
             val controller = WindowCompat.getInsetsController(window, window.decorView)
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             controller.hide(WindowInsetsCompat.Type.systemBars())
@@ -249,7 +345,7 @@ class ScreenLightFragment : BaseAdFragment() {
 
     private fun showSystemUI() { 
         activity?.findViewById<Toolbar>(R.id.toolbar)?.visibility = View.VISIBLE
-        val window = requireActivity().window
+        val window = activity?.window ?: return
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.show(WindowInsetsCompat.Type.systemBars())
     }
@@ -257,7 +353,11 @@ class ScreenLightFragment : BaseAdFragment() {
     private fun setupBrightnessControl() { 
         binding.seekbarBrightness.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener { 
             override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) { 
-                setScreenBrightness(progress / 100f) 
+                if (fromUser) {
+                    screenLightBrightness = (progress / 100f).coerceIn(0.01f, 1.0f)
+                    setScreenBrightness(screenLightBrightness) 
+                }
+                _binding?.tvBrightnessVal?.text = "${progress}%"
             }
             override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
@@ -272,25 +372,52 @@ class ScreenLightFragment : BaseAdFragment() {
     }
 
     private fun togglePattern(pattern: ScreenPattern) { 
-        if (activePattern == pattern) stopAllPatterns() else when (pattern) {
-            ScreenPattern.POLICE -> startPolicePattern()
-            ScreenPattern.PARTY -> startPartyPattern()
-            ScreenPattern.STROBE -> startStrobePattern()
-            ScreenPattern.CANDLE -> startCandlePattern()
-            else -> {}
+        if (activePattern == pattern) {
+            stopAllPatterns()
+        } else {
+            when (pattern) {
+                ScreenPattern.POLICE -> startPolicePattern()
+                ScreenPattern.PARTY -> startPartyPattern()
+                ScreenPattern.STROBE -> startStrobePattern()
+                ScreenPattern.CANDLE -> startCandlePattern()
+                else -> {}
+            }
         } 
     }
 
+    private fun updateModeStatusUI() {
+        if (_binding == null) return
+        val modeName = when (activePattern) {
+            ScreenPattern.NONE -> "Solid"
+            ScreenPattern.POLICE -> "Police"
+            ScreenPattern.PARTY -> "Party"
+            ScreenPattern.STROBE -> "Strobe"
+            ScreenPattern.CANDLE -> "Candle"
+        }
+        binding.tvModeStatus.text = "Mode: $modeName"
+    }
+
     private fun updatePatternButtonsUI() { 
+        if (_binding == null) return
+        updateModeStatusUI()
+        updateSpeedButtonsUI()
+
         binding.btnPolicePattern.isSelected = activePattern == ScreenPattern.POLICE
         binding.btnPartyPattern.isSelected = activePattern == ScreenPattern.PARTY
         binding.btnStrobePattern.isSelected = activePattern == ScreenPattern.STROBE
         binding.btnCandlePattern.isSelected = activePattern == ScreenPattern.CANDLE
+
+        binding.btnPolicePattern.contentDescription = "Police pattern" + (if (activePattern == ScreenPattern.POLICE) ", selected" else "")
+        binding.btnPartyPattern.contentDescription = "Party pattern" + (if (activePattern == ScreenPattern.PARTY) ", selected" else "")
+        binding.btnStrobePattern.contentDescription = "Strobe pattern" + (if (activePattern == ScreenPattern.STROBE) ", selected" else "")
+        binding.btnCandlePattern.contentDescription = "Candle pattern" + (if (activePattern == ScreenPattern.CANDLE) ", selected" else "")
+
         binding.btnPolicePattern.clearAnimation()
         binding.btnPartyPattern.clearAnimation()
         binding.btnStrobePattern.clearAnimation()
         binding.btnCandlePattern.clearAnimation()
-        val activeView = when(activePattern) { 
+
+        val activeView = when (activePattern) { 
             ScreenPattern.POLICE -> binding.btnPolicePattern
             ScreenPattern.PARTY -> binding.btnPartyPattern
             ScreenPattern.STROBE -> binding.btnStrobePattern
@@ -301,29 +428,73 @@ class ScreenLightFragment : BaseAdFragment() {
     }
 
     private fun startPulseAnimation(view: View) { 
-        val animation = AnimationUtils.loadAnimation(requireContext(), R.anim.glow_pulse)
+        val context = context ?: return
+        val animation = AnimationUtils.loadAnimation(context, R.anim.glow_pulse)
         view.startAnimation(animation) 
+    }
+
+    private fun stopPatternRunnable() {
+        currentPatternRunnable?.let { handler.removeCallbacks(it) }
+        currentPatternRunnable = null
     }
 
     private fun stopAllPatterns() { 
         activePattern = ScreenPattern.NONE
-        currentPatternRunnable?.let { handler.removeCallbacks(it) }
-        currentPatternRunnable = null
-        changeColor(currentColor, fromUser = true)
+        stopPatternRunnable()
+        currentColor = userSelectedColor
+        if (_binding != null) {
+            binding.screenLightRoot.setBackgroundColor(if (isScreenOn) userSelectedColor else Color.BLACK)
+        }
         updatePatternButtonsUI() 
     }
 
+    private fun restartActivePattern() {
+        stopPatternRunnable()
+        when (activePattern) {
+            ScreenPattern.POLICE -> startPolicePattern()
+            ScreenPattern.PARTY -> startPartyPattern()
+            ScreenPattern.STROBE -> startStrobePattern()
+            ScreenPattern.CANDLE -> startCandlePattern()
+            else -> {}
+        }
+    }
+
+    private fun getPoliceInterval(): Long = when (currentSpeed) {
+        PatternSpeed.SLOW -> 500L
+        PatternSpeed.NORMAL -> 300L
+        PatternSpeed.FAST -> 150L
+    }
+
+    private fun getPartyInterval(): Long = when (currentSpeed) {
+        PatternSpeed.SLOW -> 400L
+        PatternSpeed.NORMAL -> 200L
+        PatternSpeed.FAST -> 100L
+    }
+
+    private fun getStrobeInterval(): Long = when (currentSpeed) {
+        PatternSpeed.SLOW -> 200L
+        PatternSpeed.NORMAL -> 100L
+        PatternSpeed.FAST -> 50L
+    }
+
+    private fun getCandleInterval(): Long = when (currentSpeed) {
+        PatternSpeed.SLOW -> (150 + Math.random() * 200).toLong()
+        PatternSpeed.NORMAL -> (100 + Math.random() * 100).toLong()
+        PatternSpeed.FAST -> (50 + Math.random() * 50).toLong()
+    }
+
     private fun startPolicePattern() { 
-        stopAllPatterns()
+        stopPatternRunnable()
         activePattern = ScreenPattern.POLICE
         var isRed = true
         currentPatternRunnable = object : Runnable { 
             override fun run() {
+                if (_binding == null || !isAdded || !isResumed || activePattern != ScreenPattern.POLICE) return
                 if (isScreenOn) {
-                    changeColor(if (isRed) Color.RED else Color.BLUE)
+                    changeColor(if (isRed) Color.RED else Color.BLUE, fromUser = false)
                 }
                 isRed = !isRed
-                handler.postDelayed(this, 300) 
+                handler.postDelayed(this, getPoliceInterval()) 
             } 
         }
         handler.post(currentPatternRunnable!!) 
@@ -331,17 +502,18 @@ class ScreenLightFragment : BaseAdFragment() {
     }
 
     private fun startPartyPattern() { 
-        stopAllPatterns()
+        stopPatternRunnable()
         activePattern = ScreenPattern.PARTY
         var colorIndex = 0
         val partyColors = colors.filter { it != Color.WHITE && it != Color.BLACK }
         currentPatternRunnable = object : Runnable { 
             override fun run() {
+                if (_binding == null || !isAdded || !isResumed || activePattern != ScreenPattern.PARTY) return
                 if (isScreenOn) {
-                    changeColor(partyColors[colorIndex])
+                    changeColor(partyColors[colorIndex], fromUser = false)
                 }
                 colorIndex = (colorIndex + 1) % partyColors.size
-                handler.postDelayed(this, 200) 
+                handler.postDelayed(this, getPartyInterval()) 
             } 
         }
         handler.post(currentPatternRunnable!!) 
@@ -349,16 +521,17 @@ class ScreenLightFragment : BaseAdFragment() {
     }
 
     private fun startStrobePattern() { 
-        stopAllPatterns()
+        stopPatternRunnable()
         activePattern = ScreenPattern.STROBE
         var isWhite = true
         currentPatternRunnable = object : Runnable { 
             override fun run() {
-                if (isScreenOn) {
+                if (_binding == null || !isAdded || !isResumed || activePattern != ScreenPattern.STROBE) return
+                if (isScreenOn && _binding != null) {
                     binding.screenLightRoot.setBackgroundColor(if (isWhite) Color.WHITE else Color.BLACK)
                 }
                 isWhite = !isWhite
-                handler.postDelayed(this, 100) 
+                handler.postDelayed(this, getStrobeInterval()) 
             } 
         }
         handler.post(currentPatternRunnable!!) 
@@ -366,19 +539,20 @@ class ScreenLightFragment : BaseAdFragment() {
     }
 
     private fun startCandlePattern() { 
-        stopAllPatterns()
+        stopPatternRunnable()
         activePattern = ScreenPattern.CANDLE
         val baseColor = Color.parseColor("#FF8C00")
         currentPatternRunnable = object : Runnable { 
             override fun run() { 
+                if (_binding == null || !isAdded || !isResumed || activePattern != ScreenPattern.CANDLE) return
                 val flicker = (Math.random() * 50 - 25).toInt()
                 val red = (Color.red(baseColor) + flicker).coerceIn(150, 255)
                 val green = (Color.green(baseColor) + flicker).coerceIn(80, 180)
                 val blue = (Color.blue(baseColor) + flicker / 2).coerceIn(0, 50)
                 if (isScreenOn) {
-                    changeColor(Color.rgb(red, green, blue))
+                    changeColor(Color.rgb(red, green, blue), fromUser = false)
                 }
-                handler.postDelayed(this, (100 + Math.random() * 200).toLong()) 
+                handler.postDelayed(this, getCandleInterval()) 
             } 
         }
         handler.post(currentPatternRunnable!!)
