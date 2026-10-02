@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Elongated Teardrop Glass Outline (ST64 Style) -->
+    <path
+        android:fillColor="#33FF9800"
+        android:strokeColor="#FFFFD166"
+        android:strokeWidth="3"
+        android:pathData="M50,8 C28,8 20,28 22,48 C24,62 33,72 35,80 H65 C67,72 76,62 78,48 C80,28 72,8 50,8 Z" />
+    <!-- Intricate Squirrel-Cage Vintage Filament -->
+    <path
+        android:strokeColor="#FFFF9800"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M40,80 L42,30 L46,20 L50,30 L54,20 L58,30 L60,80 M42,30 L58,30 M46,20 L54,20" />
+    <!-- Brass Screw Base -->
+    <path
+        android:fillColor="#FFFFB74D"
+        android:pathData="M35,80 H65 V90 H35 Z M37,90 H63 L58,96 H42 Z" />
+</vector>

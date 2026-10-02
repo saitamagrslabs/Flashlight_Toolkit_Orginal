@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#1A1924"
+    android:orientation="vertical"
+    android:paddingBottom="24dp">
+
+    <!-- Top Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/ic_back"
+        android:backgroundTint="#444455" />
+
+    <!-- Dialog Header Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Select Light Source"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="16dp"
+        android:text="Swipe vertically anywhere on screen to adjust brightness"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Bulb Type 1: STANDARD -->
+    <LinearLayout
+        android:id="@+id/item_bulb_standard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="Standard Bulb"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_bulb_standard" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Standard Bulb"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="A19 / A60 Household • 360° Ambient Light"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/check_bulb_standard"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="Selected"
+            android:src="@drawable/ic_check"
+            app:tint="@color/accent_blue"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Bulb Type 2: TUBE LIGHT -->
+    <LinearLayout
+        android:id="@+id/item_bulb_tube"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="Tube Light"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_bulb_tube" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tube Light"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Linear T8 / LED Tube • Wide Linear Wash"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/check_bulb_tube"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="Selected"
+            android:src="@drawable/ic_check"
+            app:tint="@color/accent_blue"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Bulb Type 3: SPOTLIGHT -->
+    <LinearLayout
+        android:id="@+id/item_bulb_spotlight"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="Spotlight"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_bulb_spotlight" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Spotlight"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PAR38 / MR16 • Concentrated Cone Beam"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/check_bulb_spotlight"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="Selected"
+            android:src="@drawable/ic_check"
+            app:tint="@color/accent_blue"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Bulb Type 4: TORCH -->
+    <LinearLayout
+        android:id="@+id/item_bulb_torch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="Torch Bulb"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_bulb_torch" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Torch Bulb"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Flashlight Emitter • High Intensity Spot"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/check_bulb_torch"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="Selected"
+            android:src="@drawable/ic_check"
+            app:tint="@color/accent_blue"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Bulb Type 5: EDISON -->
+    <LinearLayout
+        android:id="@+id/item_bulb_edison"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="Edison Bulb"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_bulb_edison" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Edison Bulb"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ST64 Vintage • Warm Amber Glow"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/check_bulb_edison"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="Selected"
+            android:src="@drawable/ic_check"
+            app:tint="@color/accent_blue"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Bulb Type 6: SMART -->
+    <LinearLayout
+        android:id="@+id/item_bulb_smart"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="Smart Bulb"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_bulb_smart" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Smart Bulb"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Connected LED • Soft Diffused Dome"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/check_bulb_smart"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="Selected"
+            android:src="@drawable/ic_check"
+            app:tint="@color/accent_blue"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Bulb Type 7: CANDLE -->
+    <LinearLayout
+        android:id="@+id/item_bulb_candle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="Candle Bulb"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_bulb_candle" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Candle Bulb"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Flame Tip C7/C9 • Warm Flame Flicker"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/check_bulb_candle"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="Selected"
+            android:src="@drawable/ic_check"
+            app:tint="@color/accent_blue"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</LinearLayout>

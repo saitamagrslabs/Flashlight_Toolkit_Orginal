@@ -1,0 +1,24 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="260dp"
+    android:height="100dp"
+    android:viewportWidth="130"
+    android:viewportHeight="50">
+    <!-- End Caps (Metal Contacts) -->
+    <path
+        android:fillColor="#FF999999"
+        android:pathData="M5,15 H15 V35 H5 Z M115,15 H125 V35 H115 Z" />
+    <!-- End Pins -->
+    <path
+        android:fillColor="#FFCCCCCC"
+        android:pathData="M2,20 H5 V23 H2 Z M2,27 H5 V30 H2 Z M125,20 H128 V23 H125 Z M125,27 H128 V30 H125 Z" />
+    <!-- Glass Cylinder Body -->
+    <path
+        android:fillColor="#40E0F7FA"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M15,13 H115 V37 H15 Z" />
+    <!-- Glowing Center Strip -->
+    <path
+        android:fillColor="#B0FFFFFF"
+        android:pathData="M17,21 H113 V29 H17 Z" />
+</vector>

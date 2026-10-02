@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Slender Candle Flame Torpedo Glass Outline -->
+    <path
+        android:fillColor="#33FF5722"
+        android:strokeColor="#FFFF8A65"
+        android:strokeWidth="3"
+        android:pathData="M50,5 C48,15 32,35 32,55 C32,70 40,78 40,82 H60 C60,78 68,70 68,55 C68,35 52,15 50,5 Z" />
+    <!-- Fine Flame Filament Loop -->
+    <path
+        android:strokeColor="#FFFFD166"
+        android:strokeWidth="2"
+        android:pathData="M46,82 L48,45 Q50,30 52,45 L54,82" />
+    <!-- Small Candelabra Base (E12) -->
+    <path
+        android:fillColor="#FFB0B0B0"
+        android:pathData="M40,82 H60 V92 H40 Z M42,92 H58 L54,97 H46 Z" />
+</vector>

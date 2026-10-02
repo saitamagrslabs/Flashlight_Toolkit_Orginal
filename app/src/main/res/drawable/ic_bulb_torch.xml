@@ -1,0 +1,28 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Outer Torch Bezel Ring -->
+    <path
+        android:fillColor="#4478909C"
+        android:strokeColor="#FFB0BEC5"
+        android:strokeWidth="3"
+        android:pathData="M25,15 H75 V32 H25 Z" />
+    <!-- Tapered Torch Head Housing -->
+    <path
+        android:fillColor="#3337474F"
+        android:strokeColor="#FFB0BEC5"
+        android:strokeWidth="3"
+        android:pathData="M25,32 L35,80 H65 L75,32 Z" />
+    <!-- Handle Threading Base -->
+    <path
+        android:fillColor="#FF78909C"
+        android:pathData="M35,80 H65 V92 H35 Z" />
+    <!-- Central Emitter Lens Dome -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FF00D4FF"
+        android:strokeWidth="2"
+        android:pathData="M40,23 C40,18 60,18 60,23 C60,28 40,28 40,23 Z" />
+</vector>

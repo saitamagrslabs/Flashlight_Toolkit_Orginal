@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Front Reflector Face (Flat Wide Lens) -->
+    <path
+        android:fillColor="#3300D4FF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M10,20 H90 V30 H10 Z" />
+    <!-- Cone Body -->
+    <path
+        android:fillColor="#22FFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M10,30 L32,75 H68 L90,30 Z" />
+    <!-- GU10 Pin / Base Contact -->
+    <path
+        android:fillColor="#FFB0B0B0"
+        android:pathData="M32,75 H68 V85 H32 Z M40,85 H44 V95 H40 Z M56,85 H60 V95 H56 Z" />
+    <!-- Inner Optics Lens Lines -->
+    <path
+        android:strokeColor="#AA00D4FF"
+        android:strokeWidth="2"
+        android:pathData="M30,30 L50,65 L70,30 M50,25 V65" />
+</vector>

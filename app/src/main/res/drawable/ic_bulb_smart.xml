@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Smooth Frosted Diffuser Dome Top -->
+    <path
+        android:fillColor="#77FFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M20,40 C20,20 35,10 50,10 C65,10 80,20 80,40 H20 Z" />
+    <!-- Sleek Metallic Heatsink Collar Body -->
+    <path
+        android:fillColor="#FF37474F"
+        android:strokeColor="#FFB0BEC5"
+        android:strokeWidth="2.5"
+        android:pathData="M20,40 H80 L68,78 H32 Z" />
+    <!-- Heatsink Groove Lines -->
+    <path
+        android:strokeColor="#FF78909C"
+        android:strokeWidth="1.5"
+        android:pathData="M30,45 V72 M40,45 V75 M50,45 V75 M60,45 V75 M70,45 V72" />
+    <!-- Screw Base -->
+    <path
+        android:fillColor="#FFCFD8DC"
+        android:pathData="M32,78 H68 V88 H32 Z M35,88 H65 L58,95 H42 Z" />
+</vector>

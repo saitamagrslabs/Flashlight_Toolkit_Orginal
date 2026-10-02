@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Bulb Glass Body (Pear A-Series Shape) -->
+    <path
+        android:fillColor="#33FFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M50,10 C30,10 15,25 15,45 C15,58 25,68 32,75 L32,82 L68,82 L68,75 C75,68 85,58 85,45 C85,25 70,10 50,10 Z" />
+    <!-- Filament Inner Loop -->
+    <path
+        android:strokeColor="#FFFFD166"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M42,75 L45,45 L50,38 L55,45 L58,75 M45,45 Q50,30 55,45" />
+    <!-- Screw Base -->
+    <path
+        android:fillColor="#FFB0B0B0"
+        android:pathData="M32,82 L68,82 L65,92 L35,92 Z M35,92 L65,92 L60,98 L40,98 Z" />
+</vector>
