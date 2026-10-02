@@ -35,8 +35,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="24dp">
+            android:paddingTop="12dp"
+            android:paddingBottom="16dp">
 
             <!-- Hero Status Badge -->
             <TextView
@@ -45,11 +45,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_pill"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="4dp"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="3dp"
                 android:text="READY"
                 android:textColor="@color/fn_primary_blue"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -60,9 +60,10 @@
                 style="@style/FlashNow.Text.BodyMedium"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="4dp"
                 android:text="Tap to Turn On"
                 android:textColor="@color/fn_text_secondary"
+                android:textSize="13sp"
                 app:layout_constraintTop_toBottomOf="@id/tv_status_indicator"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
@@ -73,30 +74,30 @@
                 style="@style/FlashNow.Text.BodyLarge"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="16dp"
+                android:layout_margin="12dp"
                 android:background="@drawable/fn_bg_card_elevated"
                 android:gravity="center"
-                android:padding="16dp"
+                android:padding="12dp"
                 android:text="Flashlight hardware not detected.\nSome features have been disabled.\nYou can still use Screen Light."
                 android:textColor="@color/fn_accent_red"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:visibility="gone"
                 app:layout_constraintTop_toBottomOf="@id/tv_flash_status"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:visibility="visible" />
 
-            <!-- Main Flashlight Hero Toggle -->
+            <!-- Main Flashlight Hero Toggle (Compact 136dp dimension) -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_flash_toggle"
-                android:layout_width="160dp"
-                android:layout_height="160dp"
-                android:layout_marginTop="20dp"
+                android:layout_width="136dp"
+                android:layout_height="136dp"
+                android:layout_marginTop="12dp"
                 android:clickable="true"
                 android:contentDescription="Toggle main flashlight"
                 android:focusable="true"
                 app:cardBackgroundColor="@android:color/transparent"
-                app:cardCornerRadius="80dp"
+                app:cardCornerRadius="68dp"
                 app:cardElevation="0dp"
                 app:layout_constraintTop_toBottomOf="@id/tv_flash_status"
                 app:layout_constraintStart_toStartOf="parent"
@@ -111,8 +112,8 @@
 
                     <ImageView
                         android:id="@+id/iv_flash_icon"
-                        android:layout_width="52dp"
-                        android:layout_height="52dp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         android:importantForAccessibility="no"
                         android:src="@drawable/ic_power_off" />
 
@@ -121,10 +122,10 @@
                         style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="4dp"
                         android:text="OFF"
                         android:textColor="@color/fn_text_secondary"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -135,9 +136,10 @@
                 style="@style/FlashNow.Text.Caption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="14dp"
                 android:text="TOOLS &amp; UTILITIES"
                 android:textColor="@color/fn_text_tertiary"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 app:layout_constraintTop_toBottomOf="@id/card_flash_toggle"
                 app:layout_constraintStart_toStartOf="parent" />
@@ -158,16 +160,16 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="10dp">
 
                     <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
                         android:background="@drawable/bg_pill">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_sos" />
@@ -177,10 +179,10 @@
                         style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="8dp"
                         android:text="SOS"
                         android:textColor="@color/fn_text_primary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -199,16 +201,16 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="10dp">
 
                     <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
                         android:background="@drawable/bg_pill">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_strobe" />
@@ -218,10 +220,10 @@
                         style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="8dp"
                         android:text="Strobe"
                         android:textColor="@color/fn_text_primary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -240,16 +242,16 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="10dp">
 
                     <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
                         android:background="@drawable/bg_pill">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_screen_light" />
@@ -259,10 +261,10 @@
                         style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="8dp"
                         android:text="Screen Light"
                         android:textColor="@color/fn_text_primary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -281,16 +283,16 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="10dp">
 
                     <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
                         android:background="@drawable/bg_pill">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_lightbulb" />
@@ -300,10 +302,10 @@
                         style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="8dp"
                         android:text="Light Bulb"
                         android:textColor="@color/fn_text_primary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -322,16 +324,16 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="10dp">
 
                     <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
                         android:background="@drawable/bg_pill">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_morse_code" />
@@ -341,10 +343,10 @@
                         style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="8dp"
                         android:text="Morse Code"
                         android:textColor="@color/fn_text_primary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -363,16 +365,16 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="10dp">
 
                     <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
                         android:background="@drawable/bg_pill">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_timer" />
@@ -382,10 +384,10 @@
                         style="@style/FlashNow.Text.TitleMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="8dp"
                         android:text="Timer"
                         android:textColor="@color/fn_text_primary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -394,12 +396,12 @@
                 android:id="@+id/button_flow"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 app:constraint_referenced_ids="btn_sos,btn_strobe,btn_screen_light,btn_light_bulb,btn_morse_code,btn_timer"
-                app:flow_horizontalGap="10dp"
+                app:flow_horizontalGap="8dp"
                 app:flow_horizontalStyle="spread"
                 app:flow_maxElementsWrap="2"
-                app:flow_verticalGap="10dp"
+                app:flow_verticalGap="8dp"
                 app:flow_wrapMode="chain"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -411,9 +413,10 @@
                 style="@style/FlashNow.Text.Caption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="14dp"
                 android:text="QUICK CONTROLS"
                 android:textColor="@color/fn_text_tertiary"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 app:layout_constraintTop_toBottomOf="@id/button_flow"
                 app:layout_constraintStart_toStartOf="parent" />
@@ -424,8 +427,8 @@
                 style="@style/FlashNow.Card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:padding="16dp"
+                android:layout_marginTop="6dp"
+                android:padding="12dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/tv_quick_controls_header">
@@ -433,8 +436,8 @@
                 <!-- Clap Detection Row -->
                 <ImageView
                     android:id="@+id/iv_clap_icon"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_clap"
                     app:layout_constraintBottom_toBottomOf="@id/clapSwitch"
@@ -446,10 +449,10 @@
                     style="@style/FlashNow.Text.TitleMedium"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="10dp"
                     android:text="Clap to Toggle Flashlight"
                     android:textColor="@color/fn_text_primary"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     app:layout_constraintBottom_toBottomOf="@id/clapSwitch"
                     app:layout_constraintEnd_toStartOf="@id/clapSwitch"
                     app:layout_constraintStart_toEndOf="@id/iv_clap_icon"
@@ -468,8 +471,8 @@
                     android:id="@+id/divider"
                     android:layout_width="0dp"
                     android:layout_height="1dp"
-                    android:layout_marginTop="14dp"
-                    android:layout_marginBottom="14dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
                     android:background="@color/fn_border_subtle"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -478,8 +481,8 @@
                 <!-- Notification Alerts Row -->
                 <ImageView
                     android:id="@+id/iv_notification_icon"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_signal"
                     app:layout_constraintBottom_toBottomOf="@id/notificationSwitch"
@@ -491,10 +494,10 @@
                     style="@style/FlashNow.Text.TitleMedium"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="10dp"
                     android:text="Notification Alerts"
                     android:textColor="@color/fn_text_primary"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     app:layout_constraintBottom_toBottomOf="@id/notificationSwitch"
                     app:layout_constraintEnd_toStartOf="@id/notificationSwitch"
                     app:layout_constraintStart_toEndOf="@id/iv_notification_icon"

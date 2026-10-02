@@ -19,15 +19,17 @@
         style="@style/Widget.MaterialComponents.BottomSheet.Modal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#1C1B1F"
+        android:background="@color/fn_surface_level_1"
         android:orientation="vertical"
+        android:paddingBottom="6dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
         <!-- Compact Drag Handle View -->
         <com.google.android.material.bottomsheet.BottomSheetDragHandleView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingVertical="2dp" />
+            android:paddingVertical="0dp"
+            app:tint="@color/fn_text_tertiary" />
 
         <!-- Fixed Compact Control Panel (NO SCROLL VIEW) -->
         <LinearLayout
@@ -35,14 +37,14 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="10dp"
-            android:paddingBottom="6dp">
+            android:paddingBottom="2dp">
 
             <!-- Banner Ad -->
             <com.google.android.gms.ads.AdView
                 android:id="@+id/adView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
+                android:layout_marginBottom="3dp"
                 ads:adSize="BANNER"
                 ads:adUnitId="@string/screen_light_banner_ad" />
 
@@ -50,20 +52,20 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
+                android:layout_marginBottom="3dp"
                 android:background="@drawable/bg_bottom_sheet_section"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp">
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp">
 
                 <TextView
                     android:id="@+id/tv_brightness_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Brightness"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -71,11 +73,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:minWidth="36dp"
+                    android:minWidth="32dp"
                     android:gravity="center"
                     android:contentDescription="Brightness percentage"
                     android:text="100%"
-                    android:textColor="#AAAAAA"
+                    android:textColor="@color/fn_text_secondary"
                     android:textSize="11sp" />
 
                 <SeekBar
@@ -86,27 +88,29 @@
                     android:layout_marginStart="4dp"
                     android:contentDescription="Adjust Screen Light Brightness"
                     android:max="100"
-                    android:progress="100" />
+                    android:progress="100"
+                    android:progressTint="@color/fn_primary_blue"
+                    android:thumbTint="@color/fn_primary_blue" />
             </LinearLayout>
 
             <!-- Color Picker Section (Compact Horizontal Row) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
+                android:layout_marginBottom="3dp"
                 android:background="@drawable/bg_bottom_sheet_section"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp">
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="6dp"
                     android:text="Colors"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
                 <HorizontalScrollView
@@ -128,12 +132,12 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
+                android:layout_marginBottom="3dp"
                 android:background="@drawable/bg_bottom_sheet_section"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp">
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp">
 
                 <TextView
                     android:id="@+id/tv_mode_status"
@@ -143,8 +147,8 @@
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="Mode: Solid"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
@@ -159,13 +163,13 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="4dp"
                         android:text="Speed:"
-                        android:textColor="#AAAAAA"
-                        android:textSize="11sp" />
+                        android:textColor="@color/fn_text_secondary"
+                        android:textSize="10sp" />
 
                     <com.google.android.material.button.MaterialButtonToggleGroup
                         android:id="@+id/speed_toggle_group"
                         android:layout_width="wrap_content"
-                        android:layout_height="28dp"
+                        android:layout_height="26dp"
                         app:checkedButton="@id/btn_speed_normal"
                         app:selectionRequired="true"
                         app:singleSelection="true">
@@ -174,46 +178,46 @@
                             android:id="@+id/btn_speed_slow"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="28dp"
+                            android:layout_height="26dp"
                             android:contentDescription="Slow pattern speed"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
-                            android:minWidth="38dp"
-                            android:paddingHorizontal="4dp"
+                            android:minWidth="36dp"
+                            android:paddingHorizontal="3dp"
                             android:paddingVertical="0dp"
                             android:text="Slow"
-                            android:textColor="@color/white"
-                            android:textSize="10sp" />
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="9sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_speed_normal"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="28dp"
+                            android:layout_height="26dp"
                             android:contentDescription="Normal pattern speed"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
-                            android:minWidth="42dp"
-                            android:paddingHorizontal="4dp"
+                            android:minWidth="40dp"
+                            android:paddingHorizontal="3dp"
                             android:paddingVertical="0dp"
                             android:text="Norm"
-                            android:textColor="@color/white"
-                            android:textSize="10sp" />
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="9sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_speed_fast"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="28dp"
+                            android:layout_height="26dp"
                             android:contentDescription="Fast pattern speed"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
-                            android:minWidth="38dp"
-                            android:paddingHorizontal="4dp"
+                            android:minWidth="36dp"
+                            android:paddingHorizontal="3dp"
                             android:paddingVertical="0dp"
                             android:text="Fast"
-                            android:textColor="@color/white"
-                            android:textSize="10sp" />
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="9sp" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
                 </LinearLayout>
@@ -223,14 +227,14 @@
             <GridLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
+                android:layout_marginBottom="3dp"
                 android:columnCount="2"
                 android:useDefaultMargins="true">
 
                 <androidx.cardview.widget.CardView
                     android:id="@+id/btn_police_pattern"
                     android:layout_width="0dp"
-                    android:layout_height="44dp"
+                    android:layout_height="38dp"
                     android:layout_columnWeight="1"
                     android:clickable="true"
                     android:contentDescription="Police pattern"
@@ -244,21 +248,21 @@
                         android:background="@drawable/selector_button_sos"
                         android:gravity="center"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="8dp">
+                        android:paddingHorizontal="6dp">
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_police" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="4dp"
                             android:text="Police"
                             android:textColor="@android:color/white"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -266,7 +270,7 @@
                 <androidx.cardview.widget.CardView
                     android:id="@+id/btn_party_pattern"
                     android:layout_width="0dp"
-                    android:layout_height="44dp"
+                    android:layout_height="38dp"
                     android:layout_columnWeight="1"
                     android:clickable="true"
                     android:contentDescription="Party pattern"
@@ -280,21 +284,21 @@
                         android:background="@drawable/selector_button_patterns"
                         android:gravity="center"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="8dp">
+                        android:paddingHorizontal="6dp">
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_party" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="4dp"
                             android:text="Party"
                             android:textColor="@android:color/white"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -302,7 +306,7 @@
                 <androidx.cardview.widget.CardView
                     android:id="@+id/btn_strobe_pattern"
                     android:layout_width="0dp"
-                    android:layout_height="44dp"
+                    android:layout_height="38dp"
                     android:layout_columnWeight="1"
                     android:clickable="true"
                     android:contentDescription="Strobe pattern"
@@ -316,21 +320,21 @@
                         android:background="@drawable/selector_button_strobe"
                         android:gravity="center"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="8dp">
+                        android:paddingHorizontal="6dp">
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_strobe" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="4dp"
                             android:text="Strobe"
                             android:textColor="@android:color/white"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -338,7 +342,7 @@
                 <androidx.cardview.widget.CardView
                     android:id="@+id/btn_candle_pattern"
                     android:layout_width="0dp"
-                    android:layout_height="44dp"
+                    android:layout_height="38dp"
                     android:layout_columnWeight="1"
                     android:clickable="true"
                     android:contentDescription="Candle pattern"
@@ -352,21 +356,21 @@
                         android:background="@drawable/selector_button_light_bulb"
                         android:gravity="center"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="8dp">
+                        android:paddingHorizontal="6dp">
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
                             android:importantForAccessibility="no"
                             android:src="@drawable/ic_candle" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="4dp"
                             android:text="Candle"
                             android:textColor="@android:color/white"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -381,40 +385,47 @@
                 android:background="@drawable/bg_bottom_sheet_section"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="2dp">
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="1dp">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Clap to Toggle Screen"
-                    android:textColor="@color/white"
-                    android:textSize="12sp" />
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="11sp" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/clap_switch_screen"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="32dp"
                     android:contentDescription="Clap to toggle screen light" />
             </LinearLayout>
 
-            <!-- Compact Modern Back Button -->
+            <!-- Compact Modern Back Button (Inset-Aware & >= 48dp Touch Height) -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_back_custom"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="38dp"
                 android:layout_gravity="center_horizontal"
+                android:layout_marginTop="2dp"
                 android:contentDescription="Back"
-                android:paddingHorizontal="12dp"
+                android:minHeight="48dp"
+                android:paddingHorizontal="16dp"
                 android:text="Back"
-                android:textColor="@color/white"
+                android:textColor="@color/fn_text_primary"
                 android:textSize="12sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/fn_surface_level_2"
+                app:cornerRadius="19dp"
                 app:icon="@drawable/ic_back"
                 app:iconPadding="4dp"
                 app:iconSize="16dp"
-                app:iconTint="@color/white" />
+                app:iconTint="@color/fn_text_primary"
+                app:strokeColor="@color/fn_border_subtle"
+                app:strokeWidth="1dp" />
 
         </LinearLayout>
 

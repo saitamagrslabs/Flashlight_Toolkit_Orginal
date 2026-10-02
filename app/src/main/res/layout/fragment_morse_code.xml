@@ -4,39 +4,34 @@
     xmlns:ads="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF0F0F17">
+    android:background="@color/fn_bg_dark">
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@+id/adView"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Header -->
+            <!-- Compact Header (No decorative icon above title) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:layout_marginBottom="16dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="12dp"
                 android:orientation="vertical">
-
-                <ImageView
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/ic_morse_code"
-                    app:tint="@color/accent_blue" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Morse Code Communicator"
-                    android:textColor="@color/white"
+                    android:text="Morse Code"
+                    android:textColor="@color/fn_text_primary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -44,8 +39,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Optical Flashlight Sender &amp; Camera Receiver"
-                    android:textColor="@color/text_secondary"
+                    android:text="Encode • Decode • Transmit"
+                    android:textColor="@color/fn_text_secondary"
                     android:textSize="13sp" />
 
             </LinearLayout>
@@ -55,7 +50,7 @@
                 android:id="@+id/toggle_mode_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="12dp"
                 app:singleSelection="true"
                 app:selectionRequired="true"
                 app:checkedButton="@+id/btn_mode_sender">
@@ -64,21 +59,25 @@
                     android:id="@+id/btn_mode_sender"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="SENDER (PHONE A)"
-                    android:textColor="@color/white"
-                    app:strokeColor="@color/accent_blue" />
+                    android:text="Send Morse"
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:strokeColor="@color/fn_border_subtle" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_mode_receiver"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="RECEIVER (PHONE B)"
-                    android:textColor="@color/white"
-                    app:strokeColor="@color/accent_blue" />
+                    android:text="Receive Morse"
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:strokeColor="@color/fn_border_subtle" />
 
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -90,29 +89,31 @@
                 android:orientation="vertical"
                 android:visibility="visible">
 
-                <!-- Sender Status Indicator -->
+                <!-- Transmission Status Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardBackgroundColor="#1C1B1F"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/fn_surface_level_1"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="16dp">
+                        android:padding="14dp">
 
                         <ImageView
                             android:id="@+id/iv_status"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:src="@drawable/ic_power_off"
-                            app:tint="@color/text_secondary" />
+                            app:tint="@color/fn_text_secondary" />
 
                         <TextView
                             android:id="@+id/tv_status"
@@ -121,53 +122,20 @@
                             android:layout_marginStart="12dp"
                             android:layout_weight="1"
                             android:text="Ready to transmit"
-                            android:textColor="@color/white"
+                            android:textColor="@color/fn_text_primary"
                             android:textSize="14sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_stop"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:backgroundTint="#FFEF476F"
+                            android:backgroundTint="@color/fn_accent_red"
                             android:text="STOP"
-                            android:textColor="@color/white"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="8dp"
                             android:visibility="gone" />
-
-                    </LinearLayout>
-
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Emergency Signals Section -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardBackgroundColor="#1C1B1F"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="6dp"
-                    app:strokeColor="#FFEF476F"
-                    app:strokeWidth="1dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:text="🚨 Emergency Signals"
-                            android:textColor="@color/white"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <GridLayout
-                            android:id="@+id/grid_emergency_signals"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:columnCount="2" />
 
                     </LinearLayout>
 
@@ -177,38 +145,48 @@
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardBackgroundColor="#1C1B1F"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/fn_surface_level_1"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="6dp"
-                    app:strokeColor="@color/accent_blue"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/fn_border_subtle"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="14dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:text="✍️ Custom Message (Protocol Frame: Preamble + Message)"
-                            android:textColor="@color/white"
+                            android:text="✍️ Custom Message"
+                            android:textColor="@color/fn_text_primary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:layout_marginBottom="10dp"
+                            android:text="Protocol Frame: Preamble + Message"
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="12sp" />
 
                         <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:hint="Type message (e.g. SOS)"
-                            app:boxCornerRadiusBottomEnd="8dp"
-                            app:boxCornerRadiusBottomStart="8dp"
-                            app:boxCornerRadiusTopEnd="8dp"
-                            app:boxCornerRadiusTopStart="8dp"
-                            app:boxStrokeColor="@color/accent_blue"
-                            app:hintTextColor="@color/text_secondary">
+                            app:boxBackgroundMode="outline"
+                            app:boxBackgroundColor="@color/fn_surface_level_2"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp"
+                            app:boxStrokeColor="@color/fn_primary_blue"
+                            app:hintTextColor="@color/fn_text_secondary">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/et_custom_message"
@@ -216,29 +194,81 @@
                                 android:layout_height="wrap_content"
                                 android:maxLines="3"
                                 android:text="SOS"
-                                android:textColor="@color/white"
-                                android:textColorHint="@color/text_secondary" />
+                                android:textColor="@color/fn_text_primary"
+                                android:textColorHint="@color/fn_text_secondary" />
 
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <TextView
-                            android:id="@+id/tv_morse_preview"
+                        <!-- Morse Code Preview Sub-Card -->
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:fontFamily="monospace"
-                            android:text="Morse code will appear here"
-                            android:textColor="@color/accent_green"
-                            android:textSize="12sp" />
+                            android:layout_marginTop="10dp"
+                            app:cardBackgroundColor="@color/fn_surface_level_2"
+                            app:cardCornerRadius="10dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="@color/fn_border_subtle"
+                            app:strokeWidth="1dp">
+
+                            <TextView
+                                android:id="@+id/tv_morse_preview"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="monospace"
+                                android:padding="10dp"
+                                android:text="Morse code will appear here"
+                                android:textColor="@color/fn_accent_green"
+                                android:textSize="12sp" />
+
+                        </com.google.android.material.card.MaterialCardView>
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_send_custom"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:backgroundTint="@color/accent_blue"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="12dp"
+                            android:backgroundTint="@color/fn_primary_blue"
                             android:text="FLASH MESSAGE"
-                            android:textColor="@color/black" />
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="12dp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Emergency Signals Presets Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/fn_surface_level_1"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:text="🚨 Emergency Signals"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <GridLayout
+                            android:id="@+id/grid_emergency_signals"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:columnCount="2" />
 
                     </LinearLayout>
 
@@ -255,15 +285,15 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <!-- Camera Preview Card -->
+                <!-- 1. CAMERA PREVIEW VIEWFINDER CARD (FIRST IN RECEIVER) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
-                    android:layout_height="240dp"
-                    android:layout_marginBottom="16dp"
+                    android:layout_height="190dp"
+                    android:layout_marginBottom="12dp"
                     app:cardBackgroundColor="#000000"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="6dp"
-                    app:strokeColor="@color/accent_blue"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/fn_border_subtle"
                     app:strokeWidth="1dp">
 
                     <FrameLayout
@@ -275,48 +305,46 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent" />
 
-                        <!-- Center Target Overlay Box -->
+                        <!-- Target Reticle Overlay -->
                         <View
-                            android:layout_width="100dp"
-                            android:layout_height="100dp"
+                            android:layout_width="86dp"
+                            android:layout_height="86dp"
                             android:layout_gravity="center"
-                            android:background="@android:color/transparent"
-                            app:strokeColor="@color/accent_green" />
+                            android:background="@drawable/bg_camera_reticle" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="top|center_horizontal"
                             android:layout_marginTop="8dp"
-                            android:background="#80000000"
-                            android:paddingHorizontal="8dp"
+                            android:background="@color/fn_surface_level_2"
+                            android:paddingHorizontal="10dp"
                             android:paddingVertical="4dp"
-                            android:text="Point camera at flashlight source"
-                            android:textColor="@color/white"
+                            android:text="Point camera at light source"
+                            android:textColor="@color/fn_text_primary"
                             android:textSize="12sp" />
 
                     </FrameLayout>
 
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Receiver Metrics & Real-Time Output Card -->
+                <!-- 2. RECEIVER STATUS & START RECEIVER ACTION CARD (DIRECTLY BELOW CAMERA) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardBackgroundColor="#1C1B1F"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/fn_surface_level_1"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="6dp"
-                    app:strokeColor="@color/accent_green"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/fn_border_subtle"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="14dp">
 
-                        <!-- Preamble Sync Status -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -324,10 +352,11 @@
                             android:orientation="horizontal">
 
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:text="Sync Status: "
-                                android:textColor="@color/white"
+                                android:layout_weight="1"
+                                android:text="Receiver Status"
+                                android:textColor="@color/fn_text_primary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
 
@@ -336,94 +365,124 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Waiting for preamble ('...')"
-                                android:textColor="#FFEF476F"
-                                android:textSize="14sp"
+                                android:textColor="@color/fn_accent_red"
+                                android:textSize="12sp"
                                 android:textStyle="bold" />
 
                         </LinearLayout>
 
-                        <!-- Luma & Threshold Specs -->
+                        <!-- Primary Action Button: START RECEIVER -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_toggle_receiver"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="10dp"
+                            android:backgroundTint="@color/fn_accent_green"
+                            android:text="START RECEIVER"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="12dp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 3. DECODED MESSAGE & DIAGNOSTICS CARD -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/fn_surface_level_1"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <!-- Primary Result: Decoded Text -->
                         <TextView
-                            android:id="@+id/tv_luma_metrics"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Decoded Message"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:fontFamily="monospace"
-                            android:text="Luma: 0.0 | Thresh: 0.0 | Light: OFF"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
+                            android:layout_marginTop="6dp"
+                            app:cardBackgroundColor="@color/fn_surface_level_2"
+                            app:cardCornerRadius="10dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="@color/fn_border_subtle"
+                            app:strokeWidth="1dp">
 
-                        <!-- Detected Pulse Sequence -->
+                            <TextView
+                                android:id="@+id/tv_decoded_message"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:padding="12dp"
+                                android:text="[Decoded text will appear here]"
+                                android:textColor="@color/fn_accent_green"
+                                android:textSize="17sp"
+                                android:fontFamily="monospace"
+                                android:textStyle="bold" />
+
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- Action Button: Clear Decoded Text -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_reset_receiver"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="10dp"
+                            android:text="CLEAR DECODED TEXT"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="10dp"
+                            app:strokeColor="@color/fn_border_subtle" />
+
+                        <!-- Secondary Info: Detected Symbols -->
                         <TextView
                             android:id="@+id/tv_detected_symbols"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="12dp"
                             android:fontFamily="monospace"
                             android:text="Current Symbols: -"
-                            android:textColor="@color/accent_blue"
-                            android:textSize="14sp" />
-
-                        <!-- Decoded Text Output -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:text="Decoded Text:"
-                            android:textColor="@color/white"
-                            android:textSize="14sp"
+                            android:textColor="@color/fn_primary_blue"
+                            android:textSize="12sp"
                             android:textStyle="bold" />
 
+                        <!-- Diagnostic Info: Luma & Debug -->
                         <TextView
-                            android:id="@+id/tv_decoded_message"
+                            android:id="@+id/tv_luma_metrics"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:background="#121218"
-                            android:padding="12dp"
-                            android:text="[Decoded text will appear here]"
-                            android:textColor="@color/accent_green"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
+                            android:fontFamily="monospace"
+                            android:text="Luma: 0.0 | Thresh: 0.0 | Light: OFF"
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="11sp" />
 
-                        <!-- Diagnostic Debug Log -->
                         <TextView
                             android:id="@+id/tv_receiver_debug"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="2dp"
                             android:fontFamily="monospace"
                             android:text="Debug: Receiver ready"
-                            android:textColor="@color/text_secondary"
+                            android:textColor="@color/fn_text_tertiary"
                             android:textSize="11sp" />
-
-                        <!-- Receiver Controls -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:orientation="horizontal">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_toggle_receiver"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:layout_marginEnd="8dp"
-                                android:backgroundTint="@color/accent_green"
-                                android:text="START RECEIVER"
-                                android:textColor="@color/black" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_reset_receiver"
-                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="CLEAR"
-                                android:textColor="@color/white"
-                                app:strokeColor="@color/text_secondary" />
-
-                        </LinearLayout>
 
                     </LinearLayout>
 
@@ -431,36 +490,38 @@
 
             </LinearLayout>
 
-            <!-- Morse Code Guide -->
+            <!-- Quick Protocol Guide Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                app:cardBackgroundColor="#1C1B1F"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="@color/fn_surface_level_1"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fn_border_subtle"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="14dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="6dp"
                         android:text="📚 Quick Protocol Guide"
-                        android:textColor="@color/white"
-                        android:textSize="15sp"
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:lineSpacingExtra="4dp"
+                        android:lineSpacingExtra="3dp"
                         android:text="• Base Unit T = 150 ms\n• Dot = 1T (150ms), Dash = 3T (450ms)\n• Symbol Gap = 1T, Letter Gap = 3T, Word Gap = 7T, End Gap = 10T\n• Preamble Frame Sync = '...' (ON 1T, OFF 1T, ON 1T, OFF 1T, ON 1T, OFF 3T)"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="@color/fn_text_secondary"
                         android:textSize="12sp" />
 
                 </LinearLayout>

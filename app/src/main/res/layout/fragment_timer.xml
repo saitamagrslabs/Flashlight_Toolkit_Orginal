@@ -4,12 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/dark_gray">
+    android:background="@color/fn_bg_dark">
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@+id/adView"
+        android:clipToPadding="false"
         android:padding="16dp">
 
         <LinearLayout
@@ -22,69 +23,70 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:layout_marginBottom="32dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="24dp"
                 android:orientation="vertical">
 
                 <ImageView
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
                     android:src="@drawable/ic_timer"
-                    app:tint="@color/accent_blue" />
+                    app:tint="@color/fn_primary_blue" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="12dp"
                     android:text="Flashlight Timer"
-                    android:textColor="@color/white"
-                    android:textSize="28sp"
+                    android:textColor="@color/fn_text_primary"
+                    android:textSize="26sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Set automatic turn-off time"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="16sp" />
+                    android:layout_marginTop="4dp"
+                    android:text="Automatic turn-off timer for your flashlight"
+                    android:textColor="@color/fn_text_secondary"
+                    android:textSize="14sp" />
 
             </LinearLayout>
 
-            <!-- Active Timer Card -->
+            <!-- Active Timer Hero Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_active_timer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="20dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="@color/dark_gray"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="6dp"
-                app:strokeColor="@color/accent_green"
-                app:strokeWidth="2dp">
+                app:cardBackgroundColor="@color/fn_surface_level_1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fn_accent_green"
+                app:strokeWidth="1.5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="24dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="⏰ Timer Running"
-                        android:textColor="@color/accent_green"
-                        android:textSize="18sp"
+                        android:textColor="@color/fn_accent_green"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tv_time_remaining"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="12dp"
                         android:text="25:30 remaining"
-                        android:textColor="@color/white"
+                        android:textColor="@color/fn_text_primary"
                         android:textSize="32sp"
                         android:textStyle="bold" />
 
@@ -93,18 +95,20 @@
                         android:layout_width="match_parent"
                         android:layout_height="8dp"
                         android:layout_marginTop="16dp"
-                        app:indicatorColor="@color/accent_green"
-                        app:trackColor="@color/dark_gray"
+                        app:indicatorColor="@color/fn_accent_green"
+                        app:trackColor="@color/fn_surface_level_2"
                         app:trackCornerRadius="4dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_stop_timer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:backgroundTint="@color/accent_red"
+                        android:layout_marginTop="20dp"
+                        android:backgroundTint="@color/fn_accent_red"
                         android:text="STOP TIMER"
-                        android:textColor="@color/white" />
+                        android:textColor="@color/white"
+                        android:textStyle="bold"
+                        app:cornerRadius="12dp" />
 
                 </LinearLayout>
 
@@ -114,59 +118,62 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardBackgroundColor="@color/dark_gray"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="@color/fn_surface_level_1"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fn_border_subtle"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:text="🛡️ Lock Mode"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="16dp"
                         android:lineSpacingExtra="4dp"
                         android:text="• Dim screen to save battery\n• Auto-close app when timer ends\n• Keep app running reliably"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
+                        android:textColor="@color/fn_text_secondary"
+                        android:textSize="13sp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_lock_mode"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:backgroundTint="@color/fn_primary_blue"
                         android:text="🔓 Lock Mode"
                         android:textColor="@color/white"
-                        android:backgroundTint="@color/accent_blue" />
+                        android:textStyle="bold"
+                        app:cornerRadius="12dp" />
+
                     <!-- Lock Mode Info -->
                     <TextView
                         android:id="@+id/lock_mode_info"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginTop="12dp"
                         android:background="@drawable/lock_mode_info_bg"
+                        android:gravity="center"
                         android:padding="12dp"
                         android:text="🔒 Lock Mode Active: Navigation disabled. App will auto-close when timer ends."
-                        android:textColor="@color/accent_green"
+                        android:textColor="@color/fn_accent_green"
                         android:textSize="12sp"
-                        android:visibility="gone"
-                        android:gravity="center" />
+                        android:visibility="gone" />
 
                 </LinearLayout>
-
 
             </com.google.android.material.card.MaterialCardView>
 
@@ -174,26 +181,26 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="@color/dark_gray"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="6dp"
-                app:strokeColor="@color/accent_blue"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="@color/fn_surface_level_1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fn_border_subtle"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="15dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:text="⚡ Quick Presets"
-                        android:textColor="@color/white"
-                        android:textSize="20sp"
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <androidx.gridlayout.widget.GridLayout
@@ -215,10 +222,11 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/dark_gray"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="6dp"
-                app:strokeColor="@color/accent_yellow"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="@color/fn_surface_level_1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fn_border_subtle"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -230,10 +238,10 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="20dp"
+                        android:layout_marginBottom="16dp"
                         android:text="🎛️ Custom Timer"
-                        android:textColor="@color/white"
-                        android:textSize="20sp"
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <!-- Time Input -->
@@ -248,8 +256,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
                             android:text="Duration:"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="16sp" />
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="15sp" />
 
                         <EditText
                             android:id="@+id/et_minutes"
@@ -260,17 +268,17 @@
                             android:inputType="number"
                             android:padding="12dp"
                             android:text="30"
-                            android:textColor="@color/white"
+                            android:textColor="@color/fn_text_primary"
                             android:textSize="18sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="12dp"
                             android:text="minutes"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="16sp" />
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="15sp" />
 
                     </LinearLayout>
 
@@ -281,7 +289,7 @@
                         android:layout_marginTop="20dp"
                         android:layout_marginBottom="8dp"
                         android:text="Adjust time:"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="@color/fn_text_secondary"
                         android:textSize="14sp" />
 
                     <SeekBar
@@ -290,12 +298,13 @@
                         android:layout_height="wrap_content"
                         android:max="240"
                         android:progress="30"
-                        android:progressTint="@color/accent_yellow" />
+                        android:progressTint="@color/fn_accent_amber"
+                        android:thumbTint="@color/fn_accent_amber" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4px"
+                        android:layout_marginTop="6dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -303,7 +312,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="1 min"
-                            android:textColor="@color/text_secondary"
+                            android:textColor="@color/fn_text_tertiary"
                             android:textSize="12sp" />
 
                         <TextView
@@ -313,7 +322,7 @@
                             android:layout_weight="1"
                             android:gravity="center"
                             android:text="30 minutes"
-                            android:textColor="@color/accent_yellow"
+                            android:textColor="@color/fn_accent_amber"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -321,7 +330,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="4 hours"
-                            android:textColor="@color/text_secondary"
+                            android:textColor="@color/fn_text_tertiary"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -333,9 +342,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
-                        android:backgroundTint="@color/accent_yellow"
+                        android:backgroundTint="@color/fn_primary_blue"
                         android:text="START TIMER"
-                        android:textColor="@color/black" />
+                        android:textColor="@color/white"
+                        android:textStyle="bold"
+                        app:cornerRadius="12dp" />
 
                 </LinearLayout>
 
@@ -345,10 +356,12 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="@color/dark_gray"
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="@color/fn_surface_level_1"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fn_border_subtle"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -361,7 +374,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         android:text="💡 Timer Features"
-                        android:textColor="@color/white"
+                        android:textColor="@color/fn_text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -370,8 +383,8 @@
                         android:layout_height="wrap_content"
                         android:lineSpacingExtra="6dp"
                         android:text="• 🔦 Keep app open for reliable timer\n• 📱 Minimizing may pause the timer\n• 🔒 Use Lock Mode to auto-close app\n• ⚡ Flash auto-off when timer ends\n• 🔋 Screen dims in Lock Mode to save battery\n• ❌ Stop timer anytime from notification\n• 📲 Restart app to resume interrupted timer"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp"  />
+                        android:textColor="@color/fn_text_secondary"
+                        android:textSize="12sp" />
 
                 </LinearLayout>
 

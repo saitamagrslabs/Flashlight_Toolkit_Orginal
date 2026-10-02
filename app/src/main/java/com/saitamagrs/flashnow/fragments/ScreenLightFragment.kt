@@ -19,6 +19,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -101,6 +102,18 @@ class ScreenLightFragment : BaseAdFragment() {
         setupPatternButtons()
         setupClapSwitch()
         updatePatternButtonsUI()
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomSheetLayout) { v, insets ->
+            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val defaultPaddingBottom = (resources.displayMetrics.density * 8).toInt()
+            v.setPadding(
+                v.paddingLeft,
+                v.paddingTop,
+                v.paddingRight,
+                defaultPaddingBottom + navigationBars.bottom
+            )
+            insets
+        }
 
         binding.btnBackCustom.setOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()

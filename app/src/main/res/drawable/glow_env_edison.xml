@@ -7,5 +7,5 @@
         android:centerY="0.45"
         android:startColor="#D0FF9800"
         android:centerColor="#60FF6F00"
-        android:endColor="#00050810" />
+        android:endColor="#00FF9800" />
 </shape>

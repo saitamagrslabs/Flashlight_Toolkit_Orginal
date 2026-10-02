@@ -11,7 +11,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.RelativeLayout
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -55,6 +57,26 @@ class LightBulbFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val density = resources.displayMetrics.density
+
+            binding.headerBar.setPadding(
+                (16 * density).toInt(),
+                systemBars.top + (8 * density).toInt(),
+                (16 * density).toInt(),
+                (8 * density).toInt()
+            )
+
+            val layoutParams = binding.bottomInfoPill.layoutParams as? RelativeLayout.LayoutParams
+            layoutParams?.setMargins(
+                0, 0, 0,
+                systemBars.bottom + (20 * density).toInt()
+            )
+            binding.bottomInfoPill.layoutParams = layoutParams
+            insets
+        }
 
         setupUI()
         setupDualGestureListener()
@@ -249,6 +271,22 @@ class LightBulbFragment : Fragment() {
                 BulbType.CANDLE -> binding.viewEmitterCandle
             }
 
+            // 3.1 Broad Full-Screen Display Illumination (Entire screen glows with bulb light color)
+            val darkR = 15
+            val darkG = 15
+            val darkB = 20
+
+            val targetColor = bulb.glowColor
+            val targetR = Color.red(targetColor)
+            val targetG = Color.green(targetColor)
+            val targetB = Color.blue(targetColor)
+
+            val currentR = (darkR + (targetR - darkR) * effectiveIntensity).toInt().coerceIn(0, 255)
+            val currentG = (darkG + (targetG - darkG) * effectiveIntensity).toInt().coerceIn(0, 255)
+            val currentB = (darkB + (targetB - darkB) * effectiveIntensity).toInt().coerceIn(0, 255)
+
+            binding.lightBulbRoot.setBackgroundColor(Color.rgb(currentR, currentG, currentB))
+
             activeEnvView.visibility = if (brightness > 0) View.VISIBLE else View.INVISIBLE
             activeEnvView.alpha = effectiveIntensity
 
@@ -257,11 +295,12 @@ class LightBulbFragment : Fragment() {
 
             // Display transparent light source body asset in full detail with luminous emission
             binding.ivBulbIllustration.clearColorFilter()
-            binding.ivBulbIllustration.alpha = 0.5f + (effectiveIntensity * 0.5f)
+            binding.ivBulbIllustration.alpha = 0.85f + (effectiveIntensity * 0.15f)
 
             binding.tvOverlayHint.text = if (brightness > 0) "Swipe ↕ brightness ($brightness%) • ↔ change bulb" else "Swipe up to increase brightness"
         } else {
             // Power OFF State: Visible unlit physical body in dark environment, no environmental illumination
+            binding.lightBulbRoot.setBackgroundColor(Color.parseColor("#0F0F14"))
             binding.ivBulbIllustration.setColorFilter(Color.parseColor("#80151520"), PorterDuff.Mode.MULTIPLY)
             binding.ivBulbIllustration.alpha = 0.35f
             binding.tvOverlayHint.text = "Tap screen to turn ON"
