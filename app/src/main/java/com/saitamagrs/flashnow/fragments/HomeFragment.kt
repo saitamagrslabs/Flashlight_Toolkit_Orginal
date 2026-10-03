@@ -546,7 +546,7 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun startListeningForClaps() {
-        if (!isAdded || _binding == null || isDetached) return
+        if (!isAdded || _binding == null || isDetached || !isResumed) return
         if (clapDetector?.isListening == true) return
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.w("HomeFragment", "Cannot start clap detection: Permission not granted")
@@ -556,7 +556,7 @@ class HomeFragment : BaseAdFragment() {
 
         if (clapDetector == null) {
             clapDetector = ClapDetector(requireContext().applicationContext) {
-                if (isAdded) {
+                if (isAdded && isResumed && !isDetached && _binding != null) {
                     runFlashlightAction {
                         if (isFlashlightOn()) {
                             stopAllPatterns()

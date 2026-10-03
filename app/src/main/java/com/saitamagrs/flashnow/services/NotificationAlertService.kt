@@ -6,10 +6,9 @@ import android.os.Looper
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import androidx.core.app.NotificationCompat
-import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.utils.AppConstants
-import com.saitamagrs.flashnow.utils.FlashlightController
+import com.saitamagrs.flashnow.utils.FlashlightManager
+import com.saitamagrs.flashnow.utils.TimerManager
 
 class NotificationAlertService : NotificationListenerService() {
 
@@ -18,13 +17,13 @@ class NotificationAlertService : NotificationListenerService() {
         const val ACTION_NOTIFICATION_ACCESS_CHANGED = "notification_access_changed"
     }
 
-    private lateinit var flashlightController: FlashlightController
     private val handler = Handler(Looper.getMainLooper())
+    @Volatile
+    private var isAlertActive = false
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Notification Alert Service created")
-        flashlightController = FlashlightController(applicationContext)
     }
 
     override fun onListenerConnected() {
@@ -59,28 +58,53 @@ class NotificationAlertService : NotificationListenerService() {
             return
         }
 
-        // Optional: Filter specific apps if needed
-        // if (sbn.packageName == "com.whatsapp" || sbn.packageName == "com.facebook.messenger") {
+        // Prevent overlapping notification alerts
+        if (isAlertActive) {
+            Log.d(TAG, "Alert pattern currently active; ignoring overlapping notification from ${sbn.packageName}")
+            return
+        }
+
+        // Do not fight active flashlight modes (e.g., Timer)
+        val timerManager = TimerManager(applicationContext)
+        if (timerManager.isTimerRunning()) {
+            Log.d(TAG, "Flashlight Timer active; suppressing notification alert flash")
+            return
+        }
 
         triggerFlashPattern()
     }
 
     private fun triggerFlashPattern() {
-        // Simple flash pattern: 3 quick flashes
+        isAlertActive = true
         handler.post {
             flashSequence()
         }
     }
 
     private fun flashSequence() {
-        val delays = longArrayOf(0, 200, 400, 600, 800, 1000)
+        val appContext = applicationContext
+        val wasFlashlightOn = FlashlightManager.isFlashlightOn(appContext)
+
+        val delays = longArrayOf(0, 150, 300, 450, 600, 750)
 
         for (i in delays.indices) {
             handler.postDelayed({
+                if (!isAlertActive) return@postDelayed
+
                 if (i % 2 == 0) {
-                    flashlightController.turnOn()
+                    FlashlightManager.turnOnFlashlight(appContext)
                 } else {
-                    flashlightController.turnOff()
+                    FlashlightManager.turnOffFlashlight(appContext)
+                }
+
+                // Restore previous state on pattern completion
+                if (i == delays.size - 1) {
+                    if (wasFlashlightOn) {
+                        FlashlightManager.turnOnFlashlight(appContext)
+                    } else {
+                        FlashlightManager.turnOffFlashlight(appContext)
+                    }
+                    isAlertActive = false
                 }
             }, delays[i])
         }
@@ -88,6 +112,7 @@ class NotificationAlertService : NotificationListenerService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isAlertActive = false
         handler.removeCallbacksAndMessages(null)
         Log.d(TAG, "Notification Alert Service destroyed")
     }

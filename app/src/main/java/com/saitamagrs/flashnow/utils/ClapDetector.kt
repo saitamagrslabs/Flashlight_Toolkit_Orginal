@@ -31,12 +31,14 @@ class ClapDetector(
         private const val DEFAULT_MIN_AMPLITUDE_THRESHOLD = 9000
         private const val COOLDOWN_MS = 1200L
         private const val MAX_NOISE_HISTORY = 50
+        private const val MIN_CALIBRATION_BUFFERS = 5
     }
 
     @Volatile
     private var isListeningForClaps = false
     private var audioRecord: AudioRecord? = null
     private var audioThread: Thread? = null
+    private var activeSessionId: Long = 0L
 
     private var isClapOnCooldown = false
     private val noiseHistory = mutableListOf<Double>()
@@ -48,7 +50,7 @@ class ClapDetector(
     private var isReleased = false
 
     val isListening: Boolean
-        get() = isListeningForClaps
+        get() = synchronized(lock) { isListeningForClaps && !isReleased }
 
     /**
      * Starts listening for clap sounds on a background worker thread.
@@ -71,83 +73,94 @@ class ClapDetector(
             minAmplitudeThreshold = sharedPreferences.getInt(AppConstants.KEY_SENSITIVITY, DEFAULT_MIN_AMPLITUDE_THRESHOLD)
 
             isListeningForClaps = true
-            Log.d(TAG, "Clap detection starting with threshold: $minAmplitudeThreshold")
+            val currentSession = ++activeSessionId
+            noiseHistory.clear()
+            Log.d(TAG, "Clap detection starting (session $currentSession) with threshold: $minAmplitudeThreshold")
 
-            audioThread = thread(name = "ClapDetectionThread", start = true) {
-                val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
-                if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
-                    Log.e(TAG, "AudioRecord.getMinBufferSize failed with error: $minBufferSize")
+            audioThread = thread(name = "ClapDetectionThread-$currentSession", start = true) {
+                runAudioLoop(currentSession)
+            }
+        }
+    }
+
+    private fun runAudioLoop(sessionId: Long) {
+        val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+        if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
+            Log.e(TAG, "AudioRecord.getMinBufferSize failed with error: $minBufferSize")
+            synchronized(lock) {
+                if (activeSessionId == sessionId) {
                     isListeningForClaps = false
-                    return@thread
-                }
-
-                try {
-                    val buffer = ShortArray(minBufferSize)
-                    val record = AudioRecord(
-                        MediaRecorder.AudioSource.MIC,
-                        SAMPLE_RATE,
-                        CHANNEL_CONFIG,
-                        AUDIO_FORMAT,
-                        minBufferSize
-                    )
-                    synchronized(lock) {
-                        if (!isListeningForClaps || isReleased) {
-                            try {
-                                record.release()
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error releasing early AudioRecord", e)
-                            }
-                            return@thread
-                        }
-                        audioRecord = record
-                    }
-
-                    if (record.state == AudioRecord.STATE_INITIALIZED) {
-                        try {
-                            record.startRecording()
-                        } catch (e: IllegalStateException) {
-                            Log.e(TAG, "AudioRecord.startRecording failed", e)
-                            isListeningForClaps = false
-                            return@thread
-                        }
-
-                        while (isListeningForClaps && !isReleased) {
-                            val readBytes = try {
-                                record.read(buffer, 0, minBufferSize)
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error reading from AudioRecord", e)
-                                -1
-                            }
-                            if (readBytes > 0) {
-                                processAudioBuffer(buffer)
-                            } else if (readBytes < 0) {
-                                Log.w(TAG, "AudioRecord read returned error code: $readBytes")
-                                break
-                            }
-                        }
-                    } else {
-                        Log.e(TAG, "AudioRecord failed to initialize: state=${record.state}")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error in audio thread", e)
-                } finally {
-                    synchronized(lock) {
-                        try {
-                            audioRecord?.stop()
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error stopping audio record in worker thread", e)
-                        }
-                        try {
-                            audioRecord?.release()
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error releasing audio record in worker thread", e)
-                        }
-                        audioRecord = null
-                        isListeningForClaps = false
-                    }
-                    Log.d(TAG, "ClapDetectionThread finished")
                 }
             }
+            return
+        }
+
+        var record: AudioRecord? = null
+        try {
+            val buffer = ShortArray(minBufferSize)
+            val newRecord = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE,
+                CHANNEL_CONFIG,
+                AUDIO_FORMAT,
+                minBufferSize
+            )
+
+            synchronized(lock) {
+                if (!isListeningForClaps || isReleased || activeSessionId != sessionId) {
+                    try { newRecord.release() } catch (e: Exception) {}
+                    return
+                }
+                record = newRecord
+                audioRecord = newRecord
+            }
+
+            if (newRecord.state == AudioRecord.STATE_INITIALIZED) {
+                try {
+                    newRecord.startRecording()
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "AudioRecord.startRecording failed", e)
+                    synchronized(lock) {
+                        if (activeSessionId == sessionId) isListeningForClaps = false
+                    }
+                    return
+                }
+
+                while (isListeningForClaps && !isReleased && activeSessionId == sessionId) {
+                    val readBytes = try {
+                        newRecord.read(buffer, 0, minBufferSize)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error reading from AudioRecord", e)
+                        -1
+                    }
+                    if (readBytes > 0) {
+                        processAudioBuffer(buffer, sessionId)
+                    } else if (readBytes < 0) {
+                        Log.w(TAG, "AudioRecord read returned error code: $readBytes")
+                        break
+                    }
+                }
+            } else {
+                Log.e(TAG, "AudioRecord failed to initialize: state=${newRecord.state}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in audio thread (session $sessionId)", e)
+        } finally {
+            synchronized(lock) {
+                try {
+                    record?.stop()
+                } catch (e: Exception) {}
+                try {
+                    record?.release()
+                } catch (e: Exception) {}
+
+                if (activeSessionId == sessionId) {
+                    audioRecord = null
+                    audioThread = null
+                    isListeningForClaps = false
+                }
+            }
+            Log.d(TAG, "ClapDetectionThread finished (session $sessionId)")
         }
     }
 
@@ -158,11 +171,15 @@ class ClapDetector(
     fun stopListening() {
         synchronized(lock) {
             isListeningForClaps = false
+            activeSessionId++
             try {
                 audioRecord?.stop()
-            } catch (e: Exception) {
-                // Ignore if already stopped or uninitialized
-            }
+            } catch (e: Exception) {}
+            try {
+                audioRecord?.release()
+            } catch (e: Exception) {}
+            audioRecord = null
+            audioThread = null
         }
         Log.d(TAG, "Clap detection stopped")
     }
@@ -175,16 +192,13 @@ class ClapDetector(
         synchronized(lock) {
             isReleased = true
             isListeningForClaps = false
+            activeSessionId++
             try {
                 audioRecord?.stop()
-            } catch (e: Exception) {
-                // Ignore
-            }
+            } catch (e: Exception) {}
             try {
                 audioRecord?.release()
-            } catch (e: Exception) {
-                // Ignore
-            }
+            } catch (e: Exception) {}
             audioRecord = null
             audioThread = null
             handler.removeCallbacksAndMessages(null)
@@ -193,29 +207,44 @@ class ClapDetector(
         Log.d(TAG, "ClapDetector released")
     }
 
-    private fun processAudioBuffer(buffer: ShortArray) {
+    private fun processAudioBuffer(buffer: ShortArray, sessionId: Long) {
         var peakAmplitude = 0.0
         for (s in buffer) {
             peakAmplitude = maxOf(peakAmplitude, abs(s.toDouble()))
         }
 
-        val averageNoise = if (noiseHistory.isEmpty()) 0.0 else noiseHistory.average()
-        val isClap = peakAmplitude > averageNoise * CLAP_MULTIPLIER && peakAmplitude > minAmplitudeThreshold
+        synchronized(lock) {
+            if (activeSessionId != sessionId || !isListeningForClaps || isReleased) return
 
-        if (isClap && !isClapOnCooldown) {
-            isClapOnCooldown = true
-            handler.postDelayed({ isClapOnCooldown = false }, COOLDOWN_MS)
-
-            // Notify callback on main thread if not released
-            handler.post {
-                if (!isReleased) {
-                    onClapDetected()
-                }
+            // Establish noise baseline calibration before evaluating claps
+            if (noiseHistory.size < MIN_CALIBRATION_BUFFERS) {
+                noiseHistory.add(peakAmplitude)
+                return
             }
-        } else if (peakAmplitude < averageNoise * 1.5) {
-            noiseHistory.add(peakAmplitude)
-            if (noiseHistory.size > MAX_NOISE_HISTORY) {
-                noiseHistory.removeAt(0)
+
+            val averageNoise = noiseHistory.average()
+            val isClap = peakAmplitude > averageNoise * CLAP_MULTIPLIER && peakAmplitude > minAmplitudeThreshold
+
+            if (isClap && !isClapOnCooldown) {
+                isClapOnCooldown = true
+                handler.postDelayed({
+                    synchronized(lock) {
+                        isClapOnCooldown = false
+                    }
+                }, COOLDOWN_MS)
+
+                handler.post {
+                    synchronized(lock) {
+                        if (!isReleased && isListeningForClaps && activeSessionId == sessionId) {
+                            onClapDetected()
+                        }
+                    }
+                }
+            } else if (peakAmplitude < averageNoise * 1.5) {
+                noiseHistory.add(peakAmplitude)
+                if (noiseHistory.size > MAX_NOISE_HISTORY) {
+                    noiseHistory.removeAt(0)
+                }
             }
         }
     }
