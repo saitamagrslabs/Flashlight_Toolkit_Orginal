@@ -13,7 +13,20 @@ object FlashlightManager {
     private var instance: FlashlightController? = null
 
     private val stateChangeListeners = mutableListOf<(Boolean) -> Unit>()
-    
+
+    @Volatile
+    private var isSosRunning = false
+
+    @Volatile
+    private var isStrobeRunning = false
+
+    @Volatile
+    private var isNotificationFlashing = false
+
+    @Volatile
+    var lastExternalActionTime: Long = 0L
+        private set
+
     @Synchronized
     fun getInstance(context: Context): FlashlightController {
         return instance ?: FlashlightController(context.applicationContext).also {
@@ -21,6 +34,7 @@ object FlashlightManager {
 
             // Register for flashlight state changes
             it.addOnFlashlightStateChangeListener { isOn ->
+                markExternalAction()
                 stateChangeListeners.forEach { listener ->
                     listener(isOn)
                 }
@@ -30,11 +44,26 @@ object FlashlightManager {
         }
     }
 
+    fun markExternalAction() {
+        if (!isNotificationFlashing) {
+            lastExternalActionTime = System.currentTimeMillis()
+        }
+    }
+
+    fun setNotificationFlashing(flashing: Boolean) {
+        isNotificationFlashing = flashing
+    }
+
+    fun isNotificationFlashing(): Boolean = isNotificationFlashing
+
     @Synchronized
     fun release() {
         instance?.release()
         instance = null
         stateChangeListeners.clear()
+        isSosRunning = false
+        isStrobeRunning = false
+        isNotificationFlashing = false
         Log.d("FlashlightManager", "FlashlightManager released")
     }
 
@@ -45,20 +74,37 @@ object FlashlightManager {
 
     // Helper methods for common operations
     fun turnOnFlashlight(context: Context) {
+        markExternalAction()
         getInstance(context).turnOn()
-        // Notify listeners
         stateChangeListeners.forEach { it(true) }
     }
 
     fun turnOffFlashlight(context: Context) {
+        markExternalAction()
         getInstance(context).turnOff()
-        // Notify listeners - FIXED: should be false
         stateChangeListeners.forEach { it(false) }
     }
 
     fun isFlashlightOn(context: Context): Boolean {
         return getInstance(context).isFlashlightOn()
     }
+
+    // Active Pattern Tracking (SOS / Strobe)
+    fun setSosActive(active: Boolean) {
+        if (active) markExternalAction()
+        isSosRunning = active
+    }
+
+    fun isSosActive(): Boolean = isSosRunning
+
+    fun setStrobeActive(active: Boolean) {
+        if (active) markExternalAction()
+        isStrobeRunning = active
+    }
+
+    fun isStrobeActive(): Boolean = isStrobeRunning
+
+    fun isPatternActive(): Boolean = isSosRunning || isStrobeRunning
 
     // Add listener for UI updates
     fun addFlashlightStateListener(listener: (Boolean) -> Unit) {

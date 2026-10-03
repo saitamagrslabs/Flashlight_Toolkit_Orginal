@@ -488,6 +488,8 @@ class HomeFragment : BaseAdFragment() {
 
         viewModel.setSosActive(false)
         viewModel.setStrobeActive(false)
+        FlashlightManager.setSosActive(false)
+        FlashlightManager.setStrobeActive(false)
 
         val shouldTurnOff = turnOffFlash || wasPatternActive
 
@@ -502,6 +504,7 @@ class HomeFragment : BaseAdFragment() {
     private fun startStrobePattern() {
         stopAllPatterns(true)
         viewModel.setStrobeActive(true)
+        FlashlightManager.setStrobeActive(true)
 
         strobeRunnable = object : Runnable {
             var strobeState = true
@@ -522,9 +525,8 @@ class HomeFragment : BaseAdFragment() {
     private fun startSosPattern() {
         stopAllPatterns(true)
         viewModel.setSosActive(true)
-        // ✅ Already calling it here, but let's be safe
+        FlashlightManager.setSosActive(true)
 
-        
         val sosPattern = longArrayOf(150, 100, 150, 100, 150, 250, 400, 100, 400, 100, 400, 250, 150, 100, 150, 100, 150, 500)
         sosRunnable = object : Runnable {
             var index = 0

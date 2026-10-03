@@ -64,14 +64,18 @@ class NotificationAlertService : NotificationListenerService() {
             return
         }
 
-        // Do not fight active flashlight modes (e.g., Timer)
-        val timerManager = TimerManager(applicationContext)
-        if (timerManager.isTimerRunning()) {
-            Log.d(TAG, "Flashlight Timer active; suppressing notification alert flash")
+        // Suppress notification alert if Timer, SOS, or Strobe pattern is active
+        if (isAnyActivePatternRunning()) {
+            Log.d(TAG, "Active flashlight mode running (Timer/SOS/Strobe); suppressing notification alert flash")
             return
         }
 
         triggerFlashPattern()
+    }
+
+    private fun isAnyActivePatternRunning(): Boolean {
+        val timerManager = TimerManager(applicationContext)
+        return timerManager.isTimerRunning() || FlashlightManager.isPatternActive()
     }
 
     private fun triggerFlashPattern() {
@@ -83,7 +87,10 @@ class NotificationAlertService : NotificationListenerService() {
 
     private fun flashSequence() {
         val appContext = applicationContext
+        val alertStartTime = System.currentTimeMillis()
         val wasFlashlightOn = FlashlightManager.isFlashlightOn(appContext)
+
+        FlashlightManager.setNotificationFlashing(true)
 
         val delays = longArrayOf(0, 150, 300, 450, 600, 750)
 
@@ -91,18 +98,39 @@ class NotificationAlertService : NotificationListenerService() {
             handler.postDelayed({
                 if (!isAlertActive) return@postDelayed
 
-                if (i % 2 == 0) {
-                    FlashlightManager.turnOnFlashlight(appContext)
-                } else {
-                    FlashlightManager.turnOffFlashlight(appContext)
+                // Check if an external action occurred (user toggled flashlight manually or via OS)
+                if (FlashlightManager.lastExternalActionTime > alertStartTime) {
+                    Log.d(TAG, "External flashlight action detected during notification alert; aborting alert sequence")
+                    isAlertActive = false
+                    FlashlightManager.setNotificationFlashing(false)
+                    return@postDelayed
                 }
 
-                // Restore previous state on pattern completion
+                // Check if Timer, SOS, or Strobe mode became active during the alert
+                if (isAnyActivePatternRunning()) {
+                    Log.d(TAG, "Active mode started during alert; aborting alert sequence")
+                    isAlertActive = false
+                    FlashlightManager.setNotificationFlashing(false)
+                    return@postDelayed
+                }
+
+                val targetState = (i % 2 == 0)
+                val controller = FlashlightManager.getInstance(appContext)
+                if (targetState) {
+                    controller.turnOn()
+                } else {
+                    controller.turnOff()
+                }
+
+                // On final step, restore previous state if no external user actions occurred
                 if (i == delays.size - 1) {
-                    if (wasFlashlightOn) {
-                        FlashlightManager.turnOnFlashlight(appContext)
-                    } else {
-                        FlashlightManager.turnOffFlashlight(appContext)
+                    FlashlightManager.setNotificationFlashing(false)
+                    if (FlashlightManager.lastExternalActionTime <= alertStartTime && !isAnyActivePatternRunning()) {
+                        if (wasFlashlightOn) {
+                            FlashlightManager.turnOnFlashlight(appContext)
+                        } else {
+                            FlashlightManager.turnOffFlashlight(appContext)
+                        }
                     }
                     isAlertActive = false
                 }
@@ -113,6 +141,7 @@ class NotificationAlertService : NotificationListenerService() {
     override fun onDestroy() {
         super.onDestroy()
         isAlertActive = false
+        FlashlightManager.setNotificationFlashing(false)
         handler.removeCallbacksAndMessages(null)
         Log.d(TAG, "Notification Alert Service destroyed")
     }
