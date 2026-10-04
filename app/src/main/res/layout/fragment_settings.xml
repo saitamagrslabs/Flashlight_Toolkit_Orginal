@@ -1,104 +1,632 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1C1B1F"
-    android:orientation="vertical"
-    android:fitsSystemWindows="true"
-    android:padding="16dp">
+    android:background="@color/fn_bg_dark"
+    android:fillViewport="true">
 
-    <com.google.android.material.card.MaterialCardView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        app:cardBackgroundColor="@color/dark_gray"
-        app:cardCornerRadius="16dp">
+        android:orientation="vertical"
+        android:padding="16dp">
 
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="24dp"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_settings_tb"
+                app:tint="@color/fn_primary_blue"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Clap Detection Sensitivity"
-                android:textColor="@color/white"
-                android:textSize="16sp" />
+                android:layout_marginTop="12dp"
+                android:text="Settings"
+                android:textColor="@color/fn_text_primary"
+                android:textSize="26sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Lower values are more sensitive."
-                android:textColor="#A9A9A9"
-                android:textSize="12sp" />
+                android:text="Preferences &amp; toolkit configuration"
+                android:textColor="@color/fn_text_secondary"
+                android:textSize="14sp" />
 
-            <SeekBar
-                android:id="@+id/seekbar_sensitivity"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:max="25000"
-                android:progress="9000" />
+        </LinearLayout>
+
+        <!-- Section 1: Appearance Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="8dp"
+            android:text="APPEARANCE"
+            android:textColor="@color/fn_text_tertiary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <!-- Appearance Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_appearance"
+            style="@style/FlashNow.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp">
 
-                <TextView
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_icon_container">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_theme_mode"
+                        app:tint="@color/fn_primary_blue"
+                        android:importantForAccessibility="no" />
+                </FrameLayout>
+
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
                     android:layout_weight="1"
-                    android:text="More Sensitive"
-                    android:textColor="#A9A9A9"
-                    android:textSize="12sp" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="App Theme"
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Modern Dark (System default)"
+                        android:textColor="@color/fn_text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
 
                 <TextView
+                    android:id="@+id/tv_theme_badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Less Sensitive"
-                    android:textColor="#A9A9A9"
-                    android:textSize="12sp" />
+                    android:background="@drawable/bg_badge_subtle"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:text="Dark"
+                    android:textColor="@color/fn_primary_blue"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
             </LinearLayout>
 
-        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-    </com.google.android.material.card.MaterialCardView>
+        <!-- Section 2: Flashlight & Controls Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="8dp"
+            android:text="FLASHLIGHT &amp; CONTROLS"
+            android:textColor="@color/fn_text_tertiary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
 
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        app:cardBackgroundColor="@color/dark_gray"
-        app:cardCornerRadius="16dp">
-
-        <LinearLayout
+        <!-- Controls Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_controls"
+            style="@style/FlashNow.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="16dp">
+            android:layout_marginBottom="20dp">
 
-            <TextView
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Button Sounds"
-                android:textColor="@color/white"
-                android:textSize="16sp" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switch_sound"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                <!-- Clap Sensitivity Row Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-        </LinearLayout>
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_container">
 
-    </com.google.android.material.card.MaterialCardView>
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_clap"
+                            app:tint="@color/fn_accent_amber"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
-</LinearLayout>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Clap Detection Sensitivity"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Acoustic threshold for clap detection"
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_sensitivity_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_badge_subtle"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:text="64%"
+                        android:textColor="@color/fn_accent_amber"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <!-- SeekBar -->
+                <SeekBar
+                    android:id="@+id/seekbar_sensitivity"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="6dp"
+                    android:max="25000"
+                    android:progress="9000"
+                    android:progressTint="@color/fn_primary_blue"
+                    android:thumbTint="@color/fn_primary_blue" />
+
+                <!-- SeekBar Bounds / Status -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="More Sensitive"
+                        android:textColor="@color/fn_text_tertiary"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/tv_sensitivity_level"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Medium (Level 9000)"
+                        android:textColor="@color/fn_primary_blue"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="Less Sensitive"
+                        android:textColor="@color/fn_text_tertiary"
+                        android:textSize="12sp" />
+
+                </LinearLayout>
+
+                <!-- Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@color/fn_border_subtle" />
+
+                <!-- Button Sounds Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_container">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_sound_on"
+                            app:tint="@color/fn_accent_green"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Button Sounds"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Haptic click audio on flashlight toggles"
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_sound"
+                        style="@style/FlashNow.Switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Section 3: Notifications Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="8dp"
+            android:text="NOTIFICATIONS"
+            android:textColor="@color/fn_text_tertiary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <!-- Notifications Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_notifications"
+            style="@style/FlashNow.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
+
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_icon_container">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_signal"
+                        app:tint="@color/fn_primary_blue"
+                        android:importantForAccessibility="no" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Flash on Notification"
+                        android:textColor="@color/fn_text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Flash strobe when receiving app alerts"
+                        android:textColor="@color/fn_text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_notification"
+                    style="@style/FlashNow.Switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Section 4: About & Support Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="8dp"
+            android:text="ABOUT &amp; SUPPORT"
+            android:textColor="@color/fn_text_tertiary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <!-- About Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_about"
+            style="@style/FlashNow.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Version Item -->
+                <LinearLayout
+                    android:id="@+id/row_version"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_container">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_about"
+                            app:tint="@color/fn_primary_blue"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="App Version"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_version_info"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Version 1.0.0"
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_badge_subtle"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:text="Latest"
+                        android:textColor="@color/fn_accent_green"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="54dp"
+                    android:background="@color/fn_border_subtle" />
+
+                <!-- Privacy Policy Item -->
+                <LinearLayout
+                    android:id="@+id/row_privacy_policy"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_container">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_privacypol"
+                            app:tint="@color/fn_accent_amber"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Privacy Policy"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Data safety &amp; privacy disclosures"
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/fn_text_tertiary"
+                        android:importantForAccessibility="no" />
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="54dp"
+                    android:background="@color/fn_border_subtle" />
+
+                <!-- Rate App Item -->
+                <LinearLayout
+                    android:id="@+id/row_rate_app"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_container">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_rateus"
+                            app:tint="@color/fn_accent_amber"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Rate FlashNow"
+                            android:textColor="@color/fn_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Support development on Google Play"
+                            android:textColor="@color/fn_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/fn_text_tertiary"
+                        android:importantForAccessibility="no" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>
