@@ -652,6 +652,9 @@ class HomeFragment : BaseAdFragment() {
         if(hasFlashlight) {
             updateUI()
         }
+        if (_binding != null && binding.clapSwitch.isChecked) {
+            startListeningForClaps()
+        }
         val window = requireActivity().window
         val layoutParams = window.attributes
         layoutParams.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE

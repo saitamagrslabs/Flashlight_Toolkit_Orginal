@@ -16,7 +16,7 @@ import kotlin.math.abs
 /**
  * Low-level audio DSP engine for detecting clap sounds using the microphone.
  * Encapsulates AudioRecord, background worker thread, dynamic noise averaging,
- * threshold calculation, and cooldown timing.
+ * sensitivity-adjusted threshold calculation, and cooldown timing.
  */
 class ClapDetector(
     private val context: Context,
@@ -27,11 +27,25 @@ class ClapDetector(
         private const val SAMPLE_RATE = 44100
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
-        private const val CLAP_MULTIPLIER = 15.0
-        private const val DEFAULT_MIN_AMPLITUDE_THRESHOLD = 9000
         private const val COOLDOWN_MS = 1200L
         private const val MAX_NOISE_HISTORY = 50
         private const val MIN_CALIBRATION_BUFFERS = 5
+
+        // Settings seekbar range: 0..25000 (lower values = more sensitive)
+        private const val MIN_SEEKBAR_VALUE = 0
+        private const val MAX_SEEKBAR_VALUE = 25000
+        private const val DEFAULT_SEEKBAR_VALUE = 9000
+
+        // Dynamic multiplier range relative to ambient noise floor
+        private const val MIN_MULTIPLIER = 4.5    // At max sensitivity (100%)
+        private const val MAX_MULTIPLIER = 14.0   // At min sensitivity (0%)
+
+        // Minimum amplitude floor range in 16-bit PCM units [0..32767]
+        private const val MIN_AMPLITUDE_FLOOR = 1800.0  // At max sensitivity (100%)
+        private const val MAX_AMPLITUDE_FLOOR = 22000.0 // At min sensitivity (0%)
+
+        // Ambient noise sample cap to prevent loud transient spikes from contaminating the baseline
+        private const val MAX_AMBIENT_NOISE_SAMPLE = 3500.0
     }
 
     @Volatile
@@ -42,7 +56,10 @@ class ClapDetector(
 
     private var isClapOnCooldown = false
     private val noiseHistory = mutableListOf<Double>()
-    private var minAmplitudeThreshold = DEFAULT_MIN_AMPLITUDE_THRESHOLD
+
+    // Sensitivity-derived thresholds (dynamically calculated)
+    private var currentClapMultiplier = 8.0
+    private var currentMinAmplitudeFloor = 9000.0
 
     private val handler = Handler(Looper.getMainLooper())
     private val lock = Any()
@@ -69,18 +86,41 @@ class ClapDetector(
                 return
             }
 
-            val sharedPreferences = context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
-            minAmplitudeThreshold = sharedPreferences.getInt(AppConstants.KEY_SENSITIVITY, DEFAULT_MIN_AMPLITUDE_THRESHOLD)
+            loadSensitivityParameters()
 
             isListeningForClaps = true
             val currentSession = ++activeSessionId
             noiseHistory.clear()
-            Log.d(TAG, "Clap detection starting (session $currentSession) with threshold: $minAmplitudeThreshold")
+            Log.d(TAG, "Clap detection starting (session $currentSession) - Multiplier: $currentClapMultiplier, MinFloor: $currentMinAmplitudeFloor")
 
             audioThread = thread(name = "ClapDetectionThread-$currentSession", start = true) {
                 runAudioLoop(currentSession)
             }
         }
+    }
+
+    /**
+     * Reads the sensitivity preference from Settings and calculates the dynamic
+     * multiplier and minimum amplitude floor.
+     *
+     * In Settings:
+     * - Progress ranges from 0 to 25000 (default 9000).
+     * - Lower progress = "More Sensitive" (quieter claps trigger).
+     * - Higher progress = "Less Sensitive" (louder claps trigger).
+     */
+    private fun loadSensitivityParameters() {
+        val sharedPreferences = context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        val rawPref = sharedPreferences.getInt(AppConstants.KEY_SENSITIVITY, DEFAULT_SEEKBAR_VALUE)
+        val clampedPref = rawPref.coerceIn(MIN_SEEKBAR_VALUE, MAX_SEEKBAR_VALUE)
+
+        // sensitivityRatio in [0.0, 1.0]: 1.0 = most sensitive (progress 0), 0.0 = least sensitive (progress 25000)
+        val sensitivityRatio = (MAX_SEEKBAR_VALUE - clampedPref).toDouble() / (MAX_SEEKBAR_VALUE - MIN_SEEKBAR_VALUE)
+
+        // Interpolate multiplier: lower multiplier when more sensitive
+        currentClapMultiplier = MAX_MULTIPLIER - (MAX_MULTIPLIER - MIN_MULTIPLIER) * sensitivityRatio
+
+        // Interpolate minimum amplitude floor: lower floor when more sensitive
+        currentMinAmplitudeFloor = MAX_AMPLITUDE_FLOOR - (MAX_AMPLITUDE_FLOOR - MIN_AMPLITUDE_FLOOR) * sensitivityRatio
     }
 
     private fun runAudioLoop(sessionId: Long) {
@@ -216,14 +256,18 @@ class ClapDetector(
         synchronized(lock) {
             if (activeSessionId != sessionId || !isListeningForClaps || isReleased) return
 
-            // Establish noise baseline calibration before evaluating claps
+            // Initial calibration: establish baseline ambient noise floor without letting loud spikes pollute it
             if (noiseHistory.size < MIN_CALIBRATION_BUFFERS) {
-                noiseHistory.add(peakAmplitude)
+                val safeSample = minOf(peakAmplitude, MAX_AMBIENT_NOISE_SAMPLE)
+                noiseHistory.add(safeSample)
                 return
             }
 
-            val averageNoise = noiseHistory.average()
-            val isClap = peakAmplitude > averageNoise * CLAP_MULTIPLIER && peakAmplitude > minAmplitudeThreshold
+            val currentNoiseFloor = if (noiseHistory.isEmpty()) 200.0 else maxOf(noiseHistory.average(), 150.0)
+            val noiseThreshold = currentNoiseFloor * currentClapMultiplier
+            val effectiveThreshold = maxOf(noiseThreshold, currentMinAmplitudeFloor)
+
+            val isClap = peakAmplitude > effectiveThreshold
 
             if (isClap && !isClapOnCooldown) {
                 isClapOnCooldown = true
@@ -240,8 +284,10 @@ class ClapDetector(
                         }
                     }
                 }
-            } else if (peakAmplitude < averageNoise * 1.5) {
-                noiseHistory.add(peakAmplitude)
+            } else if (!isClap && peakAmplitude < currentMinAmplitudeFloor * 0.75) {
+                // Update ambient noise history dynamically with non-clap background samples
+                val safeSample = minOf(peakAmplitude, MAX_AMBIENT_NOISE_SAMPLE)
+                noiseHistory.add(safeSample)
                 if (noiseHistory.size > MAX_NOISE_HISTORY) {
                     noiseHistory.removeAt(0)
                 }
