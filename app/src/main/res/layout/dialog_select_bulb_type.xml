@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/fn_surface_level_1"
+    android:background="?attr/fnSurfaceLevel1"
     android:orientation="vertical"
     android:paddingBottom="24dp">
 
@@ -15,7 +15,7 @@
         android:layout_marginTop="12dp"
         android:layout_marginBottom="16dp"
         android:background="@drawable/bg_overlay_pill"
-        android:backgroundTint="@color/fn_text_tertiary" />
+        android:backgroundTint="?attr/fnTextTertiary" />
 
     <!-- Dialog Header Title -->
     <TextView
@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:text="Select Light Source"
-        android:textColor="@color/fn_text_primary"
+        android:textColor="?attr/fnTextPrimary"
         android:textSize="18sp"
         android:textStyle="bold" />
 
@@ -34,13 +34,13 @@
         android:layout_marginTop="4dp"
         android:layout_marginBottom="16dp"
         android:text="Swipe vertically anywhere on screen to adjust brightness"
-        android:textColor="@color/fn_text_secondary"
+        android:textColor="?attr/fnTextSecondary"
         android:textSize="12sp" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/fn_border_subtle"
+        android:background="?attr/fnBorderSubtle"
         android:layout_marginBottom="8dp" />
 
     <!-- Bulb Type 1: STANDARD -->
@@ -74,7 +74,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Standard Bulb"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -82,7 +82,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="A19 / A60 Household • 360° Ambient Light"
-                android:textColor="@color/fn_text_secondary"
+                android:textColor="?attr/fnTextSecondary"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -93,7 +93,7 @@
             android:layout_height="24dp"
             android:contentDescription="Selected"
             android:src="@drawable/ic_check"
-            app:tint="@color/fn_primary_blue"
+            app:tint="?attr/fnPrimaryBlue"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -129,7 +129,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Tube Light"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -137,7 +137,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Linear T8 / LED Tube • Wide Linear Wash"
-                android:textColor="@color/fn_text_secondary"
+                android:textColor="?attr/fnTextSecondary"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -148,7 +148,7 @@
             android:layout_height="24dp"
             android:contentDescription="Selected"
             android:src="@drawable/ic_check"
-            app:tint="@color/fn_primary_blue"
+            app:tint="?attr/fnPrimaryBlue"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -184,7 +184,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Spotlight"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -192,7 +192,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="PAR38 / MR16 • Concentrated Cone Beam"
-                android:textColor="@color/fn_text_secondary"
+                android:textColor="?attr/fnTextSecondary"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -203,7 +203,7 @@
             android:layout_height="24dp"
             android:contentDescription="Selected"
             android:src="@drawable/ic_check"
-            app:tint="@color/fn_primary_blue"
+            app:tint="?attr/fnPrimaryBlue"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -239,7 +239,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Torch Bulb"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -247,7 +247,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Flashlight Emitter • High Intensity Spot"
-                android:textColor="@color/fn_text_secondary"
+                android:textColor="?attr/fnTextSecondary"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -258,7 +258,7 @@
             android:layout_height="24dp"
             android:contentDescription="Selected"
             android:src="@drawable/ic_check"
-            app:tint="@color/fn_primary_blue"
+            app:tint="?attr/fnPrimaryBlue"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -294,7 +294,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Edison Bulb"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -302,7 +302,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="ST64 Vintage • Warm Amber Glow"
-                android:textColor="@color/fn_text_secondary"
+                android:textColor="?attr/fnTextSecondary"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -313,7 +313,7 @@
             android:layout_height="24dp"
             android:contentDescription="Selected"
             android:src="@drawable/ic_check"
-            app:tint="@color/fn_primary_blue"
+            app:tint="?attr/fnPrimaryBlue"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -349,7 +349,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Smart Bulb"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -357,7 +357,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Connected LED • Soft Diffused Dome"
-                android:textColor="@color/fn_text_secondary"
+                android:textColor="?attr/fnTextSecondary"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -368,7 +368,7 @@
             android:layout_height="24dp"
             android:contentDescription="Selected"
             android:src="@drawable/ic_check"
-            app:tint="@color/fn_primary_blue"
+            app:tint="?attr/fnPrimaryBlue"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -404,7 +404,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Candle Bulb"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -412,7 +412,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Flame Tip C7/C9 • Warm Flame Flicker"
-                android:textColor="@color/fn_text_secondary"
+                android:textColor="?attr/fnTextSecondary"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -423,7 +423,7 @@
             android:layout_height="24dp"
             android:contentDescription="Selected"
             android:src="@drawable/ic_check"
-            app:tint="@color/fn_primary_blue"
+            app:tint="?attr/fnPrimaryBlue"
             android:visibility="gone" />
 
     </LinearLayout>

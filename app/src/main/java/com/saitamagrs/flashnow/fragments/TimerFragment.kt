@@ -5,11 +5,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -394,15 +396,22 @@ class TimerFragment : BaseAdFragment() {
         Log.d("TimerFragment", "Navigation unlocked")
     }
 
+    private fun getThemeColor(attrRes: Int): Int {
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(attrRes, typedValue, true)
+        return typedValue.data
+    }
+
     private fun updateLockModeUI() {
         if (!isAdded) return
         requireActivity().runOnUiThread {
             if (!isAdded) return@runOnUiThread
             if (isLockModeEnabled) {
                 binding.btnLockMode.text = "🔒 Lock Mode ON"
-                binding.btnLockMode.setBackgroundColor(
-                    ContextCompat.getColor(requireContext(), R.color.accent_green)
+                binding.btnLockMode.backgroundTintList = ColorStateList.valueOf(
+                    getThemeColor(R.attr.fnAccentGreen)
                 )
+                binding.btnLockMode.setTextColor(android.graphics.Color.BLACK)
 
                 // Disable stop button visually
                 binding.btnStopTimer.isEnabled = false
@@ -418,9 +427,10 @@ class TimerFragment : BaseAdFragment() {
                 binding.lockModeInfo.visibility = View.VISIBLE
             } else {
                 binding.btnLockMode.text = "🔓 Lock Mode OFF"
-                binding.btnLockMode.setBackgroundColor(
-                    ContextCompat.getColor(requireContext(), R.color.accent_blue)
+                binding.btnLockMode.backgroundTintList = ColorStateList.valueOf(
+                    getThemeColor(R.attr.fnPrimaryBlue)
                 )
+                binding.btnLockMode.setTextColor(getThemeColor(R.attr.fnBackground))
 
                 // Enable stop button
                 binding.btnStopTimer.isEnabled = true
@@ -479,7 +489,7 @@ class TimerFragment : BaseAdFragment() {
             descTextView.text = preset.description
             if (preset.minutes == 0) {
                 titleTextView.setTextColor(
-                    ContextCompat.getColor(requireContext(), R.color.accent_yellow)
+                    getThemeColor(R.attr.fnAccentAmber)
                 )
             }
             itemView.setOnClickListener {

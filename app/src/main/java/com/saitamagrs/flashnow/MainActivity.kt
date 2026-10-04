@@ -39,11 +39,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var permissionLauncher: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyAppTheme()
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        syncSystemBarAppearance()
         setSupportActionBar(binding.toolbar)
 
         updateToolbarVisibility()
@@ -315,6 +317,26 @@ class MainActivity : AppCompatActivity() {
         } catch (e: android.content.ActivityNotFoundException) {
             // Handle case where Play Store is not installed
         }
+    }
+
+    private fun applyAppTheme() {
+        val sharedPreferences = getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        val selectedTheme = sharedPreferences.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK)
+        if (selectedTheme == AppConstants.THEME_LIGHT) {
+            setTheme(R.style.Theme_FlashNow_Light)
+        } else {
+            setTheme(R.style.Theme_FlashNow_Dark)
+        }
+    }
+
+    private fun syncSystemBarAppearance() {
+        val sharedPreferences = getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        val selectedTheme = sharedPreferences.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK)
+        val isLightTheme = selectedTheme == AppConstants.THEME_LIGHT
+
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = isLightTheme
+        insetsController.isAppearanceLightNavigationBars = isLightTheme
     }
 
     override fun onDestroy() {

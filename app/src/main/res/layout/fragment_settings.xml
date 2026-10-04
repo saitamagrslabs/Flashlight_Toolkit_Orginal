@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fn_bg_dark"
+    android:background="?attr/fnBackground"
     android:fillViewport="true">
 
     <LinearLayout
@@ -26,7 +26,7 @@
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:src="@drawable/ic_settings_tb"
-                app:tint="@color/fn_primary_blue"
+                app:tint="?attr/fnPrimaryBlue"
                 android:importantForAccessibility="no" />
 
             <TextView
@@ -34,7 +34,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:text="Settings"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="26sp"
                 android:textStyle="bold" />
 
@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="Preferences &amp; toolkit configuration"
-                android:textColor="@color/fn_text_secondary"
+                android:textColor="?attr/fnTextSecondary"
                 android:textSize="14sp" />
 
         </LinearLayout>
@@ -55,7 +55,7 @@
             android:layout_marginStart="4dp"
             android:layout_marginBottom="8dp"
             android:text="APPEARANCE"
-            android:textColor="@color/fn_text_tertiary"
+            android:textColor="?attr/fnTextTertiary"
             android:textSize="12sp"
             android:textStyle="bold"
             android:letterSpacing="0.08" />
@@ -66,7 +66,10 @@
             style="@style/FlashNow.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp">
+            android:layout_marginBottom="20dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -85,7 +88,7 @@
                         android:layout_height="22dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_theme_mode"
-                        app:tint="@color/fn_primary_blue"
+                        app:tint="?attr/fnPrimaryBlue"
                         android:importantForAccessibility="no" />
                 </FrameLayout>
 
@@ -100,16 +103,17 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="App Theme"
-                        android:textColor="@color/fn_text_primary"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tv_theme_subtitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Modern Dark (System default)"
-                        android:textColor="@color/fn_text_secondary"
+                        android:text="Modern Dark (Active)"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="12sp" />
                 </LinearLayout>
 
@@ -123,7 +127,7 @@
                     android:paddingTop="4dp"
                     android:paddingBottom="4dp"
                     android:text="Dark"
-                    android:textColor="@color/fn_primary_blue"
+                    android:textColor="?attr/fnPrimaryBlue"
                     android:textSize="12sp"
                     android:textStyle="bold" />
 
@@ -138,7 +142,7 @@
             android:layout_marginStart="4dp"
             android:layout_marginBottom="8dp"
             android:text="FLASHLIGHT &amp; CONTROLS"
-            android:textColor="@color/fn_text_tertiary"
+            android:textColor="?attr/fnTextTertiary"
             android:textSize="12sp"
             android:textStyle="bold"
             android:letterSpacing="0.08" />
@@ -174,7 +178,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_clap"
-                            app:tint="@color/fn_accent_amber"
+                            app:tint="?attr/fnAccentAmber"
                             android:importantForAccessibility="no" />
                     </FrameLayout>
 
@@ -189,7 +193,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Clap Detection Sensitivity"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -198,7 +202,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Acoustic threshold for clap detection"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -212,7 +216,7 @@
                         android:paddingTop="4dp"
                         android:paddingBottom="4dp"
                         android:text="64%"
-                        android:textColor="@color/fn_accent_amber"
+                        android:textColor="?attr/fnAccentAmber"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
@@ -227,8 +231,8 @@
                     android:layout_marginBottom="6dp"
                     android:max="25000"
                     android:progress="9000"
-                    android:progressTint="@color/fn_primary_blue"
-                    android:thumbTint="@color/fn_primary_blue" />
+                    android:progressTint="?attr/fnPrimaryBlue"
+                    android:thumbTint="?attr/fnPrimaryBlue" />
 
                 <!-- SeekBar Bounds / Status -->
                 <LinearLayout
@@ -241,7 +245,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="More Sensitive"
-                        android:textColor="@color/fn_text_tertiary"
+                        android:textColor="?attr/fnTextTertiary"
                         android:textSize="12sp" />
 
                     <TextView
@@ -249,7 +253,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Medium (Level 9000)"
-                        android:textColor="@color/fn_primary_blue"
+                        android:textColor="?attr/fnPrimaryBlue"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
@@ -259,7 +263,7 @@
                         android:layout_weight="1"
                         android:gravity="end"
                         android:text="Less Sensitive"
-                        android:textColor="@color/fn_text_tertiary"
+                        android:textColor="?attr/fnTextTertiary"
                         android:textSize="12sp" />
 
                 </LinearLayout>
@@ -270,7 +274,7 @@
                     android:layout_height="1dp"
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="16dp"
-                    android:background="@color/fn_border_subtle" />
+                    android:background="?attr/fnBorderSubtle" />
 
                 <!-- Button Sounds Row -->
                 <LinearLayout
@@ -289,7 +293,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_sound_on"
-                            app:tint="@color/fn_accent_green"
+                            app:tint="?attr/fnAccentGreen"
                             android:importantForAccessibility="no" />
                     </FrameLayout>
 
@@ -304,7 +308,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Button Sounds"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -313,7 +317,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Haptic click audio on flashlight toggles"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -336,7 +340,7 @@
             android:layout_marginStart="4dp"
             android:layout_marginBottom="8dp"
             android:text="NOTIFICATIONS"
-            android:textColor="@color/fn_text_tertiary"
+            android:textColor="?attr/fnTextTertiary"
             android:textSize="12sp"
             android:textStyle="bold"
             android:letterSpacing="0.08" />
@@ -366,7 +370,7 @@
                         android:layout_height="22dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_signal"
-                        app:tint="@color/fn_primary_blue"
+                        app:tint="?attr/fnPrimaryBlue"
                         android:importantForAccessibility="no" />
                 </FrameLayout>
 
@@ -381,7 +385,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Flash on Notification"
-                        android:textColor="@color/fn_text_primary"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
@@ -390,7 +394,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="Flash strobe when receiving app alerts"
-                        android:textColor="@color/fn_text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="12sp" />
                 </LinearLayout>
 
@@ -411,7 +415,7 @@
             android:layout_marginStart="4dp"
             android:layout_marginBottom="8dp"
             android:text="ABOUT &amp; SUPPORT"
-            android:textColor="@color/fn_text_tertiary"
+            android:textColor="?attr/fnTextTertiary"
             android:textSize="12sp"
             android:textStyle="bold"
             android:letterSpacing="0.08" />
@@ -449,7 +453,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_menu_about"
-                            app:tint="@color/fn_primary_blue"
+                            app:tint="?attr/fnPrimaryBlue"
                             android:importantForAccessibility="no" />
                     </FrameLayout>
 
@@ -464,7 +468,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="App Version"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -474,7 +478,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Version 1.0.0"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -487,7 +491,7 @@
                         android:paddingTop="4dp"
                         android:paddingBottom="4dp"
                         android:text="Latest"
-                        android:textColor="@color/fn_accent_green"
+                        android:textColor="?attr/fnAccentGreen"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -497,7 +501,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginStart="54dp"
-                    android:background="@color/fn_border_subtle" />
+                    android:background="?attr/fnBorderSubtle" />
 
                 <!-- Privacy Policy Item -->
                 <LinearLayout
@@ -521,7 +525,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_menu_privacypol"
-                            app:tint="@color/fn_accent_amber"
+                            app:tint="?attr/fnAccentAmber"
                             android:importantForAccessibility="no" />
                     </FrameLayout>
 
@@ -536,7 +540,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Privacy Policy"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -545,7 +549,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Data safety &amp; privacy disclosures"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -553,7 +557,7 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:src="@drawable/ic_chevron_right"
-                        app:tint="@color/fn_text_tertiary"
+                        app:tint="?attr/fnTextTertiary"
                         android:importantForAccessibility="no" />
 
                 </LinearLayout>
@@ -562,7 +566,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginStart="54dp"
-                    android:background="@color/fn_border_subtle" />
+                    android:background="?attr/fnBorderSubtle" />
 
                 <!-- Rate App Item -->
                 <LinearLayout
@@ -586,7 +590,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_menu_rateus"
-                            app:tint="@color/fn_accent_amber"
+                            app:tint="?attr/fnAccentAmber"
                             android:importantForAccessibility="no" />
                     </FrameLayout>
 
@@ -601,7 +605,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Rate FlashNow"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -610,7 +614,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Support development on Google Play"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -618,7 +622,7 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:src="@drawable/ic_chevron_right"
-                        app:tint="@color/fn_text_tertiary"
+                        app:tint="?attr/fnTextTertiary"
                         android:importantForAccessibility="no" />
 
                 </LinearLayout>

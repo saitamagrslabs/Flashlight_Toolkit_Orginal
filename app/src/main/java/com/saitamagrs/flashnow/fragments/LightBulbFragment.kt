@@ -1,6 +1,7 @@
 package com.saitamagrs.flashnow.fragments
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Bundle
@@ -24,6 +25,7 @@ import com.saitamagrs.flashnow.databinding.DialogSelectBulbTypeBinding
 import com.saitamagrs.flashnow.databinding.FragmentLightBulbBinding
 import com.saitamagrs.flashnow.lightbulb.BulbType
 import com.saitamagrs.flashnow.lightbulb.LightBulbState
+import com.saitamagrs.flashnow.utils.AppConstants
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -40,6 +42,8 @@ class LightBulbFragment : Fragment() {
 
     private var state = LightBulbState()
     private var originalBrightness: Float = -1.0f
+    private var originalStatusBarColor: Int = 0
+    private var originalNavigationBarColor: Int = 0
 
     private val hideHudHandler = Handler(Looper.getMainLooper())
     private val hideHudRunnable = Runnable {
@@ -344,7 +348,7 @@ class LightBulbFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        hideSystemUI()
+        setupFullscreenPresentation()
 
         // Capture original screen brightness
         activity?.window?.attributes?.let {
@@ -359,7 +363,7 @@ class LightBulbFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        showSystemUI()
+        restoreSystemUI()
 
         // Clear KEEP_SCREEN_ON flag
         activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -375,21 +379,35 @@ class LightBulbFragment : Fragment() {
         }
     }
 
-    private fun hideSystemUI() {
+    private fun setupFullscreenPresentation() {
         activity?.findViewById<Toolbar>(R.id.toolbar)?.visibility = View.GONE
 
-        val window = activity?.window ?: return
-        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-        insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        insetsController.hide(WindowInsetsCompat.Type.systemBars())
+        activity?.window?.let { window ->
+            originalStatusBarColor = window.statusBarColor
+            originalNavigationBarColor = window.navigationBarColor
+            window.statusBarColor = Color.TRANSPARENT
+            window.navigationBarColor = Color.TRANSPARENT
+
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.show(WindowInsetsCompat.Type.systemBars())
+            insetsController.isAppearanceLightStatusBars = false
+            insetsController.isAppearanceLightNavigationBars = false
+        }
     }
 
-    private fun showSystemUI() {
+    private fun restoreSystemUI() {
         activity?.findViewById<Toolbar>(R.id.toolbar)?.visibility = View.VISIBLE
 
-        val window = activity?.window ?: return
-        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-        insetsController.show(WindowInsetsCompat.Type.systemBars())
+        activity?.window?.let { window ->
+            window.statusBarColor = originalStatusBarColor
+            window.navigationBarColor = originalNavigationBarColor
+
+            val isLightTheme = context?.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+                ?.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK) == AppConstants.THEME_LIGHT
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.isAppearanceLightStatusBars = isLightTheme
+            insetsController.isAppearanceLightNavigationBars = isLightTheme
+        }
     }
 
     override fun onDestroyView() {

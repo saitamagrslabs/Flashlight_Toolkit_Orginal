@@ -28,6 +28,7 @@ class SettingsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var notificationPermissionDialog: AlertDialog? = null
+    private var themeSelectionDialog: AlertDialog? = null
 
     private val notificationSwitchListener = CompoundButton.OnCheckedChangeListener { _, isChecked ->
         val currentContext = context ?: return@OnCheckedChangeListener
@@ -68,9 +69,12 @@ class SettingsFragment : Fragment() {
 
         val sharedPreferences = requireContext().getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
 
-        // --- Appearance Section ---
+        // --- Appearance / Theme Section ---
+        val currentTheme = sharedPreferences.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK) ?: AppConstants.THEME_DARK
+        updateThemeDisplay(currentTheme)
+
         binding.cardAppearance.setOnClickListener {
-            Toast.makeText(requireContext(), "Dark theme is active. Light theme will be available in a future update.", Toast.LENGTH_SHORT).show()
+            showThemeSelectionDialog()
         }
 
         // --- Clap Sensitivity Logic ---
@@ -101,6 +105,45 @@ class SettingsFragment : Fragment() {
 
         // --- About & Support Section ---
         setupAboutAndLegal()
+    }
+
+    private fun updateThemeDisplay(theme: String) {
+        val isLight = theme == AppConstants.THEME_LIGHT
+        binding.tvThemeBadge.text = if (isLight) "Light" else "Dark"
+        binding.tvThemeSubtitle.text = if (isLight) "Clean Light (Active)" else "Modern Dark (Active)"
+        binding.cardAppearance.contentDescription = "App theme, currently ${if (isLight) "Light" else "Dark"}. Tap to change."
+    }
+
+    private fun showThemeSelectionDialog() {
+        val currentContext = context ?: return
+        if (themeSelectionDialog?.isShowing == true) return
+
+        val sharedPreferences = currentContext.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        val currentTheme = sharedPreferences.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK) ?: AppConstants.THEME_DARK
+
+        val options = arrayOf("Dark Theme", "Light Theme")
+        val currentSelection = if (currentTheme == AppConstants.THEME_LIGHT) 1 else 0
+
+        themeSelectionDialog = AlertDialog.Builder(currentContext)
+            .setTitle("Choose Theme")
+            .setSingleChoiceItems(options, currentSelection) { dialog, which ->
+                val chosenTheme = if (which == 1) AppConstants.THEME_LIGHT else AppConstants.THEME_DARK
+                dialog.dismiss()
+                themeSelectionDialog = null
+
+                if (chosenTheme != currentTheme) {
+                    sharedPreferences.edit().putString(AppConstants.KEY_THEME, chosenTheme).apply()
+                    updateThemeDisplay(chosenTheme)
+                    activity?.recreate()
+                }
+            }
+            .setNegativeButton("Cancel") { _, _ ->
+                themeSelectionDialog = null
+            }
+            .setOnCancelListener {
+                themeSelectionDialog = null
+            }
+            .show()
     }
 
     private fun updateSensitivityLabels(progress: Int) {
@@ -222,6 +265,9 @@ class SettingsFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         (activity as? MainActivity)?.setToolbarTitle("SETTINGS")
+        val sharedPreferences = requireContext().getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        val currentTheme = sharedPreferences.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK) ?: AppConstants.THEME_DARK
+        updateThemeDisplay(currentTheme)
         syncNotificationSwitch()
     }
 
@@ -229,6 +275,8 @@ class SettingsFragment : Fragment() {
         super.onDestroyView()
         notificationPermissionDialog?.dismiss()
         notificationPermissionDialog = null
+        themeSelectionDialog?.dismiss()
+        themeSelectionDialog = null
         _binding = null
     }
 }

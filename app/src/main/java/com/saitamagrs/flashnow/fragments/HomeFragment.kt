@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -363,6 +364,14 @@ class HomeFragment : BaseAdFragment() {
         updatePatternButtons()
     }
 
+    private fun getThemeColor(attrResId: Int): Int {
+        val typedValue = TypedValue()
+        if (context?.theme?.resolveAttribute(attrResId, typedValue, true) == true) {
+            return typedValue.data
+        }
+        return ContextCompat.getColor(requireContext(), R.color.fn_text_secondary)
+    }
+
     private fun updateMainButtonUI() {
         val isAnyLightOn = isFlashlightOn() ||
                 (viewModel.sosActive.value == true) ||
@@ -373,8 +382,9 @@ class HomeFragment : BaseAdFragment() {
             binding.ivFlashIcon.setImageResource(R.drawable.ic_power_on)
             binding.tvFlashState.text = "ON"
             if(isAdded) {
-                binding.tvStatusIndicator.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green))
-                binding.tvFlashStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green))
+                val activeGreen = getThemeColor(R.attr.fnAccentGreen)
+                binding.tvStatusIndicator.setTextColor(activeGreen)
+                binding.tvFlashStatus.setTextColor(activeGreen)
             }
 
             when {
@@ -396,8 +406,8 @@ class HomeFragment : BaseAdFragment() {
             binding.tvFlashState.text = "OFF"
             binding.tvFlashStatus.text = "Tap to Turn On"
             if(isAdded) {
-                binding.tvStatusIndicator.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_blue))
-                binding.tvFlashStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
+                binding.tvStatusIndicator.setTextColor(getThemeColor(R.attr.fnPrimaryBlue))
+                binding.tvFlashStatus.setTextColor(getThemeColor(R.attr.fnTextSecondary))
             }
             binding.tvStatusIndicator.text = "READY"
         }

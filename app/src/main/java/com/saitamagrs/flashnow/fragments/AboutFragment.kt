@@ -105,7 +105,10 @@ class AboutFragment : Fragment() {
     private fun setupFeatureItem(binding: FeatureItemBinding?, iconRes: Int, title: String, desc: String) {
         binding?.let {
             it.featureIcon.setImageResource(iconRes)
-            it.featureIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.accent_blue))
+            val typedValue = android.util.TypedValue()
+            val hasAttr = requireContext().theme.resolveAttribute(R.attr.fnPrimaryBlue, typedValue, true)
+            val iconColor = if (hasAttr) typedValue.data else ContextCompat.getColor(requireContext(), R.color.accent_blue)
+            it.featureIcon.setColorFilter(iconColor)
             it.featureTitle.text = title
             it.featureDesc.text = desc
         }

@@ -149,19 +149,25 @@ class MorseCodeFragment : BaseAdFragment() {
         }
     }
 
+    private fun getThemeColor(attrRes: Int): Int {
+        val typedValue = android.util.TypedValue()
+        requireContext().theme.resolveAttribute(attrRes, typedValue, true)
+        return typedValue.data
+    }
+
     private fun observeSenderEngine() {
         viewLifecycleOwner.lifecycleScope.launch {
             morseSenderEngine.isTransmitting.collectLatest { isTransmitting ->
                 if (isTransmitting) {
                     binding.tvStatus.text = "Transmitting Optical Morse..."
                     binding.ivStatus.setImageResource(R.drawable.ic_power_on)
-                    binding.ivStatus.setColorFilter(ContextCompat.getColor(requireContext(), R.color.accent_green))
+                    binding.ivStatus.setColorFilter(getThemeColor(R.attr.fnAccentGreen))
                     binding.btnStop.visibility = View.VISIBLE
                     setSenderControlsEnabled(false)
                 } else {
                     binding.tvStatus.text = morseSenderEngine.statusText.value
                     binding.ivStatus.setImageResource(R.drawable.ic_power_off)
-                    binding.ivStatus.setColorFilter(ContextCompat.getColor(requireContext(), R.color.text_secondary))
+                    binding.ivStatus.setColorFilter(getThemeColor(R.attr.fnTextSecondary))
                     binding.btnStop.visibility = View.GONE
                     setSenderControlsEnabled(true)
                 }
@@ -322,10 +328,10 @@ class MorseCodeFragment : BaseAdFragment() {
             morseReceiverEngine.preambleDetected.collectLatest { synced ->
                 if (synced) {
                     binding.tvReceiverSync.text = "Preamble: SYNCED ('...')"
-                    binding.tvReceiverSync.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green))
+                    binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
                 } else {
                     binding.tvReceiverSync.text = "Waiting for preamble ('...')"
-                    binding.tvReceiverSync.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_red))
+                    binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentRed))
                 }
             }
         }

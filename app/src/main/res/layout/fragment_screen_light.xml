@@ -19,7 +19,7 @@
         style="@style/Widget.MaterialComponents.BottomSheet.Modal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/fn_surface_level_1"
+        android:background="?attr/fnSurfaceLevel1"
         android:orientation="vertical"
         android:paddingBottom="6dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
@@ -29,7 +29,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingVertical="0dp"
-            app:tint="@color/fn_text_tertiary" />
+            app:tint="?attr/fnTextTertiary" />
 
         <!-- Fixed Compact Control Panel (NO SCROLL VIEW) -->
         <LinearLayout
@@ -64,7 +64,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Brightness"
-                    android:textColor="@color/fn_text_primary"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -77,7 +77,7 @@
                     android:gravity="center"
                     android:contentDescription="Brightness percentage"
                     android:text="100%"
-                    android:textColor="@color/fn_text_secondary"
+                    android:textColor="?attr/fnTextSecondary"
                     android:textSize="11sp" />
 
                 <SeekBar
@@ -89,8 +89,8 @@
                     android:contentDescription="Adjust Screen Light Brightness"
                     android:max="100"
                     android:progress="100"
-                    android:progressTint="@color/fn_primary_blue"
-                    android:thumbTint="@color/fn_primary_blue" />
+                    android:progressTint="?attr/fnPrimaryBlue"
+                    android:thumbTint="?attr/fnPrimaryBlue" />
             </LinearLayout>
 
             <!-- Color Picker Section (Compact Horizontal Row) -->
@@ -109,7 +109,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="6dp"
                     android:text="Colors"
-                    android:textColor="@color/fn_text_primary"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -147,7 +147,7 @@
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="Mode: Solid"
-                    android:textColor="@color/fn_text_primary"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -163,7 +163,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="4dp"
                         android:text="Speed:"
-                        android:textColor="@color/fn_text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="10sp" />
 
                     <com.google.android.material.button.MaterialButtonToggleGroup
@@ -186,7 +186,8 @@
                             android:paddingHorizontal="3dp"
                             android:paddingVertical="0dp"
                             android:text="Slow"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
+                            app:strokeColor="?attr/fnBorderSubtle"
                             android:textSize="9sp" />
 
                         <com.google.android.material.button.MaterialButton
@@ -201,7 +202,8 @@
                             android:paddingHorizontal="3dp"
                             android:paddingVertical="0dp"
                             android:text="Norm"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
+                            app:strokeColor="?attr/fnBorderSubtle"
                             android:textSize="9sp" />
 
                         <com.google.android.material.button.MaterialButton
@@ -216,7 +218,8 @@
                             android:paddingHorizontal="3dp"
                             android:paddingVertical="0dp"
                             android:text="Fast"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
+                            app:strokeColor="?attr/fnBorderSubtle"
                             android:textSize="9sp" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
@@ -393,7 +396,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Clap to Toggle Screen"
-                    android:textColor="@color/fn_text_primary"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="11sp" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
@@ -415,16 +418,16 @@
                 android:minHeight="48dp"
                 android:paddingHorizontal="16dp"
                 android:text="Back"
-                android:textColor="@color/fn_text_primary"
+                android:textColor="?attr/fnTextPrimary"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                app:backgroundTint="@color/fn_surface_level_2"
+                app:backgroundTint="?attr/fnSurfaceLevel2"
                 app:cornerRadius="19dp"
                 app:icon="@drawable/ic_back"
                 app:iconPadding="4dp"
                 app:iconSize="16dp"
-                app:iconTint="@color/fn_text_primary"
-                app:strokeColor="@color/fn_border_subtle"
+                app:iconTint="?attr/fnTextPrimary"
+                app:strokeColor="?attr/fnBorderSubtle"
                 app:strokeWidth="1dp" />
 
         </LinearLayout>

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF0F0F17"
+    android:background="?attr/fnBackground"
     android:fillViewport="true">
 
     <LinearLayout
@@ -15,11 +15,9 @@
 
         <!-- Header Section -->
         <com.google.android.material.card.MaterialCardView
+            style="@style/FlashNow.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/dark_gray"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="6dp"
             android:layout_marginBottom="24dp">
 
             <LinearLayout
@@ -39,7 +37,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/app_name"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="28sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="4dp"/>
@@ -49,7 +47,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Version 1.0"
-                    android:textColor="@color/accent_green"
+                    android:textColor="?attr/fnAccentGreen"
                     android:textSize="14sp"
                     android:layout_marginBottom="16dp"/>
 
@@ -58,7 +56,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="Your ultimate flashlight toolkit with advanced patterns, smart controls, and emergency features"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?attr/fnTextSecondary"
                     android:textSize="14sp"
                     android:lineSpacingExtra="4dp"/>
 
@@ -71,17 +69,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="🌟 Core Features"
-            android:textColor="@color/white"
+            android:textColor="?attr/fnTextPrimary"
             android:textSize="20sp"
             android:textStyle="bold"
             android:layout_marginBottom="12dp"/>
 
         <com.google.android.material.card.MaterialCardView
+            style="@style/FlashNow.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/dark_gray"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
             android:layout_marginBottom="24dp">
 
             <LinearLayout
@@ -99,7 +95,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginVertical="12dp"
-                    android:background="#334D4D4D"/>
+                    android:background="?attr/fnBorderSubtle"/>
 
                 <include layout="@layout/feature_item"
                     android:id="@+id/feature_sos"
@@ -110,7 +106,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginVertical="12dp"
-                    android:background="#334D4D4D"/>
+                    android:background="?attr/fnBorderSubtle"/>
 
                 <include layout="@layout/feature_item"
                     android:id="@+id/feature_strobe"
@@ -121,7 +117,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginVertical="12dp"
-                    android:background="#334D4D4D"/>
+                    android:background="?attr/fnBorderSubtle"/>
 
                 <include layout="@layout/feature_item"
                     android:id="@+id/feature_morse"
@@ -137,20 +133,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="🤖 Smart Features"
-            android:textColor="@color/white"
+            android:textColor="?attr/fnTextPrimary"
             android:textSize="20sp"
             android:textStyle="bold"
             android:layout_marginBottom="12dp"/>
 
         <com.google.android.material.card.MaterialCardView
+            style="@style/FlashNow.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/dark_gray"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            android:layout_marginBottom="24dp"
-            app:strokeColor="@color/accent_blue"
-            app:strokeWidth="1dp">
+            android:layout_marginBottom="24dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -168,7 +160,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_timer"
-                        app:tint="@color/accent_yellow"
+                        app:tint="?attr/fnAccentAmber"
                         android:layout_marginEnd="12dp"/>
 
                     <TextView
@@ -176,7 +168,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Auto Timer with Lock Mode"
-                        android:textColor="@color/white"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold"/>
 
@@ -186,7 +178,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Set automatic shut-off (1 min to 4 hours) with screen dimming and navigation lock for reliable operation"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?attr/fnTextSecondary"
                     android:textSize="14sp"
                     android:lineSpacingExtra="4dp"/>
 
@@ -194,7 +186,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginVertical="16dp"
-                    android:background="#334D4D4D"/>
+                    android:background="?attr/fnBorderSubtle"/>
 
                 <!-- Clap Detection -->
                 <LinearLayout
@@ -207,7 +199,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_clap"
-                        app:tint="@color/accent_green"
+                        app:tint="?attr/fnAccentGreen"
                         android:layout_marginEnd="12dp"/>
 
                     <TextView
@@ -215,7 +207,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Clap-to-Toggle Detection"
-                        android:textColor="@color/white"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold"/>
 
@@ -225,7 +217,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Toggle flashlight with hand claps. Adjustable sensitivity for perfect detection"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?attr/fnTextSecondary"
                     android:textSize="14sp"
                     android:lineSpacingExtra="4dp"/>
 
@@ -233,7 +225,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginVertical="16dp"
-                    android:background="#334D4D4D"/>
+                    android:background="?attr/fnBorderSubtle"/>
 
                 <!-- Notification Alerts -->
                 <LinearLayout
@@ -246,7 +238,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/bg_button_light_bulb"
-                        app:tint="@color/accent_red"
+                        app:tint="?attr/fnAccentRed"
                         android:layout_marginEnd="12dp"/>
 
                     <TextView
@@ -254,7 +246,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Notification Alert System"
-                        android:textColor="@color/white"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold"/>
 
@@ -264,7 +256,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Flash alerts for incoming notifications. Works even when app is closed"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?attr/fnTextSecondary"
                     android:textSize="14sp"
                     android:lineSpacingExtra="4dp"/>
 
@@ -277,21 +269,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="🎨 Screen Light &amp; Patterns"
-            android:textColor="@color/white"
+            android:textColor="?attr/fnTextPrimary"
             android:textSize="20sp"
             android:textStyle="bold"
             android:layout_marginBottom="12dp"/>
 
-        <!-- Replace the GridLayout section with this: -->
         <com.google.android.material.card.MaterialCardView
+            style="@style/FlashNow.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/dark_gray"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            android:layout_marginBottom="24dp"
-            app:strokeColor="@color/accent_green"
-            app:strokeWidth="1dp">
+            android:layout_marginBottom="24dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -304,7 +291,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:text="🎨 Screen Light &amp; Patterns"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold"/>
 
@@ -319,7 +306,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="• Police Pattern (Red/Blue flashing)"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="14sp"/>
 
                     <TextView
@@ -327,7 +314,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="• Party Colors (Rainbow color cycling)"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="14sp"/>
 
                     <TextView
@@ -335,7 +322,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="• Screen Strobe (White/Black flashing)"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="14sp"/>
 
                     <TextView
@@ -343,7 +330,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="• Candle Flicker (Realistic flame effect)"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="14sp"/>
 
                     <TextView
@@ -351,7 +338,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="• 9-Color Palette (Custom screen colors)"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="14sp"/>
 
                     <TextView
@@ -359,7 +346,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="• Brightness Control (Adjustable intensity)"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="14sp"/>
 
                 </LinearLayout>
@@ -378,7 +365,7 @@
                         android:layout_marginHorizontal="4dp"
                         android:src="@drawable/ic_police"
                         android:contentDescription="Police Pattern"
-                        app:tint="@color/accent_red"/>
+                        app:tint="?attr/fnAccentRed"/>
 
                     <ImageView
                         android:layout_width="32dp"
@@ -386,7 +373,7 @@
                         android:layout_marginHorizontal="4dp"
                         android:src="@drawable/ic_party"
                         android:contentDescription="Party Pattern"
-                        app:tint="@color/accent_yellow"/>
+                        app:tint="?attr/fnAccentAmber"/>
 
                     <ImageView
                         android:layout_width="32dp"
@@ -394,7 +381,7 @@
                         android:layout_marginHorizontal="4dp"
                         android:src="@drawable/ic_strobe"
                         android:contentDescription="Strobe Pattern"
-                        app:tint="@color/accent_blue"/>
+                        app:tint="?attr/fnPrimaryBlue"/>
 
                     <ImageView
                         android:layout_width="32dp"
@@ -402,7 +389,7 @@
                         android:layout_marginHorizontal="4dp"
                         android:src="@drawable/ic_candle"
                         android:contentDescription="Candle Pattern"
-                        app:tint="@color/accent_red"/>
+                        app:tint="?attr/fnAccentAmber"/>
 
                 </LinearLayout>
 
@@ -425,8 +412,8 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:text="⭐ Rate App"
-                android:backgroundTint="@color/accent_yellow"
-                android:textColor="@color/black"
+                android:backgroundTint="?attr/fnAccentAmber"
+                android:textColor="#000000"
                 app:cornerRadius="12dp"/>
 
             <com.google.android.material.button.MaterialButton
@@ -436,8 +423,8 @@
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 android:text="📤 Share App"
-                android:backgroundTint="@color/accent_blue"
-                android:textColor="@color/white"
+                android:backgroundTint="?attr/fnPrimaryBlue"
+                android:textColor="?attr/fnBackground"
                 app:cornerRadius="12dp"/>
 
         </LinearLayout>
@@ -448,7 +435,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:text="Made with ❤️ by SaitamagrsLABS"
-            android:textColor="@color/text_secondary"
+            android:textColor="?attr/fnTextTertiary"
             android:textSize="12sp"
             android:layout_marginBottom="24dp"/>
 

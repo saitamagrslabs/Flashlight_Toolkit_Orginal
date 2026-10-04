@@ -7,6 +7,11 @@ object AppConstants {
     const val KEY_SENSITIVITY = "clap_sensitivity"
     const val KEY_FIRST_RUN = "is_first_run"
 
+    // Theme constants (Phase 7.3B)
+    const val KEY_THEME = "app_theme"
+    const val THEME_DARK = "dark"
+    const val THEME_LIGHT = "light"
+
     // Timer constants
     const val TIMER_MIN_DURATION = 1L
     const val TIMER_MAX_DURATION = 240L

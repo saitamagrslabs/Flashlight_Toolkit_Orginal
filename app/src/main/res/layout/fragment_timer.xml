@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fn_bg_dark">
+    android:background="?attr/fnBackground">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -31,14 +31,14 @@
                     android:layout_width="72dp"
                     android:layout_height="72dp"
                     android:src="@drawable/ic_timer"
-                    app:tint="@color/fn_primary_blue" />
+                    app:tint="?attr/fnPrimaryBlue" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:text="Flashlight Timer"
-                    android:textColor="@color/fn_text_primary"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="26sp"
                     android:textStyle="bold" />
 
@@ -47,7 +47,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="Automatic turn-off timer for your flashlight"
-                    android:textColor="@color/fn_text_secondary"
+                    android:textColor="?attr/fnTextSecondary"
                     android:textSize="14sp" />
 
             </LinearLayout>
@@ -59,10 +59,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="@color/fn_surface_level_1"
+                app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/fn_accent_green"
+                app:strokeColor="?attr/fnAccentGreen"
                 app:strokeWidth="1.5dp">
 
                 <LinearLayout
@@ -76,7 +76,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="⏰ Timer Running"
-                        android:textColor="@color/fn_accent_green"
+                        android:textColor="?attr/fnAccentGreen"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -86,7 +86,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="25:30 remaining"
-                        android:textColor="@color/fn_text_primary"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="32sp"
                         android:textStyle="bold" />
 
@@ -95,8 +95,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="8dp"
                         android:layout_marginTop="16dp"
-                        app:indicatorColor="@color/fn_accent_green"
-                        app:trackColor="@color/fn_surface_level_2"
+                        app:indicatorColor="?attr/fnAccentGreen"
+                        app:trackColor="?attr/fnSurfaceLevel2"
                         app:trackCornerRadius="4dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -104,9 +104,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
-                        android:backgroundTint="@color/fn_accent_red"
+                        android:backgroundTint="?attr/fnAccentRed"
                         android:text="STOP TIMER"
-                        android:textColor="@color/white"
+                        android:textColor="#FFFFFF"
                         android:textStyle="bold"
                         app:cornerRadius="12dp" />
 
@@ -119,10 +119,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
-                app:cardBackgroundColor="@color/fn_surface_level_1"
+                app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/fn_border_subtle"
+                app:strokeColor="?attr/fnBorderSubtle"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -136,7 +136,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="🛡️ Lock Mode"
-                        android:textColor="@color/fn_text_primary"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
@@ -146,16 +146,16 @@
                         android:layout_marginBottom="16dp"
                         android:lineSpacingExtra="4dp"
                         android:text="• Dim screen to save battery\n• Auto-close app when timer ends\n• Keep app running reliably"
-                        android:textColor="@color/fn_text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="13sp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_lock_mode"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:backgroundTint="@color/fn_primary_blue"
+                        android:backgroundTint="?attr/fnPrimaryBlue"
                         android:text="🔓 Lock Mode"
-                        android:textColor="@color/white"
+                        android:textColor="?attr/fnBackground"
                         android:textStyle="bold"
                         app:cornerRadius="12dp" />
 
@@ -169,7 +169,7 @@
                         android:gravity="center"
                         android:padding="12dp"
                         android:text="🔒 Lock Mode Active: Navigation disabled. App will auto-close when timer ends."
-                        android:textColor="@color/fn_accent_green"
+                        android:textColor="?attr/fnAccentGreen"
                         android:textSize="12sp"
                         android:visibility="gone" />
 
@@ -182,10 +182,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
-                app:cardBackgroundColor="@color/fn_surface_level_1"
+                app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/fn_border_subtle"
+                app:strokeColor="?attr/fnBorderSubtle"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -199,7 +199,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:text="⚡ Quick Presets"
-                        android:textColor="@color/fn_text_primary"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
@@ -223,10 +223,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
-                app:cardBackgroundColor="@color/fn_surface_level_1"
+                app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/fn_border_subtle"
+                app:strokeColor="?attr/fnBorderSubtle"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -240,7 +240,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:text="🎛️ Custom Timer"
-                        android:textColor="@color/fn_text_primary"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
@@ -256,7 +256,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
                             android:text="Duration:"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="15sp" />
 
                         <EditText
@@ -268,7 +268,7 @@
                             android:inputType="number"
                             android:padding="12dp"
                             android:text="30"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="18sp"
                             android:textStyle="bold" />
 
@@ -277,7 +277,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
                             android:text="minutes"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="15sp" />
 
                     </LinearLayout>
@@ -289,7 +289,7 @@
                         android:layout_marginTop="20dp"
                         android:layout_marginBottom="8dp"
                         android:text="Adjust time:"
-                        android:textColor="@color/fn_text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="14sp" />
 
                     <SeekBar
@@ -298,8 +298,8 @@
                         android:layout_height="wrap_content"
                         android:max="240"
                         android:progress="30"
-                        android:progressTint="@color/fn_accent_amber"
-                        android:thumbTint="@color/fn_accent_amber" />
+                        android:progressTint="?attr/fnAccentAmber"
+                        android:thumbTint="?attr/fnAccentAmber" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -312,7 +312,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="1 min"
-                            android:textColor="@color/fn_text_tertiary"
+                            android:textColor="?attr/fnTextTertiary"
                             android:textSize="12sp" />
 
                         <TextView
@@ -322,7 +322,7 @@
                             android:layout_weight="1"
                             android:gravity="center"
                             android:text="30 minutes"
-                            android:textColor="@color/fn_accent_amber"
+                            android:textColor="?attr/fnAccentAmber"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -330,7 +330,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="4 hours"
-                            android:textColor="@color/fn_text_tertiary"
+                            android:textColor="?attr/fnTextTertiary"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -342,9 +342,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
-                        android:backgroundTint="@color/fn_primary_blue"
+                        android:backgroundTint="?attr/fnPrimaryBlue"
                         android:text="START TIMER"
-                        android:textColor="@color/white"
+                        android:textColor="?attr/fnBackground"
                         android:textStyle="bold"
                         app:cornerRadius="12dp" />
 
@@ -357,10 +357,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="@color/fn_surface_level_1"
+                app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/fn_border_subtle"
+                app:strokeColor="?attr/fnBorderSubtle"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -374,7 +374,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         android:text="💡 Timer Features"
-                        android:textColor="@color/fn_text_primary"
+                        android:textColor="?attr/fnTextPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -383,7 +383,7 @@
                         android:layout_height="wrap_content"
                         android:lineSpacingExtra="6dp"
                         android:text="• 🔦 Keep app open for reliable timer\n• 📱 Minimizing may pause the timer\n• 🔒 Use Lock Mode to auto-close app\n• ⚡ Flash auto-off when timer ends\n• 🔋 Screen dims in Lock Mode to save battery\n• ❌ Stop timer anytime from notification\n• 📲 Restart app to resume interrupted timer"
-                        android:textColor="@color/fn_text_secondary"
+                        android:textColor="?attr/fnTextSecondary"
                         android:textSize="12sp" />
 
                 </LinearLayout>

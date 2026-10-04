@@ -4,7 +4,7 @@
     xmlns:ads="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fn_bg_dark">
+    android:background="?attr/fnBackground">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -31,7 +31,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Morse Code"
-                    android:textColor="@color/fn_text_primary"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -40,7 +40,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="Encode • Decode • Transmit"
-                    android:textColor="@color/fn_text_secondary"
+                    android:textColor="?attr/fnTextSecondary"
                     android:textSize="13sp" />
 
             </LinearLayout>
@@ -62,10 +62,10 @@
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:text="Send Morse"
-                    android:textColor="@color/fn_text_primary"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="14sp"
                     android:textStyle="bold"
-                    app:strokeColor="@color/fn_border_subtle" />
+                    app:strokeColor="?attr/fnBorderSubtle" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_mode_receiver"
@@ -74,10 +74,10 @@
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:text="Receive Morse"
-                    android:textColor="@color/fn_text_primary"
+                    android:textColor="?attr/fnTextPrimary"
                     android:textSize="14sp"
                     android:textStyle="bold"
-                    app:strokeColor="@color/fn_border_subtle" />
+                    app:strokeColor="?attr/fnBorderSubtle" />
 
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -95,10 +95,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    app:cardBackgroundColor="@color/fn_surface_level_1"
+                    app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeColor="?attr/fnBorderSubtle"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -113,7 +113,7 @@
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:src="@drawable/ic_power_off"
-                            app:tint="@color/fn_text_secondary" />
+                            app:tint="?attr/fnTextSecondary" />
 
                         <TextView
                             android:id="@+id/tv_status"
@@ -122,16 +122,16 @@
                             android:layout_marginStart="12dp"
                             android:layout_weight="1"
                             android:text="Ready to transmit"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="14sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_stop"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:backgroundTint="@color/fn_accent_red"
+                            android:backgroundTint="?attr/fnAccentRed"
                             android:text="STOP"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="#FFFFFF"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             app:cornerRadius="8dp"
@@ -146,10 +146,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    app:cardBackgroundColor="@color/fn_surface_level_1"
+                    app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeColor="?attr/fnBorderSubtle"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -162,7 +162,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="✍️ Custom Message"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -172,7 +172,7 @@
                             android:layout_marginTop="2dp"
                             android:layout_marginBottom="10dp"
                             android:text="Protocol Frame: Preamble + Message"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="12sp" />
 
                         <com.google.android.material.textfield.TextInputLayout
@@ -180,13 +180,13 @@
                             android:layout_height="wrap_content"
                             android:hint="Type message (e.g. SOS)"
                             app:boxBackgroundMode="outline"
-                            app:boxBackgroundColor="@color/fn_surface_level_2"
+                            app:boxBackgroundColor="?attr/fnSurfaceLevel2"
                             app:boxCornerRadiusBottomEnd="12dp"
                             app:boxCornerRadiusBottomStart="12dp"
                             app:boxCornerRadiusTopEnd="12dp"
                             app:boxCornerRadiusTopStart="12dp"
-                            app:boxStrokeColor="@color/fn_primary_blue"
-                            app:hintTextColor="@color/fn_text_secondary">
+                            app:boxStrokeColor="?attr/fnPrimaryBlue"
+                            app:hintTextColor="?attr/fnTextSecondary">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/et_custom_message"
@@ -194,8 +194,8 @@
                                 android:layout_height="wrap_content"
                                 android:maxLines="3"
                                 android:text="SOS"
-                                android:textColor="@color/fn_text_primary"
-                                android:textColorHint="@color/fn_text_secondary" />
+                                android:textColor="?attr/fnTextPrimary"
+                                android:textColorHint="?attr/fnTextSecondary" />
 
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -204,10 +204,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
-                            app:cardBackgroundColor="@color/fn_surface_level_2"
+                            app:cardBackgroundColor="?attr/fnSurfaceLevel2"
                             app:cardCornerRadius="10dp"
                             app:cardElevation="0dp"
-                            app:strokeColor="@color/fn_border_subtle"
+                            app:strokeColor="?attr/fnBorderSubtle"
                             app:strokeWidth="1dp">
 
                             <TextView
@@ -217,7 +217,7 @@
                                 android:fontFamily="monospace"
                                 android:padding="10dp"
                                 android:text="Morse code will appear here"
-                                android:textColor="@color/fn_accent_green"
+                                android:textColor="?attr/fnAccentGreen"
                                 android:textSize="12sp" />
 
                         </com.google.android.material.card.MaterialCardView>
@@ -227,9 +227,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
                             android:layout_marginTop="12dp"
-                            android:backgroundTint="@color/fn_primary_blue"
+                            android:backgroundTint="?attr/fnPrimaryBlue"
                             android:text="FLASH MESSAGE"
-                            android:textColor="@color/black"
+                            android:textColor="?attr/fnBackground"
                             android:textSize="14sp"
                             android:textStyle="bold"
                             app:cornerRadius="12dp" />
@@ -243,10 +243,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    app:cardBackgroundColor="@color/fn_surface_level_1"
+                    app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeColor="?attr/fnBorderSubtle"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -260,7 +260,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="10dp"
                             android:text="🚨 Emergency Signals"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -293,7 +293,7 @@
                     app:cardBackgroundColor="#000000"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeColor="?attr/fnBorderSubtle"
                     app:strokeWidth="1dp">
 
                     <FrameLayout
@@ -317,11 +317,11 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="top|center_horizontal"
                             android:layout_marginTop="8dp"
-                            android:background="@color/fn_surface_level_2"
+                            android:background="?attr/fnSurfaceLevel2"
                             android:paddingHorizontal="10dp"
                             android:paddingVertical="4dp"
                             android:text="Point camera at light source"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="12sp" />
 
                     </FrameLayout>
@@ -333,10 +333,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    app:cardBackgroundColor="@color/fn_surface_level_1"
+                    app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeColor="?attr/fnBorderSubtle"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -356,7 +356,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Receiver Status"
-                                android:textColor="@color/fn_text_primary"
+                                android:textColor="?attr/fnTextPrimary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
 
@@ -365,7 +365,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Waiting for preamble ('...')"
-                                android:textColor="@color/fn_accent_red"
+                                android:textColor="?attr/fnAccentRed"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
 
@@ -377,7 +377,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
                             android:layout_marginTop="10dp"
-                            android:backgroundTint="@color/fn_accent_green"
+                            android:backgroundTint="?attr/fnAccentGreen"
                             android:text="START RECEIVER"
                             android:textColor="@color/black"
                             android:textSize="14sp"
@@ -393,10 +393,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    app:cardBackgroundColor="@color/fn_surface_level_1"
+                    app:cardBackgroundColor="?attr/fnSurfaceLevel1"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/fn_border_subtle"
+                    app:strokeColor="?attr/fnBorderSubtle"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -410,7 +410,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Decoded Message"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -418,10 +418,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
-                            app:cardBackgroundColor="@color/fn_surface_level_2"
+                            app:cardBackgroundColor="?attr/fnSurfaceLevel2"
                             app:cardCornerRadius="10dp"
                             app:cardElevation="0dp"
-                            app:strokeColor="@color/fn_border_subtle"
+                            app:strokeColor="?attr/fnBorderSubtle"
                             app:strokeWidth="1dp">
 
                             <TextView
@@ -430,7 +430,7 @@
                                 android:layout_height="wrap_content"
                                 android:padding="12dp"
                                 android:text="[Decoded text will appear here]"
-                                android:textColor="@color/fn_accent_green"
+                                android:textColor="?attr/fnAccentGreen"
                                 android:textSize="17sp"
                                 android:fontFamily="monospace"
                                 android:textStyle="bold" />
@@ -445,11 +445,11 @@
                             android:layout_height="44dp"
                             android:layout_marginTop="10dp"
                             android:text="CLEAR DECODED TEXT"
-                            android:textColor="@color/fn_text_primary"
+                            android:textColor="?attr/fnTextPrimary"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             app:cornerRadius="10dp"
-                            app:strokeColor="@color/fn_border_subtle" />
+                            app:strokeColor="?attr/fnBorderSubtle" />
 
                         <!-- Secondary Info: Detected Symbols -->
                         <TextView
@@ -459,7 +459,7 @@
                             android:layout_marginTop="12dp"
                             android:fontFamily="monospace"
                             android:text="Current Symbols: -"
-                            android:textColor="@color/fn_primary_blue"
+                            android:textColor="?attr/fnPrimaryBlue"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -471,7 +471,7 @@
                             android:layout_marginTop="4dp"
                             android:fontFamily="monospace"
                             android:text="Luma: 0.0 | Thresh: 0.0 | Light: OFF"
-                            android:textColor="@color/fn_text_secondary"
+                            android:textColor="?attr/fnTextSecondary"
                             android:textSize="11sp" />
 
                         <TextView
@@ -481,7 +481,7 @@
                             android:layout_marginTop="2dp"
                             android:fontFamily="monospace"
                             android:text="Debug: Receiver ready"
-                            android:textColor="@color/fn_text_tertiary"
+                            android:textColor="?attr/fnTextTertiary"
                             android:textSize="11sp" />
 
                     </LinearLayout>
@@ -492,41 +492,41 @@
 
             <!-- Quick Protocol Guide Card -->
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardBackgroundColor="@color/fn_surface_level_1"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/fn_border_subtle"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
+                    android:layout_marginBottom="20dp"
+                    app:cardBackgroundColor="?attr/fnSurfaceLevel1"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="?attr/fnBorderSubtle"
+                    app:strokeWidth="1dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="6dp"
-                        android:text="📚 Quick Protocol Guide"
-                        android:textColor="@color/fn_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:orientation="vertical"
+                        android:padding="14dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:lineSpacingExtra="3dp"
-                        android:text="• Base Unit T = 150 ms\n• Dot = 1T (150ms), Dash = 3T (450ms)\n• Symbol Gap = 1T, Letter Gap = 3T, Word Gap = 7T, End Gap = 10T\n• Preamble Frame Sync = '...' (ON 1T, OFF 1T, ON 1T, OFF 1T, ON 1T, OFF 3T)"
-                        android:textColor="@color/fn_text_secondary"
-                        android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="6dp"
+                            android:text="📚 Quick Protocol Guide"
+                            android:textColor="?attr/fnTextPrimary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                </LinearLayout>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:lineSpacingExtra="3dp"
+                            android:text="• Base Unit T = 150 ms\n• Dot = 1T (150ms), Dash = 3T (450ms)\n• Symbol Gap = 1T, Letter Gap = 3T, Word Gap = 7T, End Gap = 10T\n• Preamble Frame Sync = '...' (ON 1T, OFF 1T, ON 1T, OFF 1T, ON 1T, OFF 3T)"
+                            android:textColor="?attr/fnTextSecondary"
+                            android:textSize="12sp" />
 
-            </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
 
