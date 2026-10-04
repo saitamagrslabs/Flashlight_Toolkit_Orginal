@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -14,6 +16,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.RelativeLayout
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -44,6 +47,7 @@ class LightBulbFragment : Fragment() {
     private var originalBrightness: Float = -1.0f
     private var originalStatusBarColor: Int = 0
     private var originalNavigationBarColor: Int = 0
+    private var originalCutoutMode: Int = 0
 
     private val hideHudHandler = Handler(Looper.getMainLooper())
     private val hideHudRunnable = Runnable {
@@ -62,29 +66,44 @@ class LightBulbFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        setupFullscreenPresentation()
+        setupUI()
+        setupDualGestureListener()
+        setupWindowInsets()
+        updateRenderState()
+    }
+
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.headerBar) { targetView, insets ->
+            val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            val displayCutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val topInset = maxOf(statusBars.top, displayCutout.top)
             val density = resources.displayMetrics.density
+            val extraSpacing = (14 * density).toInt()
+            val minPadding = (36 * density).toInt()
+            val calculatedTopPadding = if (topInset > 0) topInset + extraSpacing else minPadding
 
-            binding.headerBar.setPadding(
+            targetView.setPadding(
                 (16 * density).toInt(),
-                systemBars.top + (8 * density).toInt(),
+                calculatedTopPadding,
                 (16 * density).toInt(),
-                (8 * density).toInt()
+                0
             )
-
-            val layoutParams = binding.bottomInfoPill.layoutParams as? RelativeLayout.LayoutParams
-            layoutParams?.setMargins(
-                0, 0, 0,
-                systemBars.bottom + (20 * density).toInt()
-            )
-            binding.bottomInfoPill.layoutParams = layoutParams
             insets
         }
 
-        setupUI()
-        setupDualGestureListener()
-        updateRenderState()
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomInfoPill) { targetView, insets ->
+            val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val density = resources.displayMetrics.density
+            val baseMargin = (18 * density).toInt()
+            val layoutParams = targetView.layoutParams as? RelativeLayout.LayoutParams
+            layoutParams?.bottomMargin = navBars.bottom + baseMargin
+            targetView.layoutParams = layoutParams
+            insets
+        }
+
+        ViewCompat.requestApplyInsets(binding.headerBar)
+        ViewCompat.requestApplyInsets(binding.bottomInfoPill)
     }
 
     private fun setupUI() {
@@ -289,7 +308,9 @@ class LightBulbFragment : Fragment() {
             val currentG = (darkG + (targetG - darkG) * effectiveIntensity).toInt().coerceIn(0, 255)
             val currentB = (darkB + (targetB - darkB) * effectiveIntensity).toInt().coerceIn(0, 255)
 
-            binding.lightBulbRoot.setBackgroundColor(Color.rgb(currentR, currentG, currentB))
+            val currentColor = Color.rgb(currentR, currentG, currentB)
+            binding.lightBulbRoot.setBackgroundColor(currentColor)
+            applyBulbColorToSystemBars(currentColor)
 
             activeEnvView.visibility = if (brightness > 0) View.VISIBLE else View.INVISIBLE
             activeEnvView.alpha = effectiveIntensity
@@ -304,7 +325,10 @@ class LightBulbFragment : Fragment() {
             binding.tvOverlayHint.text = if (brightness > 0) "Swipe ↕ brightness ($brightness%) • ↔ change bulb" else "Swipe up to increase brightness"
         } else {
             // Power OFF State: Visible unlit physical body in dark environment, no environmental illumination
-            binding.lightBulbRoot.setBackgroundColor(Color.parseColor("#0F0F14"))
+            val offColor = Color.parseColor("#0F0F14")
+            binding.lightBulbRoot.setBackgroundColor(offColor)
+            applyBulbColorToSystemBars(offColor)
+
             binding.ivBulbIllustration.setColorFilter(Color.parseColor("#80151520"), PorterDuff.Mode.MULTIPLY)
             binding.ivBulbIllustration.alpha = 0.35f
             binding.tvOverlayHint.text = "Tap screen to turn ON"
@@ -312,6 +336,20 @@ class LightBulbFragment : Fragment() {
 
         // 4. Update Window Screen Brightness
         applyScreenBrightness()
+    }
+
+    private fun applyBulbColorToSystemBars(color: Int) {
+        val window = activity?.window ?: return
+        window.statusBarColor = color
+        window.navigationBarColor = color
+        window.setBackgroundDrawable(ColorDrawable(color))
+
+        val luminance = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255.0
+        val isBright = luminance > 0.5
+
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = isBright
+        insetsController.isAppearanceLightNavigationBars = isBright
     }
 
     private fun hideAllIlluminationGlows() {
@@ -359,6 +397,7 @@ class LightBulbFragment : Fragment() {
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         applyScreenBrightness()
+        updateRenderState()
     }
 
     override fun onPause() {
@@ -380,31 +419,84 @@ class LightBulbFragment : Fragment() {
     }
 
     private fun setupFullscreenPresentation() {
-        activity?.findViewById<Toolbar>(R.id.toolbar)?.visibility = View.GONE
+        (activity as? androidx.appcompat.app.AppCompatActivity)?.supportActionBar?.hide()
+        activity?.findViewById<View>(R.id.toolbar)?.visibility = View.GONE
 
         activity?.window?.let { window ->
-            originalStatusBarColor = window.statusBarColor
-            originalNavigationBarColor = window.navigationBarColor
-            window.statusBarColor = Color.TRANSPARENT
-            window.navigationBarColor = Color.TRANSPARENT
+            // 1. Capture original system bar colors once (guard against capturing 0/transparent)
+            if (window.statusBarColor != Color.TRANSPARENT && window.statusBarColor != 0) {
+                originalStatusBarColor = window.statusBarColor
+            }
+            if (window.navigationBarColor != Color.TRANSPARENT && window.navigationBarColor != 0) {
+                originalNavigationBarColor = window.navigationBarColor
+            }
 
+            // 2. Clear window flags that could draw translucent or default system bar backgrounds
+            window.clearFlags(
+                WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS or
+                WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION
+            )
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+
+            // 3. Ensure decor view lays out behind system bars
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+
+            // 4. Extend layout into display cutout / notch / status bar short edge areas (API 28+)
+            val layoutParams = window.attributes
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                originalCutoutMode = layoutParams.layoutInDisplayCutoutMode
+                layoutParams.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                window.attributes = layoutParams
+            }
+
+            // 5. Hide system bars with transient swipe behavior
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-            insetsController.show(WindowInsetsCompat.Type.systemBars())
-            insetsController.isAppearanceLightStatusBars = false
-            insetsController.isAppearanceLightNavigationBars = false
+            insetsController.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            insetsController.hide(WindowInsetsCompat.Type.systemBars())
         }
     }
 
     private fun restoreSystemUI() {
-        activity?.findViewById<Toolbar>(R.id.toolbar)?.visibility = View.VISIBLE
+        (activity as? androidx.appcompat.app.AppCompatActivity)?.supportActionBar?.show()
+        activity?.findViewById<View>(R.id.toolbar)?.visibility = View.VISIBLE
 
         activity?.window?.let { window ->
-            window.statusBarColor = originalStatusBarColor
-            window.navigationBarColor = originalNavigationBarColor
+            val currentContext = context ?: activity
 
-            val isLightTheme = context?.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+            // 1. Determine active app theme
+            val isLightTheme = currentContext?.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
                 ?.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK) == AppConstants.THEME_LIGHT
+
+            // 2. Restore window background according to current theme
+            val bgRes = if (isLightTheme) R.color.fn_bg_light else R.color.fn_bg_dark
+            window.setBackgroundDrawableResource(bgRes)
+
+            // 3. Restore cutout mode on API 28+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val layoutParams = window.attributes
+                layoutParams.layoutInDisplayCutoutMode = originalCutoutMode
+                window.attributes = layoutParams
+            }
+
+            // 4. Restore system bar colors with theme fallback
+            val fallbackColor = if (currentContext != null) ContextCompat.getColor(currentContext, bgRes) else Color.BLACK
+            window.statusBarColor = if (originalStatusBarColor != 0 && originalStatusBarColor != Color.TRANSPARENT) {
+                originalStatusBarColor
+            } else {
+                fallbackColor
+            }
+            window.navigationBarColor = if (originalNavigationBarColor != 0 && originalNavigationBarColor != Color.TRANSPARENT) {
+                originalNavigationBarColor
+            } else {
+                fallbackColor
+            }
+
+            // 5. Restore system bars and theme icon appearance
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+            insetsController.show(WindowInsetsCompat.Type.systemBars())
             insetsController.isAppearanceLightStatusBars = isLightTheme
             insetsController.isAppearanceLightNavigationBars = isLightTheme
         }
@@ -412,6 +504,7 @@ class LightBulbFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        restoreSystemUI()
         hideHudHandler.removeCallbacksAndMessages(null)
         _binding = null
     }

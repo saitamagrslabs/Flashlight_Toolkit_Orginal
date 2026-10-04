@@ -126,69 +126,78 @@
     </FrameLayout>
 
     <!-- Top Floating Header Bar -->
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/header_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical"
         android:paddingHorizontal="16dp"
-        android:paddingTop="16dp">
+        android:paddingTop="36dp">
 
-        <!-- Top-Left Floating Back Button -->
-        <ImageButton
-            android:id="@+id/btn_back_light_bulb"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:background="@drawable/bg_overlay_circle"
-            android:contentDescription="Back"
-            android:padding="12dp"
-            android:src="@drawable/ic_back"
-            app:tint="?attr/fnTextPrimary" />
+        <!-- Top Controls Row (44dp, isolated from vertical padding calculations) -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp">
 
-        <!-- Center Screen Title Badge -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:background="@drawable/bg_overlay_pill"
-            android:elevation="4dp"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="6dp">
+            <!-- Top-Left Floating Back Button -->
+            <ImageButton
+                android:id="@+id/btn_back_light_bulb"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_overlay_circle"
+                android:contentDescription="Back"
+                android:padding="8dp"
+                android:src="@drawable/ic_back"
+                app:tint="?attr/fnTextPrimary" />
 
-            <TextView
+            <!-- Center Screen Title Badge -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Light Bulb"
-                android:textColor="?attr/fnTextPrimary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:layout_centerInParent="true"
+                android:background="@drawable/bg_overlay_pill"
+                android:elevation="2dp"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="3dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ambient Light Control"
-                android:textColor="?attr/fnTextSecondary"
-                android:textSize="11sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Light Bulb"
+                    android:textColor="?attr/fnTextPrimary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ambient Light Control"
+                    android:textColor="?attr/fnTextSecondary"
+                    android:textSize="9sp" />
 
-        <!-- Top-Right Floating Selector Button -->
-        <ImageButton
-            android:id="@+id/btn_select_bulb_type"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:background="@drawable/bg_overlay_circle"
-            android:contentDescription="Select Light Source Type"
-            android:padding="12dp"
-            android:src="@drawable/ic_lightbulb"
-            app:tint="?attr/fnTextPrimary" />
+            </LinearLayout>
 
-    </RelativeLayout>
+            <!-- Top-Right Floating Selector Button -->
+            <ImageButton
+                android:id="@+id/btn_select_bulb_type"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_overlay_circle"
+                android:contentDescription="Select Light Source Type"
+                android:padding="8dp"
+                android:src="@drawable/ic_lightbulb"
+                app:tint="?attr/fnTextPrimary" />
+
+        </RelativeLayout>
+
+    </LinearLayout>
 
     <!-- Brightness & Gesture Navigation HUD Popup Text -->
     <TextView
@@ -213,13 +222,13 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="18dp"
         android:background="@drawable/bg_overlay_pill"
-        android:elevation="4dp"
+        android:elevation="2dp"
         android:gravity="center"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp"
-        android:paddingVertical="10dp">
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp">
 
         <TextView
             android:id="@+id/tv_overlay_bulb_name"
@@ -227,17 +236,17 @@
             android:layout_height="wrap_content"
             android:text="Standard Bulb"
             android:textColor="?attr/fnTextPrimary"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_overlay_hint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="1dp"
             android:text="Swipe ↕ for brightness • ↔ to change bulb"
             android:textColor="?attr/fnTextSecondary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
     </LinearLayout>
 

@@ -164,14 +164,18 @@ class MainActivity : AppCompatActivity() {
     }*/
    private fun updateToolbarVisibility() {
        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-       binding.toolbar.visibility = when (currentFragment) {
-           is ScreenLightFragment, is LightBulbFragment, is TimerFragment, is MorseCodeFragment -> View.GONE
-           else -> View.VISIBLE
-       }
-       if (binding.toolbar.visibility == View.VISIBLE) {
-           showBackButtonIfNeeded()
-       } else {
+       val shouldHideToolbar = currentFragment is ScreenLightFragment ||
+               currentFragment is LightBulbFragment ||
+               currentFragment is TimerFragment ||
+               currentFragment is MorseCodeFragment
+       if (shouldHideToolbar) {
+           binding.toolbar.visibility = View.GONE
+           supportActionBar?.hide()
            hideBackButton()
+       } else {
+           binding.toolbar.visibility = View.VISIBLE
+           supportActionBar?.show()
+           showBackButtonIfNeeded()
        }
    }
 
