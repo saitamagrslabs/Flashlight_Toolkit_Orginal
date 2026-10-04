@@ -2,6 +2,7 @@ package com.saitamagrs.flashnow.fragments
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -35,6 +36,7 @@ import com.saitamagrs.flashnow.utils.FlashlightController
 import com.saitamagrs.flashnow.utils.MorseCodeManager
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class MorseCodeFragment : BaseAdFragment() {
@@ -52,7 +54,7 @@ class MorseCodeFragment : BaseAdFragment() {
     private lateinit var morseReceiverEngine: MorseReceiverEngine
 
     private var cameraProvider: ProcessCameraProvider? = null
-    private val cameraExecutor = Executors.newSingleThreadExecutor()
+    private var cameraExecutor: ExecutorService? = null
     private var isReceiverActive = false
 
     private var hasCameraPermission = false
@@ -260,6 +262,15 @@ class MorseCodeFragment : BaseAdFragment() {
         }
     }
 
+    private fun getOrCreateCameraExecutor(): ExecutorService {
+        val existing = cameraExecutor
+        return if (existing == null || existing.isShutdown || existing.isTerminated) {
+            Executors.newSingleThreadExecutor().also { cameraExecutor = it }
+        } else {
+            existing
+        }
+    }
+
     private fun startReceiver() {
         val context = context ?: return
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
@@ -269,7 +280,9 @@ class MorseCodeFragment : BaseAdFragment() {
                 bindCameraUseCases()
                 isReceiverActive = true
                 binding.btnToggleReceiver.text = "STOP RECEIVER"
-                binding.btnToggleReceiver.setBackgroundColor(ContextCompat.getColor(context, R.color.accent_red))
+                val redColor = getThemeColor(R.attr.fnAccentRed)
+                binding.btnToggleReceiver.backgroundTintList = ColorStateList.valueOf(redColor)
+                binding.btnToggleReceiver.setBackgroundColor(redColor)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start camera provider", e)
                 Toast.makeText(context, "Error initializing camera receiver", Toast.LENGTH_SHORT).show()
@@ -284,10 +297,11 @@ class MorseCodeFragment : BaseAdFragment() {
             it.setSurfaceProvider(binding.viewFinderReceiver.surfaceProvider)
         }
 
+        val executor = getOrCreateCameraExecutor()
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build().also {
-                it.setAnalyzer(cameraExecutor, morseReceiverEngine)
+                it.setAnalyzer(executor, morseReceiverEngine)
             }
 
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -308,9 +322,13 @@ class MorseCodeFragment : BaseAdFragment() {
     private fun stopReceiver() {
         cameraProvider?.unbindAll()
         isReceiverActive = false
+        cameraExecutor?.shutdown()
+        cameraExecutor = null
         if (_binding != null) {
             binding.btnToggleReceiver.text = "START RECEIVER"
-            binding.btnToggleReceiver.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.accent_green))
+            val greenColor = getThemeColor(R.attr.fnAccentGreen)
+            binding.btnToggleReceiver.backgroundTintList = ColorStateList.valueOf(greenColor)
+            binding.btnToggleReceiver.setBackgroundColor(greenColor)
         }
     }
 
@@ -360,7 +378,12 @@ class MorseCodeFragment : BaseAdFragment() {
         morseSenderEngine.release()
         morseCodeManager.stopFlashing()
         stopReceiver()
-        cameraExecutor.shutdown()
         _binding = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor?.shutdown()
+        cameraExecutor = null
     }
 }

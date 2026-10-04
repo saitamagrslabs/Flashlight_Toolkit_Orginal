@@ -44,6 +44,8 @@
 
         <!-- Popup Menu Theme -->
         <item name="popupTheme">@style/App.PopupMenuTheme</item>
+        <item name="actionOverflowMenuStyle">@style/App.OverflowMenu</item>
+        <item name="popupMenuStyle">@style/App.OverflowMenu</item>
     </style>
 
     <!-- ================================================================= -->
@@ -90,6 +92,8 @@
 
         <!-- Popup Menu Theme -->
         <item name="popupTheme">@style/App.PopupMenuTheme</item>
+        <item name="actionOverflowMenuStyle">@style/App.OverflowMenu</item>
+        <item name="popupMenuStyle">@style/App.OverflowMenu</item>
     </style>
 
     <!-- Base application theme strictly inherits Dark Theme to guarantee 100% preservation -->
@@ -107,12 +111,35 @@
         <item name="android:background">?attr/fnBackground</item>
         <item name="colorControlNormal">?attr/fnPrimaryBlue</item>
         <item name="titleTextColor">?attr/fnPrimaryBlue</item>
+        <item name="popupTheme">@style/App.PopupMenuTheme</item>
+        <item name="actionOverflowMenuStyle">@style/App.OverflowMenu</item>
     </style>
 
-    <!-- Popup Menu Overlay -->
+    <!-- 3. Overflow Menu Widget Style (Single floating surface, no nested cards) -->
+    <style name="App.OverflowMenu" parent="Widget.Material3.PopupMenu.Overflow">
+        <item name="android:popupBackground">@drawable/bg_overflow_popup</item>
+        <item name="android:popupElevation">8dp</item>
+        <item name="android:dropDownVerticalOffset">4dp</item>
+        <item name="android:itemBackground">?attr/selectableItemBackground</item>
+    </style>
+
+    <!-- 4. Popup Menu Theme Overlay -->
     <style name="App.PopupMenuTheme" parent="ThemeOverlay.Material3">
         <item name="colorSurface">?attr/fnSurfaceLevel1</item>
+        <item name="colorSurfaceContainer">?attr/fnSurfaceLevel1</item>
+        <item name="colorSurfaceContainerHigh">?attr/fnSurfaceLevel1</item>
+        <item name="colorSurfaceContainerHighest">?attr/fnSurfaceLevel1</item>
+        <item name="colorOnSurface">?attr/fnTextPrimary</item>
         <item name="android:textColor">?attr/fnTextPrimary</item>
+        <item name="android:textColorPrimary">?attr/fnTextPrimary</item>
+        <item name="android:textColorSecondary">?attr/fnTextSecondary</item>
+        <item name="colorControlNormal">?attr/fnPrimaryBlue</item>
+        <item name="actionOverflowMenuStyle">@style/App.OverflowMenu</item>
+        <item name="popupMenuStyle">@style/App.OverflowMenu</item>
+        <item name="popupMenuBackground">@drawable/bg_overflow_popup</item>
+        <item name="android:itemBackground">?attr/selectableItemBackground</item>
+        <item name="android:listSelector">?attr/selectableItemBackground</item>
+        <item name="textAppearanceLargePopupMenu">@style/FlashNow.Text.PopupMenu</item>
     </style>
 
 </resources>

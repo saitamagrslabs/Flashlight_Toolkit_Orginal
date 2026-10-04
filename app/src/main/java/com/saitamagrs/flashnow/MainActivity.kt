@@ -1,11 +1,13 @@
 package com.saitamagrs.flashnow
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -14,6 +16,9 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.view.menu.MenuBuilder
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -86,6 +91,7 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.addOnBackStackChangedListener {
             updateToolbarVisibility()
             invalidateOptionsMenu()
+            syncSystemBarAppearance()
         }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -121,6 +127,7 @@ class MainActivity : AppCompatActivity() {
 
     }
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        setupOverflowMenu(menu)
         // Only show menu items on the HomeFragment (when the back stack is empty)
         val isHomeFragment = supportFragmentManager.backStackEntryCount == 0
         menu.findItem(R.id.menu_settings)?.isVisible = isHomeFragment
@@ -274,7 +281,40 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+        setupOverflowMenu(menu)
         return true
+    }
+
+    @SuppressLint("RestrictedApi")
+    private fun setupOverflowMenu(menu: Menu?) {
+        if (menu == null) return
+
+        // Force icons to be visible in the overflow menu
+        try {
+            if (menu is MenuBuilder) {
+                menu.setOptionalIconsVisible(true)
+            } else {
+                val method = menu.javaClass.getDeclaredMethod("setOptionalIconsVisible", Boolean::class.javaPrimitiveType)
+                method.isAccessible = true
+                method.invoke(menu, true)
+            }
+        } catch (_: Exception) {
+            // Ignored if reflection is not available
+        }
+
+        // Tint menu icons to match the active semantic primary color (?attr/fnPrimaryBlue)
+        val typedValue = TypedValue()
+        if (theme.resolveAttribute(R.attr.fnPrimaryBlue, typedValue, true)) {
+            val iconColor = typedValue.data
+            for (i in 0 until menu.size()) {
+                val item = menu.getItem(i)
+                item.icon?.let { icon ->
+                    val wrapped = DrawableCompat.wrap(icon.mutate())
+                    DrawableCompat.setTint(wrapped, iconColor)
+                    item.icon = wrapped
+                }
+            }
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -333,10 +373,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        if (currentFragment !is LightBulbFragment && currentFragment !is ScreenLightFragment) {
+            syncSystemBarAppearance()
+        }
+    }
+
     private fun syncSystemBarAppearance() {
         val sharedPreferences = getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
         val selectedTheme = sharedPreferences.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK)
         val isLightTheme = selectedTheme == AppConstants.THEME_LIGHT
+
+        val bgRes = if (isLightTheme) R.color.fn_bg_light else R.color.fn_bg_dark
+        val barColor = ContextCompat.getColor(this, bgRes)
+
+        window.statusBarColor = barColor
+        window.navigationBarColor = barColor
+        window.setBackgroundDrawableResource(bgRes)
 
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
         insetsController.isAppearanceLightStatusBars = isLightTheme

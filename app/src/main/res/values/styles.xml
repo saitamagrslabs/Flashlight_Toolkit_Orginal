@@ -88,4 +88,10 @@
         <item name="android:background">?attr/fnSurfaceLevel1</item>
     </style>
 
+    <!-- Popup Menu Typography -->
+    <style name="FlashNow.Text.PopupMenu" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">?attr/fnTextPrimary</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
 </resources>

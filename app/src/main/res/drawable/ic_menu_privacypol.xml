@@ -3,11 +3,9 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Shield with checkmark - represents secure and approved -->
-    <path
-        android:fillColor="@color/accent_yellow"
-        android:pathData="M12,1L3,5v6c0,5.55 3.84,10.74 9,12c5.16,-1.26 9,-6.45 9,-12V5L12,1z"/>
+    <!-- Shield with checkmark cutout - single path with evenOdd fill for perfect tinting -->
     <path
         android:fillColor="@color/white"
-        android:pathData="M16.59,7.58L10,14.17l-2.59,-2.58L6,13l4,4 8,-8z"/>
+        android:fillType="evenOdd"
+        android:pathData="M12,1L3,5v6c0,5.55 3.84,10.74 9,12c5.16,-1.26 9,-6.45 9,-12V5L12,1z M10,15.59L6.5,12.09l1.41,-1.41L10,12.77l6.59,-6.59l1.41,1.41L10,15.59z"/>
 </vector>

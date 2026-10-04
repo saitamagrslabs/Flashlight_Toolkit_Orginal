@@ -45,8 +45,6 @@ class LightBulbFragment : Fragment() {
 
     private var state = LightBulbState()
     private var originalBrightness: Float = -1.0f
-    private var originalStatusBarColor: Int = 0
-    private var originalNavigationBarColor: Int = 0
     private var originalCutoutMode: Int = 0
 
     private val hideHudHandler = Handler(Looper.getMainLooper())
@@ -423,34 +421,28 @@ class LightBulbFragment : Fragment() {
         activity?.findViewById<View>(R.id.toolbar)?.visibility = View.GONE
 
         activity?.window?.let { window ->
-            // 1. Capture original system bar colors once (guard against capturing 0/transparent)
-            if (window.statusBarColor != Color.TRANSPARENT && window.statusBarColor != 0) {
-                originalStatusBarColor = window.statusBarColor
-            }
-            if (window.navigationBarColor != Color.TRANSPARENT && window.navigationBarColor != 0) {
-                originalNavigationBarColor = window.navigationBarColor
-            }
-
-            // 2. Clear window flags that could draw translucent or default system bar backgrounds
+            // 1. Clear window flags that could draw translucent or default system bar backgrounds
             window.clearFlags(
                 WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS or
                 WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION
             )
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
 
-            // 3. Ensure decor view lays out behind system bars
+            // 2. Ensure decor view lays out behind system bars
             WindowCompat.setDecorFitsSystemWindows(window, false)
 
-            // 4. Extend layout into display cutout / notch / status bar short edge areas (API 28+)
+            // 3. Extend layout into display cutout / notch / status bar short edge areas (API 28+)
             val layoutParams = window.attributes
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                originalCutoutMode = layoutParams.layoutInDisplayCutoutMode
+                if (originalCutoutMode == 0) {
+                    originalCutoutMode = layoutParams.layoutInDisplayCutoutMode
+                }
                 layoutParams.layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                 window.attributes = layoutParams
             }
 
-            // 5. Hide system bars with transient swipe behavior
+            // 4. Hide system bars with transient swipe behavior
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
             insetsController.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -480,20 +472,17 @@ class LightBulbFragment : Fragment() {
                 window.attributes = layoutParams
             }
 
-            // 4. Restore system bar colors with theme fallback
-            val fallbackColor = if (currentContext != null) ContextCompat.getColor(currentContext, bgRes) else Color.BLACK
-            window.statusBarColor = if (originalStatusBarColor != 0 && originalStatusBarColor != Color.TRANSPARENT) {
-                originalStatusBarColor
+            // 4. Restore system bar colors strictly to active theme tokens (fixes Android 13 Samsung yellow retention)
+            val themeBarColor = if (currentContext != null) {
+                ContextCompat.getColor(currentContext, bgRes)
             } else {
-                fallbackColor
+                if (isLightTheme) Color.parseColor("#F6F7FB") else Color.parseColor("#0F0F14")
             }
-            window.navigationBarColor = if (originalNavigationBarColor != 0 && originalNavigationBarColor != Color.TRANSPARENT) {
-                originalNavigationBarColor
-            } else {
-                fallbackColor
-            }
+            window.statusBarColor = themeBarColor
+            window.navigationBarColor = themeBarColor
 
             // 5. Restore system bars and theme icon appearance
+            WindowCompat.setDecorFitsSystemWindows(window, false)
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
             insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
             insetsController.show(WindowInsetsCompat.Type.systemBars())
