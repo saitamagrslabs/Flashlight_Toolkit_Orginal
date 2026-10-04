@@ -1,43 +1,120 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.FlashNow" parent="Theme.Material3.DayNight.NoActionBar">
+
+    <!-- ================================================================= -->
+    <!-- FlashNow Modern Dark Theme (Existing & Default)                    -->
+    <!-- ================================================================= -->
+    <style name="Theme.FlashNow.Dark" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- FlashNow Semantic Theme Attributes -->
+        <item name="fnBackground">@color/fn_bg_dark</item>
+        <item name="fnSurfaceLevel1">@color/fn_surface_level_1</item>
+        <item name="fnSurfaceLevel2">@color/fn_surface_level_2</item>
+        <item name="fnBorderSubtle">@color/fn_border_subtle</item>
+        <item name="fnPrimaryBlue">@color/fn_primary_blue</item>
+        <item name="fnPrimaryBlueContainer">@color/fn_primary_blue_container</item>
+        <item name="fnAccentAmber">@color/fn_accent_amber</item>
+        <item name="fnAccentGreen">@color/fn_accent_green</item>
+        <item name="fnAccentRed">@color/fn_accent_red</item>
+        <item name="fnTextPrimary">@color/fn_text_primary</item>
+        <item name="fnTextSecondary">@color/fn_text_secondary</item>
+        <item name="fnTextTertiary">@color/fn_text_tertiary</item>
+
         <!-- Window Baseline Colors -->
         <item name="android:windowBackground">@color/fn_bg_dark</item>
         <item name="android:colorBackground">@color/fn_bg_dark</item>
         <item name="colorSurface">@color/fn_surface_level_1</item>
+        <item name="colorSurfaceVariant">@color/fn_surface_level_2</item>
+        <item name="colorOutline">@color/fn_border_subtle</item>
         <item name="colorPrimary">@color/fn_primary_blue</item>
         <item name="colorSecondary">@color/fn_accent_amber</item>
 
-        <!-- Set custom toolbar style by default -->
+        <!-- Toolbar Style -->
         <item name="toolbarStyle">@style/App.Toolbar</item>
 
-        <!-- Set status bar & navigation bar colors -->
+        <!-- System Bars (Dark Status Bar & Navigation Bar + Light Icons) -->
         <item name="android:statusBarColor">@color/fn_bg_dark</item>
         <item name="android:navigationBarColor">@color/fn_bg_dark</item>
-
-        <!-- Ensure light text/icons on dark status bar -->
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
 
-        <!-- Use the correct theme attribute for MaterialToolbar's popup -->
+        <!-- Popup Menu Theme -->
         <item name="popupTheme">@style/App.PopupMenuTheme</item>
     </style>
 
+    <!-- ================================================================= -->
+    <!-- FlashNow Light Theme (Foundation - Phase 7.3A)                    -->
+    <!-- ================================================================= -->
+    <style name="Theme.FlashNow.Light" parent="Theme.Material3.Light.NoActionBar">
+        <!-- FlashNow Semantic Theme Attributes -->
+        <item name="fnBackground">@color/fn_bg_light</item>
+        <item name="fnSurfaceLevel1">@color/fn_surface_light_level_1</item>
+        <item name="fnSurfaceLevel2">@color/fn_surface_light_level_2</item>
+        <item name="fnBorderSubtle">@color/fn_border_light_subtle</item>
+        <item name="fnPrimaryBlue">@color/fn_primary_blue_accessible</item>
+        <item name="fnPrimaryBlueContainer">@color/fn_primary_blue_container_light</item>
+        <item name="fnAccentAmber">@color/fn_accent_amber_light</item>
+        <item name="fnAccentGreen">@color/fn_accent_green_light</item>
+        <item name="fnAccentRed">@color/fn_accent_red_light</item>
+        <item name="fnTextPrimary">@color/fn_text_light_primary</item>
+        <item name="fnTextSecondary">@color/fn_text_light_secondary</item>
+        <item name="fnTextTertiary">@color/fn_text_light_tertiary</item>
+
+        <!-- Window Baseline Colors -->
+        <item name="android:windowBackground">@color/fn_bg_light</item>
+        <item name="android:colorBackground">@color/fn_bg_light</item>
+        <item name="colorSurface">@color/fn_surface_light_level_1</item>
+        <item name="colorSurfaceVariant">@color/fn_surface_light_level_2</item>
+        <item name="colorOutline">@color/fn_border_light_subtle</item>
+        <item name="colorPrimary">@color/fn_primary_blue_accessible</item>
+        <item name="colorSecondary">@color/fn_accent_amber_light</item>
+
+        <!-- Toolbar Style -->
+        <item name="toolbarStyle">@style/App.Toolbar.Light</item>
+
+        <!-- System Bars (Light Status Bar & Navigation Bar + Dark Icons) -->
+        <item name="android:statusBarColor">@color/fn_bg_light</item>
+        <item name="android:navigationBarColor">@color/fn_bg_light</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+
+        <!-- Popup Menu Theme -->
+        <item name="popupTheme">@style/App.PopupMenuTheme.Light</item>
+    </style>
+
+    <!-- Base application theme strictly inherits Dark Theme to guarantee 100% preservation -->
+    <style name="Base.Theme.FlashNow" parent="Theme.FlashNow.Dark" />
+
     <style name="Theme.FlashNow" parent="Base.Theme.FlashNow" />
 
-    <!-- 1. Custom WIDGET style for the Toolbar's layout -->
+    <!-- 1. Custom WIDGET style for Toolbar (Dark) -->
     <style name="App.Toolbar" parent="Widget.Material3.Toolbar">
         <item name="android:background">@color/fn_bg_dark</item>
     </style>
 
-    <!-- 2. Custom THEME OVERLAY for the Toolbar's colors -->
+    <!-- Toolbar (Light) -->
+    <style name="App.Toolbar.Light" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/fn_bg_light</item>
+    </style>
+
+    <!-- 2. Custom THEME OVERLAY for Toolbar colors (Dark) -->
     <style name="App.Toolbar.Theme" parent="ThemeOverlay.Material3.Toolbar.Surface">
         <item name="colorControlNormal">@color/fn_primary_blue</item>
         <item name="titleTextColor">@color/fn_primary_blue</item>
     </style>
 
-    <!-- A Theme Overlay for the Popup Menu -->
+    <!-- Toolbar colors (Light) -->
+    <style name="App.Toolbar.Theme.Light" parent="ThemeOverlay.Material3.Toolbar.Surface">
+        <item name="colorControlNormal">@color/fn_primary_blue_accessible</item>
+        <item name="titleTextColor">@color/fn_primary_blue_accessible</item>
+    </style>
+
+    <!-- Popup Menu Overlay (Dark) -->
     <style name="App.PopupMenuTheme" parent="ThemeOverlay.Material3.Dark">
         <item name="colorSurface">@color/fn_surface_level_1</item>
+    </style>
+
+    <!-- Popup Menu Overlay (Light) -->
+    <style name="App.PopupMenuTheme.Light" parent="ThemeOverlay.Material3.Light">
+        <item name="colorSurface">@color/fn_surface_light_level_1</item>
     </style>
 
 </resources>

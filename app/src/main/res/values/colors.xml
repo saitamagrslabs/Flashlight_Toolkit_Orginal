@@ -33,4 +33,27 @@
     <color name="fn_text_primary">#FFFFFFFF</color>
     <color name="fn_text_secondary">#FFA0A0B0</color>
     <color name="fn_text_tertiary">#FF6E6E80</color>
+
+    <!-- ================================================================= -->
+    <!-- FlashNow Light Theme Semantic Design Tokens (Phase 7.3A)          -->
+    <!-- ================================================================= -->
+    <!-- Surface & Structure Hierarchy -->
+    <color name="fn_bg_light">#FFF6F7FB</color>
+    <color name="fn_surface_light_level_1">#FFFFFFFF</color>
+    <color name="fn_surface_light_level_2">#FFF0F2F7</color>
+    <color name="fn_border_light_subtle">#FFD9DEE8</color>
+
+    <!-- Brand & Accessible Primary Accents -->
+    <color name="fn_primary_blue_accessible">#FF0077B6</color>
+    <color name="fn_primary_blue_container_light">#FFE1F5FE</color>
+
+    <!-- Accessible Semantic Status Accents on Light Backgrounds -->
+    <color name="fn_accent_amber_light">#FFB45309</color>
+    <color name="fn_accent_green_light">#FF028A5E</color>
+    <color name="fn_accent_red_light">#FFDC2626</color>
+
+    <!-- Light Theme Typography Hierarchy (Neutral Dark) -->
+    <color name="fn_text_light_primary">#FF191C20</color>
+    <color name="fn_text_light_secondary">#FF49454F</color>
+    <color name="fn_text_light_tertiary">#FF74777F</color>
 </resources>

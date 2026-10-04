@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ================================================================= -->
+    <!-- FlashNow Semantic Theme Attributes (Phase 7.3A Foundation)        -->
+    <!-- ================================================================= -->
+    <attr name="fnBackground" format="color|reference" />
+    <attr name="fnSurfaceLevel1" format="color|reference" />
+    <attr name="fnSurfaceLevel2" format="color|reference" />
+    <attr name="fnBorderSubtle" format="color|reference" />
+    <attr name="fnPrimaryBlue" format="color|reference" />
+    <attr name="fnPrimaryBlueContainer" format="color|reference" />
+    <attr name="fnAccentAmber" format="color|reference" />
+    <attr name="fnAccentGreen" format="color|reference" />
+    <attr name="fnAccentRed" format="color|reference" />
+    <attr name="fnTextPrimary" format="color|reference" />
+    <attr name="fnTextSecondary" format="color|reference" />
+    <attr name="fnTextTertiary" format="color|reference" />
+</resources>
