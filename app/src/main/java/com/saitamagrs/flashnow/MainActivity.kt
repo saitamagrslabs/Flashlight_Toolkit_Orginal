@@ -22,6 +22,7 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
@@ -50,7 +51,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        syncSystemBarAppearance()
+        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        if (currentFragment !is LightBulbFragment && currentFragment !is ScreenLightFragment) {
+            syncSystemBarAppearance()
+        }
         setSupportActionBar(binding.toolbar)
 
         updateToolbarVisibility()
@@ -91,7 +95,10 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.addOnBackStackChangedListener {
             updateToolbarVisibility()
             invalidateOptionsMenu()
-            syncSystemBarAppearance()
+            val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            if (currentFragment !is LightBulbFragment && currentFragment !is ScreenLightFragment) {
+                syncSystemBarAppearance()
+            }
         }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -381,7 +388,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun syncSystemBarAppearance() {
+    fun syncSystemBarAppearance() {
+        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        if (currentFragment is LightBulbFragment || currentFragment is ScreenLightFragment) {
+            return
+        }
+        applySystemBarTheme()
+    }
+
+    fun restoreNormalSystemBars() {
+        applySystemBarTheme()
+    }
+
+    private fun applySystemBarTheme() {
         val sharedPreferences = getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
         val selectedTheme = sharedPreferences.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK)
         val isLightTheme = selectedTheme == AppConstants.THEME_LIGHT
@@ -389,11 +408,13 @@ class MainActivity : AppCompatActivity() {
         val bgRes = if (isLightTheme) R.color.fn_bg_light else R.color.fn_bg_dark
         val barColor = ContextCompat.getColor(this, bgRes)
 
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = barColor
         window.navigationBarColor = barColor
         window.setBackgroundDrawableResource(bgRes)
 
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
         insetsController.isAppearanceLightStatusBars = isLightTheme
         insetsController.isAppearanceLightNavigationBars = isLightTheme
     }

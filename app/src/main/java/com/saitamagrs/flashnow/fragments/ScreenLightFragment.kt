@@ -4,7 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -25,8 +27,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.google.android.gms.ads.AdView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.saitamagrs.flashnow.MainActivity
 import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.databinding.FragmentScreenLightBinding
+import com.saitamagrs.flashnow.utils.AppConstants
 import com.saitamagrs.flashnow.utils.ClapDetector
 
 enum class ScreenPattern { NONE, POLICE, PARTY, STROBE, CANDLE }
@@ -50,6 +54,7 @@ class ScreenLightFragment : BaseAdFragment() {
     // --- Brightness State Separation ---
     private var screenLightBrightness: Float = 1.0f
     private var originalBrightness: Float = -1.0f
+    private var originalCutoutMode: Int = 0
 
     private val handler = Handler(Looper.getMainLooper())
     private var currentPatternRunnable: Runnable? = null
@@ -93,6 +98,8 @@ class ScreenLightFragment : BaseAdFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        hideSystemUI()
 
         setupBottomSheet()
         setupScreen()
@@ -276,9 +283,11 @@ class ScreenLightFragment : BaseAdFragment() {
         if (fromUser) {
             userSelectedColor = color
         }
+        val displayColor = if (isScreenOn) currentColor else Color.BLACK
         if (_binding != null) {
-            binding.screenLightRoot.setBackgroundColor(if (isScreenOn) currentColor else Color.BLACK)
+            binding.screenLightRoot.setBackgroundColor(displayColor)
         }
+        applyScreenLightColorToWindow(displayColor)
     }
 
     override fun onResume() {
@@ -316,6 +325,7 @@ class ScreenLightFragment : BaseAdFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        showSystemUI()
         stopListeningForClaps()
         clapDetector?.release()
         clapDetector = null
@@ -328,9 +338,11 @@ class ScreenLightFragment : BaseAdFragment() {
     }
 
     private fun setupScreen() { 
+        val displayColor = if (isScreenOn) currentColor else Color.BLACK
         if (_binding != null) {
-            binding.screenLightRoot.setBackgroundColor(if (isScreenOn) currentColor else Color.BLACK)
+            binding.screenLightRoot.setBackgroundColor(displayColor)
         }
+        applyScreenLightColorToWindow(displayColor)
     }
 
     private fun setScreenBrightness(brightness: Float) {
@@ -344,23 +356,103 @@ class ScreenLightFragment : BaseAdFragment() {
         activity.window.attributes = layoutParams
     }
 
-    private fun hideSystemUI() {
-        activity?.runOnUiThread {
-            val toolbar = activity?.findViewById<Toolbar>(R.id.toolbar)
-            toolbar?.visibility = View.GONE
+    private var isImmersiveActive = false
 
-            val window = activity?.window ?: return@runOnUiThread
-            val controller = WindowCompat.getInsetsController(window, window.decorView)
-            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            controller.hide(WindowInsetsCompat.Type.systemBars())
+    private fun hideSystemUI() {
+        (activity as? androidx.appcompat.app.AppCompatActivity)?.supportActionBar?.hide()
+        activity?.findViewById<View>(R.id.toolbar)?.visibility = View.GONE
+
+        activity?.window?.let { window ->
+            // 1. Clear window flags that could draw translucent or default system bar backgrounds
+            window.clearFlags(
+                WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS or
+                WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION
+            )
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+
+            // 2. Ensure decor view lays out behind system bars
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+
+            // 3. Extend layout into display cutout / notch / status bar short edge areas (API 28+)
+            val layoutParams = window.attributes
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (originalCutoutMode == 0) {
+                    originalCutoutMode = layoutParams.layoutInDisplayCutoutMode
+                }
+                layoutParams.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                window.attributes = layoutParams
+            }
+
+            // 4. Hide system bars with transient swipe behavior
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            insetsController.hide(WindowInsetsCompat.Type.systemBars())
         }
+
+        applyScreenLightColorToWindow(if (isScreenOn) currentColor else Color.BLACK)
+        isImmersiveActive = true
     }
 
-    private fun showSystemUI() { 
-        activity?.findViewById<Toolbar>(R.id.toolbar)?.visibility = View.VISIBLE
+    private fun applyScreenLightColorToWindow(color: Int) {
         val window = activity?.window ?: return
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.show(WindowInsetsCompat.Type.systemBars())
+        window.statusBarColor = color
+        window.navigationBarColor = color
+        window.setBackgroundDrawable(ColorDrawable(color))
+
+        val luminance = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255.0
+        val isBright = luminance > 0.5
+
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = isBright
+        insetsController.isAppearanceLightNavigationBars = isBright
+    }
+
+    private fun showSystemUI() {
+        if (!isImmersiveActive) return
+        isImmersiveActive = false
+
+        (activity as? androidx.appcompat.app.AppCompatActivity)?.supportActionBar?.show()
+        activity?.findViewById<View>(R.id.toolbar)?.visibility = View.VISIBLE
+
+        activity?.window?.let { window ->
+            val currentContext = context ?: activity
+
+            // 1. Determine active app theme
+            val isLightTheme = currentContext?.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+                ?.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK) == AppConstants.THEME_LIGHT
+
+            // 2. Restore window background according to current theme
+            val bgRes = if (isLightTheme) R.color.fn_bg_light else R.color.fn_bg_dark
+            window.setBackgroundDrawableResource(bgRes)
+
+            // 3. Restore cutout mode on API 28+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val layoutParams = window.attributes
+                layoutParams.layoutInDisplayCutoutMode = originalCutoutMode
+                window.attributes = layoutParams
+            }
+
+            // 4. Restore system bar colors strictly to active theme tokens (fixes Android 13 Samsung yellow retention)
+            val themeBarColor = if (currentContext != null) {
+                ContextCompat.getColor(currentContext, bgRes)
+            } else {
+                if (isLightTheme) Color.parseColor("#F6F7FB") else Color.parseColor("#0F0F14")
+            }
+            window.statusBarColor = themeBarColor
+            window.navigationBarColor = themeBarColor
+
+            // 5. Restore system bars and theme icon appearance
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+            insetsController.show(WindowInsetsCompat.Type.systemBars())
+            insetsController.isAppearanceLightStatusBars = isLightTheme
+            insetsController.isAppearanceLightNavigationBars = isLightTheme
+        }
+
+        (activity as? MainActivity)?.restoreNormalSystemBars()
     }
 
     private fun setupBrightnessControl() { 
@@ -541,7 +633,9 @@ class ScreenLightFragment : BaseAdFragment() {
             override fun run() {
                 if (_binding == null || !isAdded || !isResumed || activePattern != ScreenPattern.STROBE) return
                 if (isScreenOn && _binding != null) {
-                    binding.screenLightRoot.setBackgroundColor(if (isWhite) Color.WHITE else Color.BLACK)
+                    val strobeColor = if (isWhite) Color.WHITE else Color.BLACK
+                    binding.screenLightRoot.setBackgroundColor(strobeColor)
+                    applyScreenLightColorToWindow(strobeColor)
                 }
                 isWhite = !isWhite
                 handler.postDelayed(this, getStrobeInterval()) 

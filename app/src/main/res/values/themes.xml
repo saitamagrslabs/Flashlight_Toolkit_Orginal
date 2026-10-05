@@ -118,9 +118,12 @@
     <!-- 3. Overflow Menu Widget Style (Single floating surface, no nested cards) -->
     <style name="App.OverflowMenu" parent="Widget.Material3.PopupMenu.Overflow">
         <item name="android:popupBackground">@drawable/bg_overflow_popup</item>
-        <item name="android:popupElevation">8dp</item>
-        <item name="android:dropDownVerticalOffset">4dp</item>
-        <item name="android:itemBackground">?attr/selectableItemBackground</item>
+        <item name="android:popupElevation">4dp</item>
+        <item name="android:dropDownVerticalOffset">2dp</item>
+        <item name="android:itemBackground">@null</item>
+        <item name="android:listSelector">?attr/selectableItemBackground</item>
+        <item name="android:divider">@null</item>
+        <item name="android:dividerHeight">0dp</item>
     </style>
 
     <!-- 4. Popup Menu Theme Overlay -->
@@ -137,9 +140,12 @@
         <item name="actionOverflowMenuStyle">@style/App.OverflowMenu</item>
         <item name="popupMenuStyle">@style/App.OverflowMenu</item>
         <item name="popupMenuBackground">@drawable/bg_overflow_popup</item>
-        <item name="android:itemBackground">?attr/selectableItemBackground</item>
+        <item name="android:itemBackground">@null</item>
         <item name="android:listSelector">?attr/selectableItemBackground</item>
+        <item name="dropdownListPreferredItemHeight">46dp</item>
         <item name="textAppearanceLargePopupMenu">@style/FlashNow.Text.PopupMenu</item>
+        <item name="android:textAppearanceSmallPopupMenu">@style/FlashNow.Text.PopupMenu</item>
+        <item name="textAppearanceSmallPopupMenu">@style/FlashNow.Text.PopupMenu</item>
     </style>
 
 </resources>
