@@ -37,14 +37,22 @@ import com.saitamagrs.flashnow.fragments.SettingsFragment
 import com.saitamagrs.flashnow.fragments.TimerFragment
 import com.saitamagrs.flashnow.utils.AppConstants
 import com.saitamagrs.flashnow.utils.FlashlightManager
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.saitamagrs.flashnow.utils.PermissionManager
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var permissionLauncher: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val sharedPreferences = getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        val selectedTheme = sharedPreferences.getString(AppConstants.KEY_THEME, AppConstants.THEME_DARK)
+        if (selectedTheme == AppConstants.THEME_LIGHT) {
+            setTheme(R.style.Theme_FlashNow_Starting_Light)
+        } else {
+            setTheme(R.style.Theme_FlashNow_Starting)
+        }
+        val splashScreen = installSplashScreen()
         applyAppTheme()
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -65,19 +73,6 @@ class MainActivity : AppCompatActivity() {
         prefs.edit().putBoolean("lock_mode_enabled", false).apply()
         TimerFragment.isLockModeActive = false
 */
-        //permission laucher
-        permissionLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted ->
-            if (!isGranted) {
-                val lastPermission = PermissionManager.lastRequestedPermission
-                if (lastPermission != null && !shouldShowRequestPermissionRationale(lastPermission)) {
-                    PermissionManager.showGoToSettingsDialog(this)
-                }
-            }
-            PermissionManager.processNextPermission(this, permissionLauncher)
-        }
-
         //system bars insets
         ViewCompat.setOnApplyWindowInsetsListener(binding.toolbar) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -127,11 +122,6 @@ class MainActivity : AppCompatActivity() {
                 }*/
             }
         })
-
-        handleFirstRunPermissions()
-
-
-
     }
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         setupOverflowMenu(menu)
@@ -264,26 +254,6 @@ class MainActivity : AppCompatActivity() {
             .replace(R.id.fragment_container, timerFragment)
             .addToBackStack("timer")
             .commit()
-    }
-
-
-
-    private fun handleFirstRunPermissions() {
-        val prefs = getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
-        val isFirstRun = prefs.getBoolean(AppConstants.KEY_FIRST_RUN, true)
-
-        if (isFirstRun) {
-            PermissionManager.addPermissionToQueue(this, Manifest.permission.CAMERA)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                PermissionManager.addPermissionToQueue(this, Manifest.permission.POST_NOTIFICATIONS)
-            }
-
-            if (!PermissionManager.isQueueEmpty()) {
-                PermissionManager.processNextPermission(this, permissionLauncher)
-            }
-
-            prefs.edit().putBoolean(AppConstants.KEY_FIRST_RUN, false).apply()
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

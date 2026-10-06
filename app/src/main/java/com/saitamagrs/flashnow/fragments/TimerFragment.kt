@@ -56,18 +56,14 @@ class TimerFragment : BaseAdFragment() {
             }
         } else {
             val permission = Manifest.permission.POST_NOTIFICATIONS
-            // ✅ Check if the permission is permanently denied
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            if (PermissionManager.isNotificationPermissionApplicable() &&
                 !shouldShowRequestPermissionRationale(permission)) {
-
-                // Show dialog directing user to manual settings
-                PermissionManager.showGoToSettingsDialog(requireContext())
+                PermissionManager.showPermanentlyDeniedDialog(requireContext(), permission)
             } else {
-                // Normal denial, show toast
-                showMessage("Permission denied. Timer will run without a notification.")
+                showMessage("Notification permission denied. Timer will run without background alerts.")
             }
 
-            // Start timer anyway as per current requirement
+            // Start timer anyway as graceful degradation
             pendingTimerMinutes?.let { actuallyStartTimer(it) }
         }
         pendingTimerMinutes = null
@@ -557,19 +553,17 @@ class TimerFragment : BaseAdFragment() {
     }
 
     private fun startTimer(minutes: Int) {
-        val permission = Manifest.permission.POST_NOTIFICATIONS
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            !PermissionManager.isNotificationPermissionGranted(requireContext())) {
+        if (!PermissionManager.isNotificationGranted(requireContext())) {
             pendingTimerMinutes = minutes
-
-            // ✅ Decide whether to show rationale or request directly
+            val permission = Manifest.permission.POST_NOTIFICATIONS
             if (shouldShowRequestPermissionRationale(permission)) {
-                // Show the explanation dialog from PermissionManager
-                PermissionManager.checkAndRequestNotificationPermission(requireActivity(), requestPermissionLauncher)
+                PermissionManager.showRationaleDialog(
+                    requireContext(),
+                    permission,
+                    onContinue = { requestPermissionLauncher.launch(permission) },
+                    onCancel = { actuallyStartTimer(minutes) }
+                )
             } else {
-                // First time or already permanently denied.
-                // System will show prompt if it's the first time, otherwise callback handles it.
                 requestPermissionLauncher.launch(permission)
             }
         } else {

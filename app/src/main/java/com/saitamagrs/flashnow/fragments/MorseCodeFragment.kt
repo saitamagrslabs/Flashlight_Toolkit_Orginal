@@ -30,12 +30,16 @@ import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.databinding.FragmentMorseCodeBinding
 import com.saitamagrs.flashnow.morse.core.MorseCodec
 import com.saitamagrs.flashnow.morse.core.MorseProtocol
+import com.saitamagrs.flashnow.morse.correction.MorseEnglishCorrector
 import com.saitamagrs.flashnow.morse.receiver.MorseReceiverEngine
 import com.saitamagrs.flashnow.morse.sender.MorseSenderEngine
 import com.saitamagrs.flashnow.utils.FlashlightController
 import com.saitamagrs.flashnow.utils.MorseCodeManager
+import com.saitamagrs.flashnow.utils.PermissionManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -52,6 +56,7 @@ class MorseCodeFragment : BaseAdFragment() {
     private lateinit var morseCodeManager: MorseCodeManager
     private lateinit var morseSenderEngine: MorseSenderEngine
     private lateinit var morseReceiverEngine: MorseReceiverEngine
+    private lateinit var morseEnglishCorrector: MorseEnglishCorrector
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var cameraExecutor: ExecutorService? = null
@@ -62,9 +67,16 @@ class MorseCodeFragment : BaseAdFragment() {
     private val requestCameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
+        if (!isAdded || _binding == null || isDetached) return@registerForActivityResult
         hasCameraPermission = isGranted
-        if (!isGranted) {
-            Toast.makeText(requireContext(), "Camera permission required for Morse features", Toast.LENGTH_SHORT).show()
+        if (isGranted) {
+            startReceiver()
+        } else {
+            if (!shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
+                PermissionManager.showPermanentlyDeniedDialog(requireContext(), Manifest.permission.CAMERA)
+            } else {
+                Toast.makeText(requireContext(), "Camera permission is required for the optical receiver.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -82,12 +94,11 @@ class MorseCodeFragment : BaseAdFragment() {
             insets
         }
 
-        checkCameraPermission()
-
         val flashlightController = FlashlightController(requireContext())
         morseCodeManager = MorseCodeManager(flashlightController)
         morseSenderEngine = MorseSenderEngine(requireContext())
         morseReceiverEngine = MorseReceiverEngine()
+        morseEnglishCorrector = MorseEnglishCorrector.fromAssets(requireContext().applicationContext)
 
         setupModeToggle()
         setupSenderUI()
@@ -98,13 +109,6 @@ class MorseCodeFragment : BaseAdFragment() {
         setupMorsePreview()
 
         (activity as? MainActivity)?.setToolbarTitle("Morse Communicator")
-    }
-
-    private fun checkCameraPermission() {
-        hasCameraPermission = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-        if (!hasCameraPermission) {
-            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
     }
 
     private fun setupModeToggle() {
@@ -244,21 +248,38 @@ class MorseCodeFragment : BaseAdFragment() {
 
     private fun setupReceiverUI() {
         binding.btnToggleReceiver.setOnClickListener {
-            if (!hasCameraPermission) {
-                Toast.makeText(requireContext(), "Camera permission required for Receiver", Toast.LENGTH_SHORT).show()
-                checkCameraPermission()
+            if (isReceiverActive) {
+                stopReceiver()
                 return@setOnClickListener
             }
 
-            if (isReceiverActive) {
-                stopReceiver()
-            } else {
+            if (PermissionManager.isCameraGranted(requireContext())) {
+                hasCameraPermission = true
                 startReceiver()
+            } else {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
+                    PermissionManager.showRationaleDialog(
+                        requireContext(),
+                        Manifest.permission.CAMERA,
+                        onContinue = { requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
+                    )
+                } else {
+                    requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
             }
         }
 
         binding.btnResetReceiver.setOnClickListener {
             morseReceiverEngine.reset()
+            binding.cardSuggestion.visibility = View.GONE
+        }
+
+        binding.btnAcceptSuggestion.setOnClickListener {
+            val suggestion = binding.tvSuggestedMessage.text.toString()
+            if (suggestion.isNotBlank()) {
+                binding.tvDecodedMessage.text = suggestion
+                binding.cardSuggestion.visibility = View.GONE
+            }
         }
     }
 
@@ -363,6 +384,19 @@ class MorseCodeFragment : BaseAdFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             morseReceiverEngine.decodedText.collectLatest { decoded ->
                 binding.tvDecodedMessage.text = decoded.ifEmpty { "[Decoded text will appear here]" }
+                if (decoded.isNotBlank()) {
+                    val result = withContext(Dispatchers.Default) {
+                        morseEnglishCorrector.correct(decoded)
+                    }
+                    if (result.hasSuggestion) {
+                        binding.tvSuggestedMessage.text = result.suggestedText
+                        binding.cardSuggestion.visibility = View.VISIBLE
+                    } else {
+                        binding.cardSuggestion.visibility = View.GONE
+                    }
+                } else {
+                    binding.cardSuggestion.visibility = View.GONE
+                }
             }
         }
 
@@ -370,6 +404,14 @@ class MorseCodeFragment : BaseAdFragment() {
             morseReceiverEngine.debugLog.collectLatest { debug ->
                 binding.tvReceiverDebug.text = "Debug: $debug"
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hasCameraPermission = PermissionManager.isCameraGranted(requireContext())
+        if (!hasCameraPermission && isReceiverActive) {
+            stopReceiver()
         }
     }
 

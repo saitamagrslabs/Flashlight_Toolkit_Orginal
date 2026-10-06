@@ -15,13 +15,35 @@ import java.nio.ByteBuffer
 /**
  * Optical Morse Code Receiver Engine.
  * Analyzes video stream frames from CameraX ImageAnalysis to detect flashlight pulses and decode text.
+ *
+ * Enhanced for distance reliability:
+ * - Center-focused Region of Interest (ROI) matching on-screen reticle
+ * - 97th percentile bright-signal detection (immune to single hot pixels)
+ * - 40th percentile adaptive ambient baseline
+ * - Hysteresis thresholding (Schmitt trigger) preventing edge jitter
+ * - 45ms candidate glitch filter rejecting transient camera noise
  */
 class MorseReceiverEngine : ImageAnalysis.Analyzer {
 
     companion object {
         private const val TAG = "MorseReceiverEngine"
-        private const val MIN_CONTRAST_THRESHOLD = 20.0f
-        private const val LUMINANCE_HISTORY_SIZE = 30 // ~1 second at 30 fps
+
+        // Center ROI definition (28% of frame dimensions, centered)
+        private const val ROI_RATIO = 0.28f
+
+        // Percentiles for robust ambient baseline and bright signal calculation
+        private const val AMBIENT_PERCENTILE = 0.40f // 40th percentile = robust ambient baseline
+        private const val BRIGHT_PERCENTILE = 0.97f  // 97th percentile = cluster of bright flashlight pixels
+
+        // Adaptive contrast thresholds with hysteresis (Schmitt trigger)
+        private const val ON_THRESHOLD_CONTRAST = 25.0f
+        private const val OFF_THRESHOLD_CONTRAST = 14.0f
+
+        // Initial calibration window (frames)
+        private const val CALIBRATION_FRAMES_REQUIRED = 10
+
+        // Glitch rejection filter threshold
+        private const val MIN_GLITCH_DURATION_MS = 45L
     }
 
     // Exposed StateFlows for UI and diagnostic observing
@@ -46,64 +68,152 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
     private val _debugLog = MutableStateFlow("Receiver ready")
     val debugLog: StateFlow<String> = _debugLog.asStateFlow()
 
+    // Reusable 256-bin histogram for zero-allocation percentile computation
+    private val histogram = IntArray(256)
+
     // Internal Signal Processing State
-    private val luminanceHistory = ArrayDeque<Float>()
-    private var minLuma = 255.0f
-    private var maxLuma = 0.0f
+    private var ambientBaseline = 40.0f
+    private var calibrationFramesCount = 0
 
     private var currentStateIsOn = false
     private var lastStateChangeTimestamp = 0L
 
+    // Glitch candidate state
+    private var candidateStateIsOn: Boolean? = null
+    private var candidateStateTimestamp = 0L
+
     private val currentSymbolBuffer = StringBuilder()
     private val decodedMessageBuilder = StringBuilder()
 
-    // Flag for initial frame
-    private var isFirstFrame = true
-
     override fun analyze(image: ImageProxy) {
         try {
-            val luma = calculateYPlaneLuminance(image)
-            val nowMs = SystemClock.elapsedRealtime()
+            val plane = image.planes[0]
+            val buffer: ByteBuffer = plane.buffer
+            buffer.rewind()
 
-            _rawLuminance.value = luma
+            val imgWidth = image.width
+            val imgHeight = image.height
 
-            // Update sliding window min/max
-            updateLuminanceStats(luma)
+            // Calculate center ROI (28% of frame dimensions)
+            val roiWidth = (imgWidth * ROI_RATIO).toInt().coerceAtLeast(16)
+            val roiHeight = (imgHeight * ROI_RATIO).toInt().coerceAtLeast(16)
 
-            val range = maxLuma - minLuma
-            val dynamicThreshold = minLuma + 0.5f * range
-            _threshold.value = dynamicThreshold
+            val startX = (imgWidth - roiWidth) / 2
+            val startY = (imgHeight - roiHeight) / 2
+            val endX = startX + roiWidth
+            val endY = startY + roiHeight
 
-            val detectedOn = if (range >= MIN_CONTRAST_THRESHOLD) {
-                luma > dynamicThreshold
-            } else {
-                false // Low contrast, default to OFF
+            val rowStride = plane.rowStride
+            val pixelStride = plane.pixelStride.coerceAtLeast(1)
+
+            // 1. Build 256-bin histogram from center ROI (stride = 2 for high speed)
+            histogram.fill(0)
+            var sampleCount = 0
+            val limit = buffer.limit()
+
+            val step = 2
+            var y = startY
+            while (y < endY) {
+                val rowStart = y * rowStride
+                var x = startX
+                while (x < endX) {
+                    val index = rowStart + (x * pixelStride)
+                    if (index < limit) {
+                        val luma = buffer.get(index).toInt() and 0xFF
+                        histogram[luma]++
+                        sampleCount++
+                    }
+                    x += step
+                }
+                y += step
             }
 
-            if (isFirstFrame) {
-                currentStateIsOn = detectedOn
+            if (sampleCount == 0) return
+
+            // 2. Compute 40th percentile (ambient) and 97th percentile (bright signal)
+            val localAmbient = getPercentileValue(sampleCount, AMBIENT_PERCENTILE)
+            val brightSignal = getPercentileValue(sampleCount, BRIGHT_PERCENTILE)
+
+            val nowMs = SystemClock.elapsedRealtime()
+
+            // 3. Initial calibration phase to establish stable ambient baseline
+            if (calibrationFramesCount < CALIBRATION_FRAMES_REQUIRED) {
+                calibrationFramesCount++
+                ambientBaseline = if (calibrationFramesCount == 1) {
+                    localAmbient.toFloat()
+                } else {
+                    (ambientBaseline * 0.7f) + (localAmbient.toFloat() * 0.3f)
+                }
                 lastStateChangeTimestamp = nowMs
-                isFirstFrame = false
-                _isLightOn.value = detectedOn
+                currentStateIsOn = false
+                candidateStateIsOn = null
+                _rawLuminance.value = brightSignal.toFloat()
+                _threshold.value = ambientBaseline + ON_THRESHOLD_CONTRAST
+                _isLightOn.value = false
                 return
             }
 
-            // Check state transition
-            if (detectedOn != currentStateIsOn) {
-                val durationMs = nowMs - lastStateChangeTimestamp
-                lastStateChangeTimestamp = nowMs
-
-                if (currentStateIsOn) {
-                    // ON -> OFF transition: Process pulse duration
-                    handlePulse(durationMs)
-                } else {
-                    // OFF -> ON transition: Process gap duration
-                    handleGap(durationMs)
-                }
-
-                currentStateIsOn = detectedOn
-                _isLightOn.value = detectedOn
+            // 4. Update adaptive ambient baseline (gradual smoothing when light is OFF)
+            if (!currentStateIsOn) {
+                ambientBaseline = (ambientBaseline * 0.94f) + (localAmbient.toFloat() * 0.06f)
             } else {
+                // When light is ON, only adapt downward if ambient drops, never upward
+                if (localAmbient < ambientBaseline) {
+                    ambientBaseline = (ambientBaseline * 0.95f) + (localAmbient.toFloat() * 0.05f)
+                }
+            }
+
+            val signalContrast = (brightSignal - ambientBaseline).coerceAtLeast(0.0f)
+            _rawLuminance.value = brightSignal.toFloat()
+
+            // 5. Hysteresis detection (Schmitt trigger)
+            val detectedRawOn = if (currentStateIsOn) {
+                signalContrast > OFF_THRESHOLD_CONTRAST
+            } else {
+                signalContrast >= ON_THRESHOLD_CONTRAST
+            }
+
+            val activeThreshold = if (currentStateIsOn) {
+                ambientBaseline + OFF_THRESHOLD_CONTRAST
+            } else {
+                ambientBaseline + ON_THRESHOLD_CONTRAST
+            }
+            _threshold.value = activeThreshold
+
+            // 6. Glitch filtering (ignore transitions < 45 ms)
+            if (detectedRawOn != currentStateIsOn) {
+                if (candidateStateIsOn != detectedRawOn) {
+                    // New candidate state started
+                    candidateStateIsOn = detectedRawOn
+                    candidateStateTimestamp = nowMs
+                } else {
+                    // Candidate persisted across frames
+                    val candidateDuration = nowMs - candidateStateTimestamp
+                    if (candidateDuration >= MIN_GLITCH_DURATION_MS) {
+                        // Confirmed valid state change!
+                        val durationMs = candidateStateTimestamp - lastStateChangeTimestamp
+                        lastStateChangeTimestamp = candidateStateTimestamp
+                        currentStateIsOn = detectedRawOn
+                        candidateStateIsOn = null
+                        _isLightOn.value = currentStateIsOn
+
+                        if (currentStateIsOn) {
+                            // OFF -> ON transition: previous period was a GAP
+                            if (durationMs >= MIN_GLITCH_DURATION_MS) {
+                                handleGap(durationMs)
+                            }
+                        } else {
+                            // ON -> OFF transition: previous period was a PULSE
+                            if (durationMs >= MIN_GLITCH_DURATION_MS) {
+                                handlePulse(durationMs)
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Detected state matches current state, reset any transient candidate
+                candidateStateIsOn = null
+
                 // If light remains OFF for a long duration, check for END_GAP or WORD_GAP timeout
                 if (!currentStateIsOn && lastStateChangeTimestamp > 0) {
                     val idleGapMs = nowMs - lastStateChangeTimestamp
@@ -120,41 +230,23 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         }
     }
 
-    private fun calculateYPlaneLuminance(image: ImageProxy): Float {
-        val plane = image.planes[0]
-        val buffer: ByteBuffer = plane.buffer
-        buffer.rewind()
-
-        val data = ByteArray(buffer.remaining())
-        buffer.get(data)
-
-        if (data.isEmpty()) return 0.0f
-
-        // Subsample every 16th byte for fast processing
-        var sum = 0L
-        var count = 0
-        val step = 16
-        var i = 0
-        while (i < data.size) {
-            sum += (data[i].toInt() and 0xFF)
-            count++
-            i += step
+    /**
+     * Computes the pixel intensity (0..255) at the given cumulative percentile.
+     */
+    private fun getPercentileValue(sampleCount: Int, percentile: Float): Int {
+        val targetCount = (sampleCount * percentile).toInt().coerceIn(1, sampleCount)
+        var cumulative = 0
+        for (i in 0..255) {
+            cumulative += histogram[i]
+            if (cumulative >= targetCount) {
+                return i
+            }
         }
-
-        return if (count > 0) sum.toFloat() / count else 0.0f
-    }
-
-    private fun updateLuminanceStats(luma: Float) {
-        luminanceHistory.addLast(luma)
-        if (luminanceHistory.size > LUMINANCE_HISTORY_SIZE) {
-            luminanceHistory.removeFirst()
-        }
-
-        minLuma = luminanceHistory.minOrNull() ?: 0.0f
-        maxLuma = luminanceHistory.maxOrNull() ?: 255.0f
+        return 255
     }
 
     private fun handlePulse(durationMs: Long) {
+        if (durationMs < MIN_GLITCH_DURATION_MS) return
         val pulseType = MorseTiming.classifyPulse(durationMs)
         when (pulseType) {
             MorseTiming.PulseType.DOT -> currentSymbolBuffer.append('.')
@@ -166,6 +258,7 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
     }
 
     private fun handleGap(durationMs: Long) {
+        if (durationMs < MIN_GLITCH_DURATION_MS) return
         val gapType = MorseTiming.classifyGap(durationMs)
         _debugLog.value = "Gap: $gapType (${durationMs}ms)"
 
@@ -223,7 +316,12 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
      * Resets receiver state machine.
      */
     fun reset() {
-        luminanceHistory.clear()
+        histogram.fill(0)
+        ambientBaseline = 40.0f
+        calibrationFramesCount = 0
+        currentStateIsOn = false
+        candidateStateIsOn = null
+        lastStateChangeTimestamp = 0L
         currentSymbolBuffer.clear()
         decodedMessageBuilder.clear()
         _currentSymbols.value = ""
@@ -233,6 +331,5 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         _threshold.value = 0.0f
         _isLightOn.value = false
         _debugLog.value = "Receiver reset"
-        isFirstFrame = true
     }
 }

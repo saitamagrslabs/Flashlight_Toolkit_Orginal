@@ -437,6 +437,74 @@
 
                         </com.google.android.material.card.MaterialCardView>
 
+                        <!-- Optional English Suggestion Card -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_suggestion"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:visibility="gone"
+                            app:cardBackgroundColor="?attr/fnSurfaceLevel2"
+                            app:cardCornerRadius="10dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="?attr/fnPrimaryBlue"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="8dp"
+                                android:paddingTop="8dp"
+                                android:paddingBottom="8dp">
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="SUGGESTION"
+                                        android:textColor="?attr/fnPrimaryBlue"
+                                        android:textSize="10sp"
+                                        android:textStyle="bold"
+                                        android:letterSpacing="0.08" />
+
+                                    <TextView
+                                        android:id="@+id/tv_suggested_message"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="2dp"
+                                        android:text="HELLO"
+                                        android:textColor="?attr/fnTextPrimary"
+                                        android:textSize="15sp"
+                                        android:fontFamily="monospace"
+                                        android:textStyle="bold" />
+
+                                </LinearLayout>
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_accept_suggestion"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="36dp"
+                                    android:paddingHorizontal="12dp"
+                                    android:paddingVertical="0dp"
+                                    android:text="USE"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    android:backgroundTint="?attr/fnPrimaryBlue"
+                                    android:textColor="?attr/fnBackground"
+                                    app:cornerRadius="8dp" />
+
+                            </LinearLayout>
+
+                        </com.google.android.material.card.MaterialCardView>
+
                         <!-- Action Button: Clear Decoded Text -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_reset_receiver"

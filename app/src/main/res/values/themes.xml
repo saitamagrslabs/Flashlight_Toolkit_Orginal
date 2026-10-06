@@ -101,6 +101,21 @@
 
     <style name="Theme.FlashNow" parent="Base.Theme.FlashNow" />
 
+    <!-- ================================================================= -->
+    <!-- FlashNow Native SplashScreen Themes (Phase 7.6)                    -->
+    <!-- ================================================================= -->
+    <style name="Theme.FlashNow.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/fn_bg_dark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_brand_dark</item>
+        <item name="postSplashScreenTheme">@style/Theme.FlashNow.Dark</item>
+    </style>
+
+    <style name="Theme.FlashNow.Starting.Light" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/fn_bg_light</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_brand_light</item>
+        <item name="postSplashScreenTheme">@style/Theme.FlashNow.Light</item>
+    </style>
+
     <!-- 1. Custom WIDGET style for Toolbar -->
     <style name="App.Toolbar" parent="Widget.Material3.Toolbar">
         <item name="android:background">?attr/fnBackground</item>

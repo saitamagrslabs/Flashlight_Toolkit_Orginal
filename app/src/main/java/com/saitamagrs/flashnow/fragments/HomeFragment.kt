@@ -59,8 +59,6 @@ class HomeFragment : BaseAdFragment() {
 
     private var clapDetector: ClapDetector? = null
 
-    private var pendingFlashlightAction: (() -> Unit)? = null
-
     private var notificationSwitchListener: CompoundButton.OnCheckedChangeListener? = null
 
     private var isNavigating = false // NAVIGATION GUARD
@@ -77,25 +75,6 @@ class HomeFragment : BaseAdFragment() {
     private var permissionReminderDialog: AlertDialog? = null
     private var notificationPermissionDialog: AlertDialog? = null
 
-    private val requestCameraPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (!isAdded || _binding == null || isDetached) {
-            pendingFlashlightAction = null
-            return@registerForActivityResult
-        }
-        if (isGranted) {
-            pendingFlashlightAction?.invoke()
-        } else {
-            if (!shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-                PermissionManager.showGoToSettingsDialog(requireContext())
-            } else {
-                Toast.makeText(requireContext(), "Camera permission is required for flashlight features.", Toast.LENGTH_SHORT).show()
-            }
-        }
-        pendingFlashlightAction = null
-    }
-
     private val requestAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -105,9 +84,9 @@ class HomeFragment : BaseAdFragment() {
         } else {
             binding.clapSwitch.isChecked = false
             if (!shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
-                showGoToSettingsForAudioDialog()
+                PermissionManager.showPermanentlyDeniedDialog(requireContext(), Manifest.permission.RECORD_AUDIO)
             } else {
-                Toast.makeText(requireContext(), "Clap detection requires microphone permission.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Clap detection requires microphone access.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -218,12 +197,8 @@ class HomeFragment : BaseAdFragment() {
             showTimerInterferenceWarning()
             return
         }
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            action()
-        } else {
-            pendingFlashlightAction = action
-            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }    }
+        action()
+    }
 
     private fun playButtonSound() {
         val sharedPrefs = requireContext().getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
@@ -326,18 +301,20 @@ class HomeFragment : BaseAdFragment() {
 
     private fun requestRecordAudioPermission() {
         when {
-            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED -> {
+            PermissionManager.isAudioGranted(requireContext()) -> {
                 startListeningForClaps()
             }
             shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO) -> {
-                AlertDialog.Builder(requireContext())
-                    .setTitle("Permission Needed")
-                    .setMessage("To detect claps, this app needs access to your microphone. No audio is ever recorded or stored.")
-                    .setPositiveButton("OK") { _, _ ->
+                PermissionManager.showRationaleDialog(
+                    requireContext(),
+                    Manifest.permission.RECORD_AUDIO,
+                    onContinue = {
                         requestAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    },
+                    onCancel = {
+                        binding.clapSwitch.isChecked = false
                     }
-                    .setNegativeButton("Cancel") { _, _ -> binding.clapSwitch.isChecked = false }
-                    .show()
+                )
             }
             else -> {
                 requestAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -346,17 +323,9 @@ class HomeFragment : BaseAdFragment() {
     }
 
     private fun showGoToSettingsForAudioDialog() {
-        AlertDialog.Builder(requireContext())
-            .setTitle("Permission Required")
-            .setMessage("Microphone permission has been permanently denied. You must enable it in the app settings to use the clap detection feature.")
-            .setPositiveButton("Go to Settings") { _, _ ->
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                val uri = Uri.fromParts("package", requireActivity().packageName, null)
-                intent.data = uri
-                startActivity(intent)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        PermissionManager.showPermanentlyDeniedDialog(requireContext(), Manifest.permission.RECORD_AUDIO) {
+            binding.clapSwitch.isChecked = false
+        }
     }
 
     private fun updateUI() {
@@ -663,7 +632,12 @@ class HomeFragment : BaseAdFragment() {
             updateUI()
         }
         if (_binding != null && binding.clapSwitch.isChecked) {
-            startListeningForClaps()
+            if (PermissionManager.isAudioGranted(requireContext())) {
+                startListeningForClaps()
+            } else {
+                binding.clapSwitch.isChecked = false
+                stopListeningForClaps()
+            }
         }
         val window = requireActivity().window
         val layoutParams = window.attributes
@@ -800,7 +774,6 @@ class HomeFragment : BaseAdFragment() {
     }
 
     override fun onDestroyView() {
-        pendingFlashlightAction = null
         clapDetector?.release()
         clapDetector = null
 
