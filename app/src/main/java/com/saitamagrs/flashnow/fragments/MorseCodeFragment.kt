@@ -37,6 +37,7 @@ import com.saitamagrs.flashnow.utils.FlashlightController
 import com.saitamagrs.flashnow.utils.MorseCodeManager
 import com.saitamagrs.flashnow.utils.PermissionManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -381,17 +382,29 @@ class MorseCodeFragment : BaseAdFragment() {
             }
         }
 
+        // 1. Dedicated, unconditional raw decoded text display collector
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseReceiverEngine.decodedText.collect { decoded ->
+                binding.tvDecodedMessage.text = decoded.ifEmpty { "[Decoded text will appear here]" }
+            }
+        }
+
+        // 2. Independent, isolated English word correction observer
         viewLifecycleOwner.lifecycleScope.launch {
             morseReceiverEngine.decodedText.collectLatest { decoded ->
-                binding.tvDecodedMessage.text = decoded.ifEmpty { "[Decoded text will appear here]" }
                 if (decoded.isNotBlank()) {
-                    val result = withContext(Dispatchers.Default) {
-                        morseEnglishCorrector.correct(decoded)
-                    }
-                    if (result.hasSuggestion) {
-                        binding.tvSuggestedMessage.text = result.suggestedText
-                        binding.cardSuggestion.visibility = View.VISIBLE
-                    } else {
+                    try {
+                        val result = withContext(Dispatchers.Default) {
+                            morseEnglishCorrector.correct(decoded)
+                        }
+                        if (result.hasSuggestion) {
+                            binding.tvSuggestedMessage.text = result.suggestedText
+                            binding.cardSuggestion.visibility = View.VISIBLE
+                        } else {
+                            binding.cardSuggestion.visibility = View.GONE
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error performing Morse English correction", e)
                         binding.cardSuggestion.visibility = View.GONE
                     }
                 } else {

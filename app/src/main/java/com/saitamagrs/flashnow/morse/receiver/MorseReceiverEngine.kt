@@ -214,13 +214,10 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
                 // Detected state matches current state, reset any transient candidate
                 candidateStateIsOn = null
 
-                // If light remains OFF for a long duration, check for END_GAP or WORD_GAP timeout
+                // If light remains OFF, check for responsive letter finalization or frame timeout
                 if (!currentStateIsOn && lastStateChangeTimestamp > 0) {
                     val idleGapMs = nowMs - lastStateChangeTimestamp
-                    if (idleGapMs >= MorseTiming.END_GAP_MS && currentSymbolBuffer.isNotEmpty()) {
-                        finalizeLetter()
-                        _debugLog.value = "Frame ended (Timeout)"
-                    }
+                    handleIdleGap(idleGapMs)
                 }
             }
         } catch (e: Exception) {
@@ -245,7 +242,17 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         return 255
     }
 
-    private fun handlePulse(durationMs: Long) {
+    internal fun handleIdleGap(idleGapMs: Long) {
+        // Responsively finalize letter as soon as letter gap threshold is reached
+        if (currentSymbolBuffer.isNotEmpty() && idleGapMs >= MorseTiming.LETTER_GAP_MS) {
+            finalizeLetter()
+        }
+        if (idleGapMs >= MorseTiming.END_GAP_MS && currentSymbolBuffer.isEmpty() && !_debugLog.value.endsWith("(Timeout)")) {
+            _debugLog.value = "Frame ended (Timeout)"
+        }
+    }
+
+    internal fun handlePulse(durationMs: Long) {
         if (durationMs < MIN_GLITCH_DURATION_MS) return
         val pulseType = MorseTiming.classifyPulse(durationMs)
         when (pulseType) {
@@ -257,7 +264,7 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         _debugLog.value = "Pulse: $pulseType (${durationMs}ms) -> Symbols: $currentSymbolBuffer"
     }
 
-    private fun handleGap(durationMs: Long) {
+    internal fun handleGap(durationMs: Long) {
         if (durationMs < MIN_GLITCH_DURATION_MS) return
         val gapType = MorseTiming.classifyGap(durationMs)
         _debugLog.value = "Gap: $gapType (${durationMs}ms)"
@@ -283,20 +290,14 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         }
     }
 
-    private fun finalizeLetter() {
+    internal fun finalizeLetter() {
         val pattern = currentSymbolBuffer.toString()
         if (pattern.isEmpty()) return
 
-        // Check if preamble matched ("...")
+        // Opportunistically mark protocol preamble sync without discarding legitimate letters
         if (pattern == MorseProtocol.PREAMBLE_MORSE_PATTERN && !_preambleDetected.value) {
             _preambleDetected.value = true
             _debugLog.value = "Preamble synced ('...')"
-            currentSymbolBuffer.clear()
-            _currentSymbols.value = ""
-            // Clear message buffer for fresh frame sync
-            decodedMessageBuilder.clear()
-            _decodedText.value = ""
-            return
         }
 
         val char = MorseCodec.decodeLetter(pattern)
