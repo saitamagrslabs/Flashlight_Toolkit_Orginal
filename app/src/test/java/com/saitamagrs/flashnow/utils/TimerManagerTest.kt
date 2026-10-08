@@ -39,6 +39,7 @@ class TimerManagerTest {
         val intentSlot = slot<Intent>()
 
         every { context.startService(capture(intentSlot)) } returns null
+        every { context.startForegroundService(capture(intentSlot)) } returns null
 
         // When
         timerManager.startTimer(durationMinutes)
@@ -56,12 +57,17 @@ class TimerManagerTest {
     fun `startTimer should start service`() {
         // Given
         every { context.startService(any()) } returns null
+        every { context.startForegroundService(any()) } returns null
 
         // When
         timerManager.startTimer(10)
 
         // Then
-        verify { context.startService(any()) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            verify { context.startForegroundService(any()) }
+        } else {
+            verify { context.startService(any()) }
+        }
     }
 
     @Test
@@ -134,6 +140,7 @@ class TimerManagerTest {
     fun `startTimer should throw exception when service start fails`() {
         // Given
         every { context.startService(any()) } throws RuntimeException("Service failed")
+        every { context.startForegroundService(any()) } throws RuntimeException("Service failed")
 
         // When - should throw
         timerManager.startTimer(5)

@@ -71,7 +71,9 @@ class MorseCodeFragment : BaseAdFragment() {
         if (!isAdded || _binding == null || isDetached) return@registerForActivityResult
         hasCameraPermission = isGranted
         if (isGranted) {
-            startReceiver()
+            if (binding.containerReceiver.visibility == View.VISIBLE) {
+                startReceiver()
+            }
         } else {
             if (!shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
                 PermissionManager.showPermanentlyDeniedDialog(requireContext(), Manifest.permission.CAMERA)
@@ -100,6 +102,7 @@ class MorseCodeFragment : BaseAdFragment() {
         morseSenderEngine = MorseSenderEngine(requireContext())
         morseReceiverEngine = MorseReceiverEngine()
         morseEnglishCorrector = MorseEnglishCorrector.fromAssets(requireContext().applicationContext)
+        morseReceiverEngine.englishCorrector = morseEnglishCorrector
 
         setupModeToggle()
         setupSenderUI()
@@ -126,6 +129,7 @@ class MorseCodeFragment : BaseAdFragment() {
                         morseCodeManager.stopFlashing()
                         binding.containerSender.visibility = View.GONE
                         binding.containerReceiver.visibility = View.VISIBLE
+                        ensureReceiverStarted()
                     }
                 }
             }
@@ -245,42 +249,37 @@ class MorseCodeFragment : BaseAdFragment() {
         }
     }
 
-    // ================= RECEIVER LOGIC =================
+    private fun ensureReceiverStarted() {
+        if (isReceiverActive) return
+
+        if (PermissionManager.isCameraGranted(requireContext())) {
+            hasCameraPermission = true
+            startReceiver()
+        } else {
+            if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
+                PermissionManager.showRationaleDialog(
+                    requireContext(),
+                    Manifest.permission.CAMERA,
+                    onContinue = { requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
+                )
+            } else {
+                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
+    }
 
     private fun setupReceiverUI() {
         binding.btnToggleReceiver.setOnClickListener {
             if (isReceiverActive) {
                 stopReceiver()
-                return@setOnClickListener
-            }
-
-            if (PermissionManager.isCameraGranted(requireContext())) {
-                hasCameraPermission = true
-                startReceiver()
             } else {
-                if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-                    PermissionManager.showRationaleDialog(
-                        requireContext(),
-                        Manifest.permission.CAMERA,
-                        onContinue = { requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
-                    )
-                } else {
-                    requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                }
+                ensureReceiverStarted()
             }
         }
 
         binding.btnResetReceiver.setOnClickListener {
             morseReceiverEngine.reset()
-            binding.cardSuggestion.visibility = View.GONE
-        }
-
-        binding.btnAcceptSuggestion.setOnClickListener {
-            val suggestion = binding.tvSuggestedMessage.text.toString()
-            if (suggestion.isNotBlank()) {
-                binding.tvDecodedMessage.text = suggestion
-                binding.cardSuggestion.visibility = View.GONE
-            }
+            binding.tvDecodedMessage.text = "[Decoded text will appear here]"
         }
     }
 
@@ -356,22 +355,65 @@ class MorseCodeFragment : BaseAdFragment() {
 
     private fun observeReceiverEngine() {
         viewLifecycleOwner.lifecycleScope.launch {
-            morseReceiverEngine.rawLuminance.collectLatest { luma ->
-                val thresh = morseReceiverEngine.threshold.value
-                val isLightOn = morseReceiverEngine.isLightOn.value
-                val stateText = if (isLightOn) "LIGHT: ON" else "LIGHT: OFF"
-                binding.tvLumaMetrics.text = String.format("Luma: %.1f | Thresh: %.1f | %s", luma, thresh, stateText)
+            kotlinx.coroutines.flow.combine(
+                morseReceiverEngine.sourceState,
+                morseReceiverEngine.sourceContrast,
+                morseReceiverEngine.isLightOn
+            ) { sourceState: MorseReceiverEngine.SourceState, contrast: Float, isLightOn: Boolean ->
+                Triple(sourceState, contrast, isLightOn)
+            }.collectLatest { (sourceState, contrast, isLightOn) ->
+                val sourceText = when (sourceState) {
+                    MorseReceiverEngine.SourceState.LOCKED -> "LOCKED"
+                    MorseReceiverEngine.SourceState.SEARCHING -> "SEARCHING"
+                    MorseReceiverEngine.SourceState.NO_SOURCE -> "NO SOURCE"
+                }
+                val lightText = if (isLightOn) "LIGHT: ON" else "LIGHT: OFF"
+                binding.tvLumaMetrics.text = String.format("Source: %s | Contrast: %.0f | %s", sourceText, contrast, lightText)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            morseReceiverEngine.preambleDetected.collectLatest { synced ->
-                if (synced) {
-                    binding.tvReceiverSync.text = "Preamble: SYNCED ('...')"
-                    binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
-                } else {
-                    binding.tvReceiverSync.text = "Waiting for preamble ('...')"
-                    binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentRed))
+            kotlinx.coroutines.flow.combine(
+                morseReceiverEngine.sessionState,
+                morseReceiverEngine.preambleDetected,
+                morseReceiverEngine.sourceState
+            ) { sessionState: MorseReceiverEngine.SessionState, synced: Boolean, sourceState: MorseReceiverEngine.SourceState ->
+                Triple(sessionState, synced, sourceState)
+            }.collectLatest { (sessionState, synced, sourceState) ->
+                when (sessionState) {
+                    MorseReceiverEngine.SessionState.WAITING -> {
+                        when (sourceState) {
+                            MorseReceiverEngine.SourceState.LOCKED -> {
+                                binding.tvReceiverSync.text = "LIGHT SOURCE LOCKED"
+                                binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
+                            }
+                            MorseReceiverEngine.SourceState.SEARCHING -> {
+                                binding.tvReceiverSync.text = "Searching for light source..."
+                                binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnPrimaryBlue))
+                            }
+                            MorseReceiverEngine.SourceState.NO_SOURCE -> {
+                                binding.tvReceiverSync.text = "Waiting for signal"
+                                binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnTextSecondary))
+                            }
+                        }
+                    }
+                    MorseReceiverEngine.SessionState.RECEIVING -> {
+                        if (synced) {
+                            binding.tvReceiverSync.text = "Receiving (Synced '...')"
+                            binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
+                        } else {
+                            binding.tvReceiverSync.text = "Syncing preamble..."
+                            binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnPrimaryBlue))
+                        }
+                    }
+                    MorseReceiverEngine.SessionState.ENDING -> {
+                        binding.tvReceiverSync.text = "Ending transmission..."
+                        binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
+                    }
+                    MorseReceiverEngine.SessionState.READY -> {
+                        binding.tvReceiverSync.text = "Ready (Armed)"
+                        binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
+                    }
                 }
             }
         }
@@ -382,33 +424,13 @@ class MorseCodeFragment : BaseAdFragment() {
             }
         }
 
-        // 1. Dedicated, unconditional raw decoded text display collector
-        viewLifecycleOwner.lifecycleScope.launch {
-            morseReceiverEngine.decodedText.collect { decoded ->
-                binding.tvDecodedMessage.text = decoded.ifEmpty { "[Decoded text will appear here]" }
-            }
-        }
-
-        // 2. Independent, isolated English word correction observer
+        // Dedicated, unconditional automatic decoded text display collector
         viewLifecycleOwner.lifecycleScope.launch {
             morseReceiverEngine.decodedText.collectLatest { decoded ->
-                if (decoded.isNotBlank()) {
-                    try {
-                        val result = withContext(Dispatchers.Default) {
-                            morseEnglishCorrector.correct(decoded)
-                        }
-                        if (result.hasSuggestion) {
-                            binding.tvSuggestedMessage.text = result.suggestedText
-                            binding.cardSuggestion.visibility = View.VISIBLE
-                        } else {
-                            binding.cardSuggestion.visibility = View.GONE
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error performing Morse English correction", e)
-                        binding.cardSuggestion.visibility = View.GONE
-                    }
+                if (decoded.isBlank()) {
+                    binding.tvDecodedMessage.text = "[Decoded text will appear here]"
                 } else {
-                    binding.cardSuggestion.visibility = View.GONE
+                    binding.tvDecodedMessage.text = decoded
                 }
             }
         }
@@ -425,6 +447,8 @@ class MorseCodeFragment : BaseAdFragment() {
         hasCameraPermission = PermissionManager.isCameraGranted(requireContext())
         if (!hasCameraPermission && isReceiverActive) {
             stopReceiver()
+        } else if (hasCameraPermission && !isReceiverActive && _binding != null && binding.containerReceiver.visibility == View.VISIBLE) {
+            startReceiver()
         }
     }
 

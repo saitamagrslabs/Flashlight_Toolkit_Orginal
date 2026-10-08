@@ -140,6 +140,63 @@ class MorseEnglishCorrector(
     }
 
     /**
+     * Auto-corrects a decoded message at the word level for direct user display.
+     *
+     * Rules:
+     * - Completed words are evaluated against the dictionary.
+     * - Valid dictionary words (e.g. HELLO, SOS, WORLD) are strictly preserved untouched.
+     * - Invalid words (e.g. HEILO, WORID, S0S) are corrected using Morse-aware similarity scoring.
+     * - If confidence is low or word is distant garbage (e.g. QZXMVK), the raw token is preserved.
+     * - An in-progress trailing word (when isFinal is false and no trailing space) is left uncorrected
+     *   to avoid mutating words while the sender is still transmitting letters.
+     */
+    fun autoCorrectMessage(rawMessage: String, isFinal: Boolean = false): String {
+        if (rawMessage.isBlank()) return rawMessage
+
+        val hasTrailingSpace = rawMessage.endsWith(" ")
+        val tokens = rawMessage.trim().split("\\s+".toRegex())
+        if (tokens.isEmpty()) return rawMessage
+
+        val correctedTokens = mutableListOf<String>()
+
+        for (index in tokens.indices) {
+            val token = tokens[index]
+            val isLastToken = (index == tokens.size - 1)
+
+            // If it's the last token and we have no trailing space and not finalized, leave as raw
+            if (isLastToken && !hasTrailingSpace && !isFinal) {
+                correctedTokens.add(token)
+                continue
+            }
+
+            val (cleanedWord, prefix, suffix) = separatePunctuation(token)
+            if (cleanedWord.isEmpty() || isPureNumericOrPunctuation(cleanedWord)) {
+                correctedTokens.add(token)
+                continue
+            }
+
+            val upperWord = cleanedWord.uppercase()
+            // If already valid in dictionary, keep it untouched
+            if (dictionary.contains(upperWord) || HIGH_PRIORITY_WORDS.contains(upperWord)) {
+                correctedTokens.add(token)
+                continue
+            }
+
+            // Word is invalid, attempt Morse-aware correction
+            val correction = correctSingleWord(upperWord)
+            if (correction != null && correction.second != CorrectionConfidence.NONE) {
+                correctedTokens.add("$prefix${correction.first}$suffix")
+            } else {
+                // Low confidence or garbage: preserve raw token
+                correctedTokens.add(token)
+            }
+        }
+
+        val result = correctedTokens.joinToString(" ")
+        return if (hasTrailingSpace) "$result " else result
+    }
+
+    /**
      * Corrects a single uppercase word token.
      */
     fun correctSingleWord(word: String): Pair<String, CorrectionConfidence>? {
@@ -224,7 +281,7 @@ class MorseEnglishCorrector(
 
         // Double-letter omission/expansion bonus (common in Morse when letter gap is tight)
         if (isDoubleLetterExpansion(raw, candidate)) {
-            score += 15
+            score += 35
         }
 
         // Bonus for high priority Morse / emergency words
@@ -240,6 +297,20 @@ class MorseEnglishCorrector(
             if (morseDist <= 1) {
                 score += 15
             } else if (morseDist <= 2) {
+                score += 10
+            }
+        }
+
+        // Unspaced Morse stream comparison (captures Morse split/merge errors like 'D' -> 'E T')
+        val rawStream = raw.mapNotNull { MorseCodec.encodeChar(it) }.joinToString("")
+        val candStream = candidate.mapNotNull { MorseCodec.encodeChar(it) }.joinToString("")
+        if (rawStream.isNotEmpty() && candStream.isNotEmpty()) {
+            val streamDist = levenshteinDistance(rawStream, candStream, 4)
+            if (streamDist <= 1) {
+                score += 20
+            } else if (streamDist <= 2) {
+                score += 15
+            } else if (streamDist <= 3) {
                 score += 10
             }
         }

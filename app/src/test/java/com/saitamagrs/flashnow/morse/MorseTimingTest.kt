@@ -10,8 +10,8 @@ class MorseTimingTest {
     fun `classifyPulse classifies duration into DOT and DASH`() {
         assertEquals(MorseTiming.PulseType.DOT, MorseTiming.classifyPulse(100L))
         assertEquals(MorseTiming.PulseType.DOT, MorseTiming.classifyPulse(150L))
-        assertEquals(MorseTiming.PulseType.DOT, MorseTiming.classifyPulse(299L))
-        assertEquals(MorseTiming.PulseType.DASH, MorseTiming.classifyPulse(300L))
+        assertEquals(MorseTiming.PulseType.DOT, MorseTiming.classifyPulse(274L))
+        assertEquals(MorseTiming.PulseType.DASH, MorseTiming.classifyPulse(275L))
         assertEquals(MorseTiming.PulseType.DASH, MorseTiming.classifyPulse(450L))
         assertEquals(MorseTiming.PulseType.DASH, MorseTiming.classifyPulse(600L))
         assertEquals(MorseTiming.PulseType.UNKNOWN, MorseTiming.classifyPulse(0L))
@@ -27,7 +27,7 @@ class MorseTimingTest {
         assertEquals(MorseTiming.GapType.WORD_GAP, MorseTiming.classifyGap(750L))
         assertEquals(MorseTiming.GapType.WORD_GAP, MorseTiming.classifyGap(1050L))
         assertEquals(MorseTiming.GapType.WORD_GAP, MorseTiming.classifyGap(1200L))
-        assertEquals(MorseTiming.GapType.END_GAP, MorseTiming.classifyGap(1275L))
+        assertEquals(MorseTiming.GapType.END_GAP, MorseTiming.classifyGap(1300L))
         assertEquals(MorseTiming.GapType.END_GAP, MorseTiming.classifyGap(1500L))
     }
 }

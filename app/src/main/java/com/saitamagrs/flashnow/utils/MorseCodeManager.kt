@@ -59,7 +59,7 @@ class MorseCodeManager(private val flashlightController: FlashlightController) {
     }
 
     fun convertToMorse(text: String): String {
-        return text.map { morseCodeMap[it] ?: "?" }.joinToString(" ")
+        return text.uppercase().map { morseCodeMap[it] ?: "" }.filter { it.isNotEmpty() }.joinToString(" ")
     }
 
     private fun flashMorseSequence(morse: String) {
