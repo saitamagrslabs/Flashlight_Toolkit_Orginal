@@ -485,17 +485,17 @@ class MorseCodeFragment : BaseAdFragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             morseReceiverController.diagnostics.collectLatest { diag ->
-                binding.tvLumaMetrics.text = "Luma: %.1f (Peak: %.1f) | Thresh: %.1f | Light: %s".format(
+                binding.tvLumaMetrics.text = "Sig: %.1f (Amb: %.1f) | Thresh: %.1f | Light: %s".format(
                     diag.measuredLuma,
-                    diag.maxLuma,
+                    diag.ambientLuma,
                     diag.onThreshold,
                     diag.currentState.name
                 )
-                binding.tvReceiverDebug.text = "Amb: %.1f | BrightPx: %d | Frames: %d | %s".format(
-                    diag.ambientLuma,
+                binding.tvReceiverDebug.text = "Peak: %.1f | Dynamic: %+d px | Bright: %d | Frames: %d".format(
+                    diag.maxLuma,
+                    diag.deltaBrightPixels,
                     diag.brightPixelCount,
-                    diag.totalFramesProcessed,
-                    if (diag.isCalibrated) "Calibrated" else "Calibrating"
+                    diag.totalFramesProcessed
                 )
             }
         }

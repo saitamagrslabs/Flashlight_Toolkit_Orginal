@@ -1222,4 +1222,330 @@ class OpticalSignalDetectorTest {
         }
         assertTrue("Ambient baseline should have adapted upwards", det.ambientLuma > 25.0f)
     }
+
+    // =========================================================================
+    // 12. AMBIENT BASELINE SEPARATION & DYNAMIC OPTICAL SIGNAL DETECTION (PHASE R5.4)
+    // =========================================================================
+
+    @Test
+    fun `test normal indoor background with static bright pixels calibrates to ambient not 255`() {
+        val cfg = OpticalDetectorConfig(
+            calibrationFramesCount = 10,
+            minSpotPixels = 6,
+            ambientPercentile = 0.50f
+        )
+        val det = OpticalSignalDetector(cfg).apply { start() }
+        val histogram = IntArray(256)
+
+        var t = 0L
+        for (i in 0 until 10) {
+            val (buf, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 100, spotLuma = 255.toByte())
+            val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                yBuffer = buf, width = 640, height = 480, rowStride = 640, pixelStride = 1,
+                cropRect = null, config = cfg, histogram = histogram
+            )
+            assertEquals(60.0f, analysis.ambientEstimateLuma, 0.001f)
+            assertEquals(255.0f, analysis.representativeLuma, 0.001f)
+            assertEquals(255.0f, analysis.maxLuma, 0.001f)
+            assertEquals(100, analysis.spotPixelCount)
+
+            det.processSample(
+                luminance = analysis.representativeLuma,
+                timestampMs = t,
+                maxLuma = analysis.maxLuma,
+                brightPixelCount = analysis.spotPixelCount,
+                ambientEstimateLuma = analysis.ambientEstimateLuma
+            )
+            t += 33L
+        }
+
+        assertTrue(det.isCalibrated)
+        assertEquals("Ambient baseline must be 60, not saturated 255", 60.0f, det.ambientLuma, 0.001f)
+        assertEquals("OnThreshold must be 85, not 280", 85.0f, det.diagnostics.value.onThreshold, 0.001f)
+        assertEquals(100, det.baselineBrightPixels)
+        assertEquals(LightState.OFF, det.currentState)
+    }
+
+    @Test
+    fun `test stable background with static bright pixels maintains OFF state`() {
+        val cfg = OpticalDetectorConfig(
+            calibrationFramesCount = 10,
+            minSpotPixels = 6,
+            ambientPercentile = 0.50f
+        )
+        val det = OpticalSignalDetector(cfg).apply { start() }
+        val histogram = IntArray(256)
+
+        var t = 0L
+        for (i in 0 until 10) {
+            val (buf, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 100, spotLuma = 255.toByte())
+            val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                yBuffer = buf, width = 640, height = 480, rowStride = 640, pixelStride = 1,
+                cropRect = null, config = cfg, histogram = histogram
+            )
+            det.processSample(
+                luminance = analysis.representativeLuma,
+                timestampMs = t,
+                maxLuma = analysis.maxLuma,
+                brightPixelCount = analysis.spotPixelCount,
+                ambientEstimateLuma = analysis.ambientEstimateLuma
+            )
+            t += 33L
+        }
+        assertEquals(LightState.OFF, det.currentState)
+
+        for (i in 0 until 50) {
+            val (buf, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 100, spotLuma = 255.toByte())
+            val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                yBuffer = buf, width = 640, height = 480, rowStride = 640, pixelStride = 1,
+                cropRect = null, config = cfg, histogram = histogram
+            )
+            val trans = det.processSample(
+                luminance = analysis.representativeLuma,
+                timestampMs = t,
+                maxLuma = analysis.maxLuma,
+                brightPixelCount = analysis.spotPixelCount,
+                ambientEstimateLuma = analysis.ambientEstimateLuma
+            )
+            assertNull("Static bright background must NEVER produce a transition", trans)
+            assertEquals("State must remain OFF in presence of static highlights", LightState.OFF, det.currentState)
+            t += 33L
+        }
+    }
+
+    @Test
+    fun `test simulated sender pulse with 6, 8, 10, and 15 pixels triggers ON transition`() {
+        val cfg = OpticalDetectorConfig(
+            calibrationFramesCount = 10,
+            minSpotPixels = 6,
+            ambientPercentile = 0.50f
+        )
+        val spotIncrements = listOf(6, 8, 10, 15)
+
+        for (pulsePixels in spotIncrements) {
+            val det = OpticalSignalDetector(cfg).apply { start() }
+            val histogram = IntArray(256)
+
+            var t = 0L
+            for (i in 0 until 10) {
+                val (buf, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 100, spotLuma = 255.toByte())
+                val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                    yBuffer = buf, width = 640, height = 480, rowStride = 640, pixelStride = 1,
+                    cropRect = null, config = cfg, histogram = histogram
+                )
+                det.processSample(
+                    luminance = analysis.representativeLuma,
+                    timestampMs = t,
+                    maxLuma = analysis.maxLuma,
+                    brightPixelCount = analysis.spotPixelCount,
+                    ambientEstimateLuma = analysis.ambientEstimateLuma
+                )
+                t += 33L
+            }
+            assertEquals(LightState.OFF, det.currentState)
+
+            t += 33L
+            val (pBuf1, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 100 + pulsePixels, spotLuma = 255.toByte())
+            val pAnalysis1 = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                yBuffer = pBuf1, width = 640, height = 480, rowStride = 640, pixelStride = 1,
+                cropRect = null, config = cfg, histogram = histogram
+            )
+            val trans1 = det.processSample(
+                luminance = pAnalysis1.representativeLuma,
+                timestampMs = t,
+                maxLuma = pAnalysis1.maxLuma,
+                brightPixelCount = pAnalysis1.spotPixelCount,
+                ambientEstimateLuma = pAnalysis1.ambientEstimateLuma
+            )
+            assertNull("Candidate frame 1 should not confirm immediately", trans1)
+            assertEquals(LightState.OFF, det.currentState)
+
+            t += 45L
+            val (pBuf2, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 100 + pulsePixels, spotLuma = 255.toByte())
+            val pAnalysis2 = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                yBuffer = pBuf2, width = 640, height = 480, rowStride = 640, pixelStride = 1,
+                cropRect = null, config = cfg, histogram = histogram
+            )
+            val trans2 = det.processSample(
+                luminance = pAnalysis2.representativeLuma,
+                timestampMs = t,
+                maxLuma = pAnalysis2.maxLuma,
+                brightPixelCount = pAnalysis2.spotPixelCount,
+                ambientEstimateLuma = pAnalysis2.ambientEstimateLuma
+            )
+            assertNotNull("Sender pulse of $pulsePixels px must confirm ON transition", trans2)
+            assertEquals(LightState.ON, trans2!!.newState)
+            assertEquals(LightState.ON, det.currentState)
+        }
+    }
+
+    @Test
+    fun `test repeated ON and OFF pulses produce valid detector transitions in room with static lamp`() {
+        val cfg = OpticalDetectorConfig(
+            calibrationFramesCount = 10,
+            minSpotPixels = 6,
+            ambientPercentile = 0.50f
+        )
+        val det = OpticalSignalDetector(cfg).apply { start() }
+        val histogram = IntArray(256)
+
+        var t = 0L
+        for (i in 0 until 10) {
+            val (buf, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 80, spotLuma = 255.toByte())
+            val a = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(buf, 640, 480, 640, 1, null, cfg, histogram)
+            det.processSample(a.representativeLuma, t, maxLuma = a.maxLuma, brightPixelCount = a.spotPixelCount, ambientEstimateLuma = a.ambientEstimateLuma)
+            t += 33L
+        }
+        assertEquals(LightState.OFF, det.currentState)
+
+        val confirmedTransitions = mutableListOf<OpticalTransition>()
+
+        for (pulse in 1..3) {
+            for (f in 0 until 4) {
+                t += 38L
+                val (buf, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 95, spotLuma = 255.toByte())
+                val a = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(buf, 640, 480, 640, 1, null, cfg, histogram)
+                val trans = det.processSample(a.representativeLuma, t, maxLuma = a.maxLuma, brightPixelCount = a.spotPixelCount, ambientEstimateLuma = a.ambientEstimateLuma)
+                if (trans != null) confirmedTransitions.add(trans)
+            }
+            assertEquals("Must be ON after pulse $pulse", LightState.ON, det.currentState)
+
+            for (f in 0 until 4) {
+                t += 38L
+                val (buf, _) = createSyntheticFrame(640, 480, ambientLuma = 60, spotPixels = 80, spotLuma = 255.toByte())
+                val a = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(buf, 640, 480, 640, 1, null, cfg, histogram)
+                val trans = det.processSample(a.representativeLuma, t, maxLuma = a.maxLuma, brightPixelCount = a.spotPixelCount, ambientEstimateLuma = a.ambientEstimateLuma)
+                if (trans != null) confirmedTransitions.add(trans)
+            }
+            assertEquals("Must be OFF after gap $pulse", LightState.OFF, det.currentState)
+        }
+
+        assertEquals(6, confirmedTransitions.size)
+        assertEquals(LightState.ON, confirmedTransitions[0].newState)
+        assertEquals(LightState.OFF, confirmedTransitions[1].newState)
+        assertEquals(LightState.ON, confirmedTransitions[2].newState)
+        assertEquals(LightState.OFF, confirmedTransitions[3].newState)
+        assertEquals(LightState.ON, confirmedTransitions[4].newState)
+        assertEquals(LightState.OFF, confirmedTransitions[5].newState)
+    }
+
+    @Test
+    fun `test thresholds never exceed valid 8-bit range`() {
+        val cfg = OpticalDetectorConfig(
+            calibrationFramesCount = 10,
+            maxOnThreshold = 245.0f,
+            onContrastOffset = 25.0f,
+            offContrastOffset = 12.0f
+        )
+        val det = OpticalSignalDetector(cfg).apply { start() }
+
+        var t = 0L
+        for (i in 0 until 10) {
+            det.processSample(luminance = 240.0f, timestampMs = t, ambientEstimateLuma = 240.0f)
+            t += 33L
+        }
+        assertTrue(det.isCalibrated)
+        val diag = det.diagnostics.value
+        assertEquals("Threshold must not exceed 245.0", 245.0f, diag.onThreshold, 0.001f)
+        assertTrue("Threshold must be within 8-bit unsigned range <= 255", diag.onThreshold <= 255.0f)
+        assertTrue("OffThreshold must be strictly below OnThreshold", diag.offThreshold < diag.onThreshold)
+    }
+
+    @Test
+    fun `test global camera exposure change without localized beam does not trigger ON`() {
+        val cfg = OpticalDetectorConfig(
+            calibrationFramesCount = 10,
+            ambientAdaptAlpha = 0.05f
+        )
+        val det = OpticalSignalDetector(cfg).apply { start() }
+        var t = 0L
+        for (i in 0 until 10) {
+            det.processSample(luminance = 50.0f, timestampMs = t, ambientEstimateLuma = 50.0f)
+            t += 33L
+        }
+        assertEquals(LightState.OFF, det.currentState)
+
+        for (i in 1..10) {
+            t += 33L
+            val trans = det.processSample(
+                luminance = 50.0f + (i * 1.5f),
+                timestampMs = t,
+                ambientEstimateLuma = 50.0f + (i * 1.5f)
+            )
+            assertNull("Global rise within hysteresis must not trigger ON", trans)
+            assertEquals(LightState.OFF, det.currentState)
+        }
+    }
+
+    @Test
+    fun `test dark room and close range flood regression coverage`() {
+        val cfg = OpticalDetectorConfig(
+            calibrationFramesCount = 10,
+            minSpotPixels = 6,
+            minAbsoluteOnLuma = 35.0f
+        )
+        val det = OpticalSignalDetector(cfg).apply { start() }
+        val histogram = IntArray(256)
+
+        var t = 0L
+        for (i in 0 until 10) {
+            val (buf, _) = createSyntheticFrame(640, 480, ambientLuma = 5, spotPixels = 0)
+            val a = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(buf, 640, 480, 640, 1, null, cfg, histogram)
+            det.processSample(a.representativeLuma, t, maxLuma = a.maxLuma, brightPixelCount = a.brightPixelCount, ambientEstimateLuma = a.ambientEstimateLuma)
+            t += 33L
+        }
+        assertEquals(5.0f, det.ambientLuma, 0.001f)
+        assertEquals(35.0f, det.diagnostics.value.onThreshold, 0.001f)
+
+        t += 33L
+        val (buf1, _) = createSyntheticFrame(640, 480, ambientLuma = 5, spotPixels = 12, spotLuma = 200.toByte())
+        val a1 = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(buf1, 640, 480, 640, 1, null, cfg, histogram)
+        det.processSample(a1.representativeLuma, t, maxLuma = a1.maxLuma, brightPixelCount = a1.brightPixelCount, ambientEstimateLuma = a1.ambientEstimateLuma)
+        t += 45L
+        val transOn = det.processSample(a1.representativeLuma, t, maxLuma = a1.maxLuma, brightPixelCount = a1.brightPixelCount, ambientEstimateLuma = a1.ambientEstimateLuma)
+        assertNotNull("Remote 2m spot in dark room must trigger ON", transOn)
+        assertEquals(LightState.ON, det.currentState)
+
+        t += 33L
+        val (offBuf, _) = createSyntheticFrame(640, 480, ambientLuma = 5, spotPixels = 0)
+        val aOff = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(offBuf, 640, 480, 640, 1, null, cfg, histogram)
+        det.processSample(aOff.representativeLuma, t, maxLuma = aOff.maxLuma, brightPixelCount = aOff.brightPixelCount, ambientEstimateLuma = aOff.ambientEstimateLuma)
+        t += 45L
+        val transOff = det.processSample(aOff.representativeLuma, t, maxLuma = aOff.maxLuma, brightPixelCount = aOff.brightPixelCount, ambientEstimateLuma = aOff.ambientEstimateLuma)
+        assertNotNull("Must return to OFF", transOff)
+        assertEquals(LightState.OFF, det.currentState)
+
+        t += 33L
+        val (floodBuf, _) = createSyntheticFrame(640, 480, ambientLuma = 5, spotPixels = 10000, spotLuma = 255.toByte())
+        val aFlood = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(floodBuf, 640, 480, 640, 1, null, cfg, histogram)
+        det.processSample(aFlood.representativeLuma, t, maxLuma = aFlood.maxLuma, brightPixelCount = aFlood.brightPixelCount, ambientEstimateLuma = aFlood.ambientEstimateLuma)
+        t += 45L
+        val transFlood = det.processSample(aFlood.representativeLuma, t, maxLuma = aFlood.maxLuma, brightPixelCount = aFlood.brightPixelCount, ambientEstimateLuma = aFlood.ambientEstimateLuma)
+        assertNotNull("Close range flood must trigger ON", transFlood)
+        assertEquals(LightState.ON, det.currentState)
+    }
+
+    @Test
+    fun `test detector reset and reinitialization behaviour`() {
+        val cfg = OpticalDetectorConfig(calibrationFramesCount = 10, minSpotPixels = 6)
+        val det = OpticalSignalDetector(cfg).apply { start() }
+
+        var t = 0L
+        for (i in 0 until 10) {
+            det.processSample(luminance = 200.0f, timestampMs = t, brightPixelCount = 50, ambientEstimateLuma = 60.0f)
+            t += 33L
+        }
+        assertTrue(det.isCalibrated)
+        assertEquals(60.0f, det.ambientLuma, 0.001f)
+        assertEquals(50, det.baselineBrightPixels)
+
+        det.reset()
+        assertFalse(det.isCalibrated)
+        assertEquals(0.0f, det.ambientLuma, 0.001f)
+        assertEquals(0, det.baselineBrightPixels)
+        assertEquals(LightState.OFF, det.currentState)
+        assertEquals(0L, det.totalFramesProcessed)
+        assertEquals(0, det.diagnostics.value.brightPixelCount)
+        assertEquals(0, det.diagnostics.value.deltaBrightPixels)
+    }
 }

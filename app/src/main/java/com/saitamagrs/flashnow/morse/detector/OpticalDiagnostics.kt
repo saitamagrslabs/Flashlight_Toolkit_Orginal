@@ -26,5 +26,7 @@ data class OpticalDiagnostics(
     val totalFramesProcessed: Long = 0L,
     val lastTransition: OpticalTransition? = null,
     val maxLuma: Float = measuredLuma,
-    val brightPixelCount: Int = 0
+    val brightPixelCount: Int = 0,
+    val deltaBrightPixels: Int = 0,
+    val ambientEstimateLuma: Float = ambientLuma
 )

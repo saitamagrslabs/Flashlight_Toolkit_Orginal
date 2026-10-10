@@ -52,6 +52,9 @@ class OpticalSignalDetector(
     var ambientLuma: Float = 0.0f
         private set
 
+    var baselineBrightPixels: Int = 0
+        private set
+
     var currentState: LightState = LightState.OFF
         private set
 
@@ -59,7 +62,9 @@ class OpticalSignalDetector(
         private set
 
     private var calibrationSum: Double = 0.0
+    private var calibrationBrightPixelsSum: Long = 0L
     private var calibrationSampleCount: Int = 0
+    private var baselineBrightPixelsFloat: Float = 0.0f
 
     // Candidate temporal confirmation state
     private var candidateState: LightState? = null
@@ -89,7 +94,9 @@ class OpticalSignalDetector(
             currentState = LightState.OFF,
             isCalibrated = false,
             maxLuma = 0.0f,
-            brightPixelCount = 0
+            brightPixelCount = 0,
+            deltaBrightPixels = 0,
+            ambientEstimateLuma = 0.0f
         )
     )
     val diagnostics: StateFlow<OpticalDiagnostics> = _diagnostics.asStateFlow()
@@ -120,8 +127,11 @@ class OpticalSignalDetector(
     fun reset() = synchronized(lock) {
         isCalibrated = false
         calibrationSum = 0.0
+        calibrationBrightPixelsSum = 0L
         calibrationSampleCount = 0
         ambientLuma = 0.0f
+        baselineBrightPixels = 0
+        baselineBrightPixelsFloat = 0.0f
         currentState = LightState.OFF
         candidateState = null
         candidateFirstTimestampMs = 0L
@@ -143,7 +153,9 @@ class OpticalSignalDetector(
             currentState = LightState.OFF,
             isCalibrated = false,
             maxLuma = 0.0f,
-            brightPixelCount = 0
+            brightPixelCount = 0,
+            deltaBrightPixels = 0,
+            ambientEstimateLuma = 0.0f
         )
     }
 
@@ -160,7 +172,8 @@ class OpticalSignalDetector(
         timestampMs: Long,
         frameProcessingTimeMs: Long = 0L,
         maxLuma: Float = luminance,
-        brightPixelCount: Int = 0
+        brightPixelCount: Int = 0,
+        ambientEstimateLuma: Float = luminance
     ): OpticalTransition? = synchronized(lock) {
         if (!isRunning) return null
 
@@ -173,11 +186,14 @@ class OpticalSignalDetector(
 
         // 1. Initial Calibration Phase
         if (!isCalibrated) {
-            calibrationSum += luminance
+            calibrationSum += ambientEstimateLuma
+            calibrationBrightPixelsSum += brightPixelCount
             calibrationSampleCount++
 
             if (calibrationSampleCount >= config.calibrationFramesCount) {
                 ambientLuma = (calibrationSum / calibrationSampleCount).toFloat()
+                baselineBrightPixels = (calibrationBrightPixelsSum / calibrationSampleCount).toInt()
+                baselineBrightPixelsFloat = baselineBrightPixels.toFloat()
                 isCalibrated = true
                 _isCalibratedFlow.value = true
                 lastConfirmedTransitionTimestampMs = timestampMs
@@ -185,7 +201,19 @@ class OpticalSignalDetector(
 
             val onThresh = computeOnThreshold(ambientLuma)
             val offThresh = computeOffThreshold(ambientLuma)
-            emitDiagnostics(timestampMs, luminance, ambientLuma, onThresh, offThresh, frameProcessingTimeMs, maxLuma, brightPixelCount)
+            val deltaBrightPixels = (brightPixelCount - baselineBrightPixels).coerceAtLeast(0)
+            emitDiagnostics(
+                timestampMs = timestampMs,
+                measuredLuma = luminance,
+                ambientLuma = ambientLuma,
+                onThreshold = onThresh,
+                offThreshold = offThresh,
+                frameProcessingTimeMs = frameProcessingTimeMs,
+                maxLuma = maxLuma,
+                brightPixelCount = brightPixelCount,
+                deltaBrightPixels = deltaBrightPixels,
+                ambientEstimateLuma = ambientEstimateLuma
+            )
             return null
         }
 
@@ -194,9 +222,30 @@ class OpticalSignalDetector(
         val offThreshold = computeOffThreshold(ambientLuma)
 
         // 3. Raw Instantaneous Light State Decision
+        val deltaBrightPixels = brightPixelCount - baselineBrightPixels
+        val hasStaticBrightBackground = baselineBrightPixels >= config.minSpotPixels
+
         val rawTargetState = when (currentState) {
-            LightState.OFF -> if (luminance >= onThreshold) LightState.ON else LightState.OFF
-            LightState.ON -> if (luminance <= offThreshold) LightState.OFF else LightState.ON
+            LightState.OFF -> {
+                val lumaExceedsOn = luminance >= onThreshold
+                val spotQualified = if (hasStaticBrightBackground) {
+                    deltaBrightPixels >= config.minSpotPixels
+                } else {
+                    true
+                }
+                if (lumaExceedsOn && spotQualified) LightState.ON else LightState.OFF
+            }
+            LightState.ON -> {
+                if (hasStaticBrightBackground) {
+                    if (deltaBrightPixels < config.minSpotPixels || luminance <= offThreshold) {
+                        LightState.OFF
+                    } else {
+                        LightState.ON
+                    }
+                } else {
+                    if (luminance <= offThreshold) LightState.OFF else LightState.ON
+                }
+            }
         }
 
         var confirmedTransition: OpticalTransition? = null
@@ -260,22 +309,40 @@ class OpticalSignalDetector(
 
             // Slow ambient baseline adaptation (ONLY during confirmed OFF state)
             if (currentState == LightState.OFF && config.ambientAdaptAlpha > 0.0f) {
-                ambientLuma += (luminance - ambientLuma) * config.ambientAdaptAlpha
+                ambientLuma += (ambientEstimateLuma - ambientLuma) * config.ambientAdaptAlpha
+                if (hasStaticBrightBackground) {
+                    baselineBrightPixelsFloat += (brightPixelCount - baselineBrightPixelsFloat) * config.ambientAdaptAlpha
+                    baselineBrightPixels = baselineBrightPixelsFloat.toInt().coerceAtLeast(0)
+                }
             }
         }
 
         // 5. Publish Diagnostics
-        emitDiagnostics(timestampMs, luminance, ambientLuma, onThreshold, offThreshold, frameProcessingTimeMs, maxLuma, brightPixelCount)
+        emitDiagnostics(
+            timestampMs = timestampMs,
+            measuredLuma = luminance,
+            ambientLuma = ambientLuma,
+            onThreshold = onThreshold,
+            offThreshold = offThreshold,
+            frameProcessingTimeMs = frameProcessingTimeMs,
+            maxLuma = maxLuma,
+            brightPixelCount = brightPixelCount,
+            deltaBrightPixels = deltaBrightPixels,
+            ambientEstimateLuma = ambientEstimateLuma
+        )
 
         return confirmedTransition
     }
 
     private fun computeOnThreshold(ambient: Float): Float {
-        return max(config.minAbsoluteOnLuma, ambient + config.onContrastOffset)
+        val calculated = max(config.minAbsoluteOnLuma, ambient + config.onContrastOffset)
+        return calculated.coerceAtMost(config.maxOnThreshold)
     }
 
     private fun computeOffThreshold(ambient: Float): Float {
-        return ambient + config.offContrastOffset
+        val calculated = ambient + config.offContrastOffset
+        val onThresh = computeOnThreshold(ambient)
+        return calculated.coerceAtMost(max(0.0f, onThresh - 1.0f))
     }
 
     private fun emitDiagnostics(
@@ -286,7 +353,9 @@ class OpticalSignalDetector(
         offThreshold: Float,
         frameProcessingTimeMs: Long,
         maxLuma: Float = measuredLuma,
-        brightPixelCount: Int = 0
+        brightPixelCount: Int = 0,
+        deltaBrightPixels: Int = 0,
+        ambientEstimateLuma: Float = ambientLuma
     ) {
         val diag = OpticalDiagnostics(
             timestampMs = timestampMs,
@@ -300,7 +369,9 @@ class OpticalSignalDetector(
             totalFramesProcessed = totalFramesProcessed,
             lastTransition = lastTransition,
             maxLuma = maxLuma,
-            brightPixelCount = brightPixelCount
+            brightPixelCount = brightPixelCount,
+            deltaBrightPixels = deltaBrightPixels,
+            ambientEstimateLuma = ambientEstimateLuma
         )
         _diagnostics.value = diag
         listener?.onDiagnostics(diag)

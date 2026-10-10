@@ -41,5 +41,7 @@ data class OpticalDetectorConfig(
     val useBoundedTopPixel: Boolean = true,
     val minSpotPixels: Int = 6,
     val maxSpotPixels: Int = 200,
-    val spotPixelFraction: Float = 0.0004f
+    val spotPixelFraction: Float = 0.0004f,
+    val ambientPercentile: Float = 0.50f,
+    val maxOnThreshold: Float = 245.0f
 )

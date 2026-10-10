@@ -29,8 +29,12 @@ data class RoiAnalysisResult(
     val representativeLuma: Float,
     val maxLuma: Float,
     val brightPixelCount: Int,
-    val sampleCount: Int
-)
+    val sampleCount: Int,
+    val ambientEstimateLuma: Float = representativeLuma,
+    val spotPixelCount: Int = brightPixelCount
+) {
+    val signalLuma: Float get() = representativeLuma
+}
 
 class OpticalFrameAnalyzer(
     val config: OpticalDetectorConfig = OpticalDetectorConfig(),
@@ -175,14 +179,34 @@ class OpticalFrameAnalyzer(
                 }
             }
 
-            if (sampleCount == 0) return RoiAnalysisResult(0.0f, 0.0f, 0, 0)
+            if (sampleCount == 0) return RoiAnalysisResult(0.0f, 0.0f, 0, 0, 0.0f, 0)
 
+            // 1. Compute robust bulk ambient baseline estimate (default: 50th percentile / median of ROI)
+            val ambientTargetCount = (sampleCount * config.ambientPercentile).toInt().coerceIn(1, sampleCount)
+            var accumulatedAmbient = 0
+            var ambientEstimateLuma = 0.0f
+            for (bin in 0..255) {
+                accumulatedAmbient += histogram[bin]
+                if (accumulatedAmbient >= ambientTargetCount) {
+                    ambientEstimateLuma = bin.toFloat()
+                    break
+                }
+            }
+
+            // 2. Base absolute floor for brightPixelCount (pixels >= minAbsoluteOnLuma)
             val brightFloor = config.minAbsoluteOnLuma.toInt().coerceIn(0, 255)
 
-            // Fast histogram scan (in-register, zero heap allocation) to compute maxLuma and brightPixelCount
+            // 3. Dynamic spot floor: pixels that stand out above the ambient background
+            val spotFloor = maxOf(
+                config.minAbsoluteOnLuma.toInt(),
+                (ambientEstimateLuma + config.offContrastOffset).toInt()
+            ).coerceIn(0, 255)
+
+            // Fast histogram scan (in-register, zero heap allocation) to compute maxLuma, brightPixelCount, and spotPixelCount
             var maxLuma = 0.0f
             var foundMax = false
             var brightPixelCount = 0
+            var spotPixelCount = 0
 
             for (bin in 255 downTo 0) {
                 val count = histogram[bin]
@@ -193,6 +217,9 @@ class OpticalFrameAnalyzer(
                     }
                     if (bin >= brightFloor) {
                         brightPixelCount += count
+                    }
+                    if (bin >= spotFloor) {
+                        spotPixelCount += count
                     }
                 }
             }
@@ -205,13 +232,16 @@ class OpticalFrameAnalyzer(
                     .coerceIn(config.minSpotPixels, config.maxSpotPixels)
                     .coerceAtMost(sampleCount)
 
-                // If qualifying bright pixels exist (>= minSpotPixels above brightFloor),
-                // target is bounded to the available bright pixels so small spots (6..29 px)
-                // do not fall through into the ambient background.
-                // If bright pixels < minSpotPixels (e.g. 1..5 isolated hot pixels or dark noise),
-                // target requires full requiredTopPixels so hot pixels are skipped and ambient is selected.
-                val targetPixels = if (brightPixelCount >= config.minSpotPixels) {
-                    brightPixelCount.coerceAtMost(requiredTopPixels)
+                // When ambient exceeds minAbsoluteOnLuma, qualifying pixels must exceed spotFloor
+                // to prevent background pixels from satisfying the bounded top pixel target.
+                val qualifyingCount = if (ambientEstimateLuma >= config.minAbsoluteOnLuma) {
+                    spotPixelCount
+                } else {
+                    brightPixelCount
+                }
+
+                val targetPixels = if (qualifyingCount >= config.minSpotPixels) {
+                    qualifyingCount.coerceAtMost(requiredTopPixels)
                 } else {
                     requiredTopPixels
                 }
@@ -244,7 +274,9 @@ class OpticalFrameAnalyzer(
                 representativeLuma = representativeLuma,
                 maxLuma = maxLuma,
                 brightPixelCount = brightPixelCount,
-                sampleCount = sampleCount
+                sampleCount = sampleCount,
+                ambientEstimateLuma = ambientEstimateLuma,
+                spotPixelCount = spotPixelCount
             )
         }
     }
@@ -288,7 +320,8 @@ class OpticalFrameAnalyzer(
                 timestampMs = nowMs,
                 frameProcessingTimeMs = processingDurationMs,
                 maxLuma = analysis.maxLuma,
-                brightPixelCount = analysis.brightPixelCount
+                brightPixelCount = analysis.spotPixelCount,
+                ambientEstimateLuma = analysis.ambientEstimateLuma
             )
         } catch (t: Throwable) {
             try {
