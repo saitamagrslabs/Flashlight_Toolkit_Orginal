@@ -16,11 +16,12 @@ import java.nio.ByteBuffer
  * Optical Morse Code Receiver Engine.
  * Analyzes video stream frames from CameraX ImageAnalysis to detect flashlight pulses and decode text.
  *
- * Restored to verified Phase 8.0H baseline (commit a784d0e):
+ * Restored to verified Phase 8.0H baseline (commit a784d0e) with Phase 8.3 Optical Detection Fix:
  * - Center-focused Region of Interest (ROI) matching on-screen reticle
- * - 97th percentile bright-signal detection (immune to single hot pixels)
+ * - Small-cluster downward search (3-6 pixels) to detect genuine flashlight beams at 0.5m - 2.0m+ range
+ * - Single-pixel hot noise rejection (isolated 1-2 pixel anomalies ignored)
  * - 40th percentile adaptive ambient baseline
- * - Hysteresis thresholding (Schmitt trigger) preventing edge jitter
+ * - Hysteresis thresholding (Schmitt trigger) with close-range lens flare & saturation protection
  * - 45ms candidate glitch filter rejecting transient camera noise
  * - Direct letter finalization and decoded message accumulation
  * - Minimal, non-intrusive MorseRxDiag logging
@@ -34,13 +35,17 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         // Center ROI definition (28% of frame dimensions, centered)
         private const val ROI_RATIO = 0.28f
 
-        // Percentiles for robust ambient baseline and bright signal calculation
+        // Percentile for robust ambient baseline calculation
         private const val AMBIENT_PERCENTILE = 0.40f // 40th percentile = robust ambient baseline
-        private const val BRIGHT_PERCENTILE = 0.97f  // 97th percentile = cluster of bright flashlight pixels
 
-        // Adaptive contrast thresholds with hysteresis (Schmitt trigger)
-        private const val ON_THRESHOLD_CONTRAST = 25.0f
-        private const val OFF_THRESHOLD_CONTRAST = 14.0f
+        // Adaptive contrast thresholds with hysteresis (Schmitt trigger) for 0.5m - 2.0m+ range
+        internal const val ON_THRESHOLD_CONTRAST = 15.0f
+        internal const val OFF_THRESHOLD_CONTRAST = 8.0f
+
+        // Close-range high-contrast saturation & lens flare protection
+        private const val HIGH_CONTRAST_PEAK_THRESHOLD = 40.0f
+        private const val CLOSE_RANGE_OFF_RATIO = 0.28f
+        private const val MAX_OFF_THRESHOLD_CONTRAST = 28.0f
 
         // Initial calibration window (frames)
         private const val CALIBRATION_FRAMES_REQUIRED = 10
@@ -79,6 +84,7 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
     private var calibrationFramesCount = 0
 
     private var currentStateIsOn = false
+    private var currentPeakContrast = 0.0f
     private var lastStateChangeTimestamp = 0L
 
     // Glitch candidate state
@@ -133,9 +139,9 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
 
             if (sampleCount == 0) return
 
-            // 2. Compute 40th percentile (ambient) and 97th percentile (bright signal)
+            // 2. Compute 40th percentile (ambient) and cluster bright signal
             val localAmbient = getPercentileValue(sampleCount, AMBIENT_PERCENTILE)
-            val brightSignal = getPercentileValue(sampleCount, BRIGHT_PERCENTILE)
+            val brightSignal = getBrightSignal(sampleCount)
 
             val nowMs = SystemClock.elapsedRealtime()
 
@@ -149,8 +155,9 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
                 }
                 lastStateChangeTimestamp = nowMs
                 currentStateIsOn = false
+                currentPeakContrast = 0.0f
                 candidateStateIsOn = null
-                _rawLuminance.value = brightSignal.toFloat()
+                _rawLuminance.value = brightSignal
                 _threshold.value = ambientBaseline + ON_THRESHOLD_CONTRAST
                 _isLightOn.value = false
                 return
@@ -167,17 +174,30 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
             }
 
             val signalContrast = (brightSignal - ambientBaseline).coerceAtLeast(0.0f)
-            _rawLuminance.value = brightSignal.toFloat()
+            _rawLuminance.value = brightSignal
+
+            // Dynamic OFF contrast threshold for close-range lens flare / saturation protection
+            if (currentStateIsOn) {
+                if (signalContrast > currentPeakContrast) {
+                    currentPeakContrast = signalContrast
+                }
+            }
+
+            val activeOffContrast = if (currentStateIsOn && currentPeakContrast > HIGH_CONTRAST_PEAK_THRESHOLD) {
+                (currentPeakContrast * CLOSE_RANGE_OFF_RATIO).coerceIn(OFF_THRESHOLD_CONTRAST, MAX_OFF_THRESHOLD_CONTRAST)
+            } else {
+                OFF_THRESHOLD_CONTRAST
+            }
 
             // 5. Hysteresis detection (Schmitt trigger)
             val detectedRawOn = if (currentStateIsOn) {
-                signalContrast > OFF_THRESHOLD_CONTRAST
+                signalContrast > activeOffContrast
             } else {
                 signalContrast >= ON_THRESHOLD_CONTRAST
             }
 
             val activeThreshold = if (currentStateIsOn) {
-                ambientBaseline + OFF_THRESHOLD_CONTRAST
+                ambientBaseline + activeOffContrast
             } else {
                 ambientBaseline + ON_THRESHOLD_CONTRAST
             }
@@ -202,12 +222,14 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
 
                         if (currentStateIsOn) {
                             // OFF -> ON transition: previous period was a GAP
+                            currentPeakContrast = signalContrast
                             Log.d(DIAG_TAG, "TRANSITION: state=ON, durationMs=$durationMs")
                             if (durationMs >= MIN_GLITCH_DURATION_MS) {
                                 handleGap(durationMs)
                             }
                         } else {
                             // ON -> OFF transition: previous period was a PULSE
+                            currentPeakContrast = 0.0f
                             Log.d(DIAG_TAG, "TRANSITION: state=OFF, durationMs=$durationMs")
                             if (durationMs >= MIN_GLITCH_DURATION_MS) {
                                 handlePulse(durationMs)
@@ -230,6 +252,23 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         } finally {
             image.close()
         }
+    }
+
+    /**
+     * Finds the brightest pixel level supported by a small cluster of pixels.
+     * Searches top-down from bin 255 to bin 0 until cumulative count reaches minClusterSamples.
+     * Filters isolated hot pixels (1-2 pixels) while capturing genuine flashlight spot (3-6 pixels at 0.5m-1.5m).
+     */
+    internal fun getBrightSignal(sampleCount: Int, customHistogram: IntArray = histogram): Float {
+        val minClusterSamples = (sampleCount * 0.0006f).toInt().coerceIn(3, 6)
+        var cumulative = 0
+        for (i in 255 downTo 0) {
+            cumulative += customHistogram[i]
+            if (cumulative >= minClusterSamples) {
+                return i.toFloat()
+            }
+        }
+        return 0.0f
     }
 
     /**
@@ -331,6 +370,7 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         ambientBaseline = 40.0f
         calibrationFramesCount = 0
         currentStateIsOn = false
+        currentPeakContrast = 0.0f
         candidateStateIsOn = null
         lastStateChangeTimestamp = 0L
         currentSymbolBuffer.clear()

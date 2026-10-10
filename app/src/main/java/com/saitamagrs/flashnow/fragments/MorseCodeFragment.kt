@@ -280,6 +280,14 @@ class MorseCodeFragment : BaseAdFragment() {
             morseReceiverEngine.reset()
             binding.tvDecodedMessage.text = "[Decoded text will appear here]"
         }
+
+        binding.btnAcceptSuggestion.setOnClickListener {
+            val suggestion = binding.tvSuggestedMessage.text.toString()
+            if (suggestion.isNotBlank()) {
+                binding.tvDecodedMessage.text = suggestion
+                binding.cardSuggestion.visibility = View.GONE
+            }
+        }
     }
 
     private fun getOrCreateCameraExecutor(): ExecutorService {
