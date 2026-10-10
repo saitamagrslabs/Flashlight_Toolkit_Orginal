@@ -338,6 +338,95 @@ class OpticalSignalDetectorTest {
         assertEquals(LightState.OFF, detector.currentState)
     }
 
+    @Test
+    fun `test candidate reset on excessive frame gap for OFF to ON`() {
+        calibrate(30.0f) // Ambient 30.0f, onThreshold = 55.0f
+
+        // Frame 1 of ON candidate at t = 500ms
+        val firstCandidate = detector.processSample(200.0f, 500L)
+        assertNull("First candidate frame must not confirm immediately", firstCandidate)
+        assertEquals(LightState.OFF, detector.currentState)
+
+        // Excessive frame gap of 4000ms (> maxCandidateIntervalMs = 120ms)
+        // Arrives at t = 4500ms with qualifying ON luma
+        val staleCandidate = detector.processSample(200.0f, 4500L)
+        assertNull("Qualifying sample after excessive frame gap must reset candidate and NOT confirm", staleCandidate)
+        assertEquals("State must remain OFF because previous candidate was stale", LightState.OFF, detector.currentState)
+    }
+
+    @Test
+    fun `test candidate reset on excessive frame gap for ON to OFF`() {
+        calibrate(30.0f)
+
+        // Establish confirmed ON state
+        detector.processSample(200.0f, 400L)
+        detector.processSample(200.0f, 445L)
+        assertEquals(LightState.ON, detector.currentState)
+
+        // Frame 1 of OFF candidate at t = 800ms
+        val firstOffCandidate = detector.processSample(30.0f, 800L)
+        assertNull(firstOffCandidate)
+        assertEquals(LightState.ON, detector.currentState)
+
+        // Excessive frame gap of 3000ms (> maxCandidateIntervalMs = 120ms) at t = 3800ms
+        val staleOffCandidate = detector.processSample(30.0f, 3800L)
+        assertNull("Qualifying sample after excessive gap must reset candidate and NOT confirm", staleOffCandidate)
+        assertEquals("State must remain ON because previous candidate was stale", LightState.ON, detector.currentState)
+    }
+
+    @Test
+    fun `test subsequent closely spaced frames confirm transition after stale candidate reset`() {
+        calibrate(30.0f)
+
+        // Candidate 1 at t = 500ms
+        detector.processSample(200.0f, 500L)
+        assertEquals(LightState.OFF, detector.currentState)
+
+        // Excessive gap at t = 3000ms (resets stale candidate, becomes frame 1 of new candidate)
+        val staleSample = detector.processSample(200.0f, 3000L)
+        assertNull(staleSample)
+        assertEquals(LightState.OFF, detector.currentState)
+
+        // Closely spaced frame at t = 3045ms (interval 45ms <= 120ms, duration 45ms >= 40ms)
+        val confirmed = detector.processSample(200.0f, 3045L)
+        assertNotNull("Subsequent closely-spaced frame must confirm transition", confirmed)
+        assertEquals(LightState.ON, confirmed!!.newState)
+        assertEquals(LightState.ON, detector.currentState)
+    }
+
+    @Test
+    fun `test realistic frame intervals at 20fps and 30fps confirm transitions reliably`() {
+        calibrate(30.0f)
+
+        // 1. Test 30 fps (33ms interval): 150ms dot at t=500ms
+        var t = 500L
+        detector.processSample(200.0f, t) // frame 1 (33ms later is not yet 40ms)
+        t += 33L // 533ms (duration 33ms < 40ms)
+        var trans = detector.processSample(200.0f, t)
+        assertNull("33ms is < 40ms minConfirmationMs", trans)
+
+        t += 33L // 566ms (duration 66ms >= 40ms, frameCount 3 >= 2)
+        trans = detector.processSample(200.0f, t)
+        assertNotNull("Frame 3 at 30 fps confirms transition", trans)
+        assertEquals(LightState.ON, trans!!.newState)
+
+        // Turn OFF at 30 fps
+        t = 650L
+        detector.processSample(30.0f, t)
+        t += 45L // 695ms
+        val offTrans = detector.processSample(30.0f, t)
+        assertNotNull(offTrans)
+        assertEquals(LightState.OFF, offTrans!!.newState)
+
+        // 2. Test 20 fps (50ms interval):
+        t = 1000L
+        detector.processSample(200.0f, t) // frame 1
+        t += 50L // 1050ms (interval 50ms <= 120ms, duration 50ms >= 40ms, frameCount 2 >= 2)
+        val onTrans20Fps = detector.processSample(200.0f, t)
+        assertNotNull("Frame 2 at 20 fps confirms transition", onTrans20Fps)
+        assertEquals(LightState.ON, onTrans20Fps!!.newState)
+    }
+
     // =========================================================================
     // 7. SLOW AMBIENT ADAPTATION
     // =========================================================================
@@ -378,7 +467,7 @@ class OpticalSignalDetectorTest {
     // =========================================================================
 
     @Test
-    fun `test synthetic buffer 95th percentile extracts localized bright flashlight spot`() {
+    fun `test synthetic buffer 95th percentile extracts localized 16 percent bright spot`() {
         val width = 100
         val height = 100
         val rowStride = 100
@@ -388,7 +477,9 @@ class OpticalSignalDetectorTest {
         // Fill entire image with dark ambient luma (20)
         val byteArray = ByteArray(width * height) { 20.toByte() }
 
-        // Place a localized bright flashlight spot (230) in the center ROI (rows 40..59, cols 40..59)
+        // ROI is center 50%: rows 25..74, cols 25..74 -> 50 x 50 = 2500 pixels
+        // Place a localized bright spot (230) in rows 40..59 (20 rows) x cols 40..59 (20 cols) = 400 pixels
+        // 400 / 2500 = 16.0% of the sampled ROI
         for (r in 40 until 60) {
             for (c in 40 until 60) {
                 byteArray[r * width + c] = 230.toByte()
@@ -413,7 +504,85 @@ class OpticalSignalDetectorTest {
             histogram = histogram
         )
 
-        assertEquals("95th percentile must detect the 8% localized bright spot", 230.0f, luma95, 0.001f)
+        assertEquals("95th percentile must detect 16% bright spot (400/2500 pixels)", 230.0f, luma95, 0.001f)
+    }
+
+    @Test
+    fun `test synthetic buffer 95th percentile detects 6 percent bright spot`() {
+        val width = 100
+        val height = 100
+        val buffer = ByteBuffer.allocate(width * height)
+
+        val byteArray = ByteArray(width * height) { 20.toByte() }
+
+        // ROI is center 50%: rows 25..74, cols 25..74 -> 50 x 50 = 2500 pixels
+        // Place a localized bright spot (230) in rows 45..54 (10 rows) x cols 43..57 (15 cols) = 150 pixels
+        // 150 / 2500 = 6.0% of the sampled ROI.
+        // Since 6.0% > (1.0 - 0.95 = 5.0%), the 95th percentile must detect the bright spot!
+        for (r in 45 until 55) {
+            for (c in 43 until 58) {
+                byteArray[r * width + c] = 230.toByte()
+            }
+        }
+        buffer.put(byteArray)
+        buffer.flip()
+
+        val histogram = IntArray(256)
+
+        val luma95 = OpticalFrameAnalyzer.extractLuminanceFromBuffer(
+            yBuffer = buffer,
+            width = width,
+            height = height,
+            rowStride = width,
+            pixelStride = 1,
+            cropLeft = 0,
+            cropTop = 0,
+            cropRight = width,
+            cropBottom = height,
+            config = config.copy(percentileTarget = 0.95f),
+            histogram = histogram
+        )
+
+        assertEquals("95th percentile must detect 6% bright spot (150/2500 pixels)", 230.0f, luma95, 0.001f)
+    }
+
+    @Test
+    fun `test synthetic buffer 95th percentile ignores sub-5 percent bright spot`() {
+        val width = 100
+        val height = 100
+        val buffer = ByteBuffer.allocate(width * height)
+
+        val byteArray = ByteArray(width * height) { 20.toByte() }
+
+        // ROI is center 50%: rows 25..74, cols 25..74 -> 50 x 50 = 2500 pixels
+        // Place a localized bright spot (230) in rows 45..54 (10 rows) x cols 45..54 (10 cols) = 100 pixels
+        // 100 / 2500 = 4.0% of the sampled ROI.
+        // Since 4.0% < (1.0 - 0.95 = 5.0%), the 95th percentile mathematically remains at ambient luma (20)
+        for (r in 45 until 55) {
+            for (c in 45 until 55) {
+                byteArray[r * width + c] = 230.toByte()
+            }
+        }
+        buffer.put(byteArray)
+        buffer.flip()
+
+        val histogram = IntArray(256)
+
+        val luma95 = OpticalFrameAnalyzer.extractLuminanceFromBuffer(
+            yBuffer = buffer,
+            width = width,
+            height = height,
+            rowStride = width,
+            pixelStride = 1,
+            cropLeft = 0,
+            cropTop = 0,
+            cropRight = width,
+            cropBottom = height,
+            config = config.copy(percentileTarget = 0.95f),
+            histogram = histogram
+        )
+
+        assertEquals("95th percentile must ignore 4% spot below 5% mathematical threshold", 20.0f, luma95, 0.001f)
     }
 
     @Test

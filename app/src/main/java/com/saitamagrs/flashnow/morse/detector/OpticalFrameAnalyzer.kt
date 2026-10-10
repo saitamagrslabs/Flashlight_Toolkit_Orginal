@@ -24,7 +24,7 @@ class OpticalFrameAnalyzer(
         try {
             SystemClock.elapsedRealtime()
         } catch (_: Throwable) {
-            System.currentTimeMillis()
+            System.nanoTime() / 1_000_000L
         }
     }
 ) : ImageAnalysis.Analyzer {

@@ -64,15 +64,13 @@ class OpticalSignalDetector(
     // Candidate temporal confirmation state
     private var candidateState: LightState? = null
     private var candidateFirstTimestampMs: Long = 0L
+    private var candidateLastTimestampMs: Long = 0L
     private var candidateFrameCount: Int = 0
 
     // Timing tracking
     private var lastSampleTimestampMs: Long = -1L
     private var lastConfirmedTransitionTimestampMs: Long = 0L
     private var lastTransition: OpticalTransition? = null
-
-    // Session identifier to isolate stopped/restarted runs
-    private var sessionId: Long = 0L
 
     // Observable StateFlows
     private val _opticalState = MutableStateFlow(LightState.OFF)
@@ -96,20 +94,21 @@ class OpticalSignalDetector(
 
     /**
      * Starts the optical detector. Calibration will begin on incoming samples.
+     * Sample processing is synchronous and gated by [isRunning].
      */
     fun start() = synchronized(lock) {
-        if (!isRunning) {
-            sessionId++
-            isRunning = true
-        }
+        isRunning = true
     }
 
     /**
      * Stops the detector and ignores incoming frames until restarted.
+     * Clears candidate state so stopping prevents stale callbacks from continuing later.
      */
     fun stop() = synchronized(lock) {
         isRunning = false
         candidateState = null
+        candidateFirstTimestampMs = 0L
+        candidateLastTimestampMs = 0L
         candidateFrameCount = 0
     }
 
@@ -117,7 +116,6 @@ class OpticalSignalDetector(
      * Resets all internal calibration, state, and buffers.
      */
     fun reset() = synchronized(lock) {
-        sessionId++
         isCalibrated = false
         calibrationSum = 0.0
         calibrationSampleCount = 0
@@ -125,6 +123,7 @@ class OpticalSignalDetector(
         currentState = LightState.OFF
         candidateState = null
         candidateFirstTimestampMs = 0L
+        candidateLastTimestampMs = 0L
         candidateFrameCount = 0
         lastSampleTimestampMs = -1L
         lastConfirmedTransitionTimestampMs = 0L
@@ -200,42 +199,57 @@ class OpticalSignalDetector(
         if (rawTargetState != currentState) {
             // Sample differs from confirmed state: track as candidate
             if (candidateState == rawTargetState) {
-                candidateFrameCount++
-                val candidateDuration = timestampMs - candidateFirstTimestampMs
+                val intervalSinceLast = timestampMs - candidateLastTimestampMs
+                if (intervalSinceLast > config.maxCandidateIntervalMs) {
+                    // Stale candidate: gap between observations exceeded maxCandidateIntervalMs.
+                    // Discard stale observation and treat current sample as first observation of fresh candidate.
+                    candidateFirstTimestampMs = timestampMs
+                    candidateLastTimestampMs = timestampMs
+                    candidateFrameCount = 1
+                } else {
+                    candidateLastTimestampMs = timestampMs
+                    candidateFrameCount++
+                    val candidateDuration = timestampMs - candidateFirstTimestampMs
 
-                if (candidateDuration >= config.minConfirmationMs &&
-                    candidateFrameCount >= config.minConfirmationFrames
-                ) {
-                    // Transition is confirmed!
-                    val prevDuration = max(0L, timestampMs - lastConfirmedTransitionTimestampMs)
-                    val transition = OpticalTransition(
-                        previousState = currentState,
-                        newState = rawTargetState,
-                        transitionTimestampMs = timestampMs,
-                        previousStateDurationMs = prevDuration
-                    )
+                    if (candidateDuration >= config.minConfirmationMs &&
+                        candidateFrameCount >= config.minConfirmationFrames
+                    ) {
+                        // Transition is confirmed!
+                        val prevDuration = max(0L, timestampMs - lastConfirmedTransitionTimestampMs)
+                        val transition = OpticalTransition(
+                            previousState = currentState,
+                            newState = rawTargetState,
+                            transitionTimestampMs = timestampMs,
+                            previousStateDurationMs = prevDuration
+                        )
 
-                    currentState = rawTargetState
-                    lastConfirmedTransitionTimestampMs = timestampMs
-                    lastTransition = transition
-                    confirmedTransition = transition
+                        currentState = rawTargetState
+                        lastConfirmedTransitionTimestampMs = timestampMs
+                        lastTransition = transition
+                        confirmedTransition = transition
 
-                    candidateState = null
-                    candidateFrameCount = 0
+                        candidateState = null
+                        candidateFirstTimestampMs = 0L
+                        candidateLastTimestampMs = 0L
+                        candidateFrameCount = 0
 
-                    _opticalState.value = currentState
-                    listener?.onStateChanged(currentState, timestampMs)
-                    listener?.onOpticalTransition(transition)
+                        _opticalState.value = currentState
+                        listener?.onStateChanged(currentState, timestampMs)
+                        listener?.onOpticalTransition(transition)
+                    }
                 }
             } else {
                 // New candidate begins
                 candidateState = rawTargetState
                 candidateFirstTimestampMs = timestampMs
+                candidateLastTimestampMs = timestampMs
                 candidateFrameCount = 1
             }
         } else {
             // Signal matches current confirmed state: clear any transient noise spike
             candidateState = null
+            candidateFirstTimestampMs = 0L
+            candidateLastTimestampMs = 0L
             candidateFrameCount = 0
 
             // Slow ambient baseline adaptation (ONLY during confirmed OFF state)
