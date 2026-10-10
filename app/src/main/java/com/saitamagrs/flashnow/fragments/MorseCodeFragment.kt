@@ -31,6 +31,7 @@ import com.saitamagrs.flashnow.morse.core.MorseCodec
 import com.saitamagrs.flashnow.morse.core.MorseProtocol
 import com.saitamagrs.flashnow.morse.correction.MorseEnglishCorrector
 import com.saitamagrs.flashnow.morse.detector.OpticalFrameAnalyzer
+import com.saitamagrs.flashnow.morse.receiver.CameraStartupCoordinator
 import com.saitamagrs.flashnow.morse.receiver.MorseReceiverController
 import com.saitamagrs.flashnow.morse.receiver.ReceiverStatus
 import com.saitamagrs.flashnow.morse.sender.MorseSenderEngine
@@ -56,6 +57,7 @@ class MorseCodeFragment : BaseAdFragment() {
     private lateinit var morseSenderEngine: MorseSenderEngine
     private lateinit var morseEnglishCorrector: MorseEnglishCorrector
     private val morseReceiverController = MorseReceiverController()
+    private val startupCoordinator = CameraStartupCoordinator()
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var cameraExecutor: ExecutorService? = null
@@ -67,8 +69,11 @@ class MorseCodeFragment : BaseAdFragment() {
         if (!isAdded || _binding == null || isDetached) return@registerForActivityResult
         hasCameraPermission = isGranted
         if (isGranted) {
-            startReceiver()
+            if (binding.containerReceiver.visibility == View.VISIBLE) {
+                startReceiver()
+            }
         } else {
+            startupCoordinator.invalidate()
             morseReceiverController.setStatus(ReceiverStatus.PERMISSION_REQUIRED)
             if (!shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
                 PermissionManager.showPermanentlyDeniedDialog(requireContext(), Manifest.permission.CAMERA)
@@ -280,20 +285,41 @@ class MorseCodeFragment : BaseAdFragment() {
     private fun startReceiver() {
         if (!PermissionManager.isCameraGranted(requireContext())) {
             hasCameraPermission = false
+            startupCoordinator.invalidate()
             morseReceiverController.setStatus(ReceiverStatus.PERMISSION_REQUIRED)
             requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
             return
         }
         hasCameraPermission = true
 
+        val currentGeneration = startupCoordinator.startNewAttempt()
         morseReceiverController.setStatus(ReceiverStatus.STARTING)
         morseReceiverController.startSession(viewLifecycleOwner.lifecycleScope)
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
-            if (!isAdded || _binding == null || isDetached) return@addListener
+            if (!startupCoordinator.isAttemptValid(
+                    generation = currentGeneration,
+                    isSessionActive = morseReceiverController.isSessionActive,
+                    isViewValid = isAdded && _binding != null && !isDetached
+                )
+            ) {
+                return@addListener
+            }
+
+            var localExecutor: ExecutorService? = null
             try {
                 val provider = cameraProviderFuture.get()
+
+                if (!startupCoordinator.isAttemptValid(
+                        generation = currentGeneration,
+                        isSessionActive = morseReceiverController.isSessionActive,
+                        isViewValid = isAdded && _binding != null && !isDetached
+                    )
+                ) {
+                    return@addListener
+                }
+
                 provider.unbindAll()
 
                 val cameraSelector = if (provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)) {
@@ -301,7 +327,14 @@ class MorseCodeFragment : BaseAdFragment() {
                 } else if (provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)) {
                     CameraSelector.DEFAULT_FRONT_CAMERA
                 } else {
-                    morseReceiverController.setError("No camera available on device")
+                    if (startupCoordinator.isAttemptValid(
+                            generation = currentGeneration,
+                            isSessionActive = morseReceiverController.isSessionActive,
+                            isViewValid = isAdded && _binding != null && !isDetached
+                        )
+                    ) {
+                        morseReceiverController.setError("No camera available on device")
+                    }
                     return@addListener
                 }
 
@@ -313,11 +346,19 @@ class MorseCodeFragment : BaseAdFragment() {
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
 
-                val executor = Executors.newSingleThreadExecutor()
-                cameraExecutor = executor
-
+                localExecutor = Executors.newSingleThreadExecutor()
                 val analyzer = OpticalFrameAnalyzer(detector = morseReceiverController.detector)
-                imageAnalysis.setAnalyzer(executor, analyzer)
+                imageAnalysis.setAnalyzer(localExecutor, analyzer)
+
+                if (!startupCoordinator.isAttemptValid(
+                        generation = currentGeneration,
+                        isSessionActive = morseReceiverController.isSessionActive,
+                        isViewValid = isAdded && _binding != null && !isDetached
+                    )
+                ) {
+                    localExecutor.shutdown()
+                    return@addListener
+                }
 
                 provider.bindToLifecycle(
                     viewLifecycleOwner,
@@ -325,15 +366,31 @@ class MorseCodeFragment : BaseAdFragment() {
                     preview,
                     imageAnalysis
                 )
+
+                cameraExecutor?.shutdown()
+                cameraExecutor = localExecutor
                 this@MorseCodeFragment.cameraProvider = provider
             } catch (e: Exception) {
                 Log.e(TAG, "Camera initialization failed", e)
-                morseReceiverController.setError("Camera init error: ${e.localizedMessage ?: "Unknown error"}")
+                localExecutor?.shutdown()
+                if (cameraExecutor == localExecutor) {
+                    cameraExecutor = null
+                }
+
+                if (startupCoordinator.isAttemptValid(
+                        generation = currentGeneration,
+                        isSessionActive = morseReceiverController.isSessionActive,
+                        isViewValid = isAdded && _binding != null && !isDetached
+                    )
+                ) {
+                    morseReceiverController.setError("Camera init error: ${e.localizedMessage ?: "Unknown error"}")
+                }
             }
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
     private fun stopReceiver() {
+        startupCoordinator.invalidate()
         morseReceiverController.stopSession()
         try {
             cameraProvider?.unbindAll()
@@ -342,7 +399,11 @@ class MorseCodeFragment : BaseAdFragment() {
         }
         cameraProvider = null
 
-        cameraExecutor?.shutdown()
+        try {
+            cameraExecutor?.shutdown()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error shutting down camera executor", e)
+        }
         cameraExecutor = null
     }
 
