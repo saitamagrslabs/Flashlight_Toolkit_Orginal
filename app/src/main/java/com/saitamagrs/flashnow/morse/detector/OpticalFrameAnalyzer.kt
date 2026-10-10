@@ -177,10 +177,26 @@ class OpticalFrameAnalyzer(
 
             if (sampleCount == 0) return RoiAnalysisResult(0.0f, 0.0f, 0, 0)
 
+            val brightFloor = config.minAbsoluteOnLuma.toInt().coerceIn(0, 255)
+
+            // Fast histogram scan (in-register, zero heap allocation) to compute maxLuma and brightPixelCount
             var maxLuma = 0.0f
             var foundMax = false
             var brightPixelCount = 0
-            val brightFloor = config.minAbsoluteOnLuma.toInt().coerceIn(0, 255)
+
+            for (bin in 255 downTo 0) {
+                val count = histogram[bin]
+                if (count > 0) {
+                    if (!foundMax) {
+                        maxLuma = bin.toFloat()
+                        foundMax = true
+                    }
+                    if (bin >= brightFloor) {
+                        brightPixelCount += count
+                    }
+                }
+            }
+
             var representativeLuma = 0.0f
 
             if (config.useBoundedTopPixel) {
@@ -189,48 +205,38 @@ class OpticalFrameAnalyzer(
                     .coerceIn(config.minSpotPixels, config.maxSpotPixels)
                     .coerceAtMost(sampleCount)
 
-                var accumulatedTop = 0
-                var foundRepresentative = false
+                // If qualifying bright pixels exist (>= minSpotPixels above brightFloor),
+                // target is bounded to the available bright pixels so small spots (6..29 px)
+                // do not fall through into the ambient background.
+                // If bright pixels < minSpotPixels (e.g. 1..5 isolated hot pixels or dark noise),
+                // target requires full requiredTopPixels so hot pixels are skipped and ambient is selected.
+                val targetPixels = if (brightPixelCount >= config.minSpotPixels) {
+                    brightPixelCount.coerceAtMost(requiredTopPixels)
+                } else {
+                    requiredTopPixels
+                }
 
+                var accumulatedTop = 0
                 for (bin in 255 downTo 0) {
                     val count = histogram[bin]
                     if (count > 0) {
-                        if (!foundMax) {
-                            maxLuma = bin.toFloat()
-                            foundMax = true
-                        }
-                        if (bin >= brightFloor) {
-                            brightPixelCount += count
-                        }
                         accumulatedTop += count
-                        if (!foundRepresentative && accumulatedTop >= requiredTopPixels) {
+                        if (accumulatedTop >= targetPixels) {
                             representativeLuma = bin.toFloat()
-                            foundRepresentative = true
+                            break
                         }
                     }
-                }
-                if (!foundRepresentative) {
-                    representativeLuma = maxLuma
                 }
             } else {
                 // Legacy fixed percentile calculation
                 val targetCount = (sampleCount * config.percentileTarget).toInt().coerceIn(1, sampleCount)
                 var accumulated = 0
                 for (bin in 0..255) {
-                    val count = histogram[bin]
-                    if (count > 0) {
-                        maxLuma = bin.toFloat()
-                    }
-                    if (bin >= brightFloor) {
-                        brightPixelCount += count
-                    }
-                    accumulated += count
-                    if (accumulated >= targetCount && representativeLuma == 0.0f) {
+                    accumulated += histogram[bin]
+                    if (accumulated >= targetCount) {
                         representativeLuma = bin.toFloat()
+                        break
                     }
-                }
-                if (representativeLuma == 0.0f) {
-                    representativeLuma = 255.0f
                 }
             }
 
