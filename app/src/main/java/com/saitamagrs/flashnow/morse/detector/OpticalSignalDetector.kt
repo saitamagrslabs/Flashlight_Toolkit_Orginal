@@ -87,7 +87,9 @@ class OpticalSignalDetector(
             onThreshold = config.minAbsoluteOnLuma,
             offThreshold = 0.0f,
             currentState = LightState.OFF,
-            isCalibrated = false
+            isCalibrated = false,
+            maxLuma = 0.0f,
+            brightPixelCount = 0
         )
     )
     val diagnostics: StateFlow<OpticalDiagnostics> = _diagnostics.asStateFlow()
@@ -139,7 +141,9 @@ class OpticalSignalDetector(
             onThreshold = config.minAbsoluteOnLuma,
             offThreshold = 0.0f,
             currentState = LightState.OFF,
-            isCalibrated = false
+            isCalibrated = false,
+            maxLuma = 0.0f,
+            brightPixelCount = 0
         )
     }
 
@@ -154,7 +158,9 @@ class OpticalSignalDetector(
     fun processSample(
         luminance: Float,
         timestampMs: Long,
-        frameProcessingTimeMs: Long = 0L
+        frameProcessingTimeMs: Long = 0L,
+        maxLuma: Float = luminance,
+        brightPixelCount: Int = 0
     ): OpticalTransition? = synchronized(lock) {
         if (!isRunning) return null
 
@@ -179,7 +185,7 @@ class OpticalSignalDetector(
 
             val onThresh = computeOnThreshold(ambientLuma)
             val offThresh = computeOffThreshold(ambientLuma)
-            emitDiagnostics(timestampMs, luminance, ambientLuma, onThresh, offThresh, frameProcessingTimeMs)
+            emitDiagnostics(timestampMs, luminance, ambientLuma, onThresh, offThresh, frameProcessingTimeMs, maxLuma, brightPixelCount)
             return null
         }
 
@@ -259,7 +265,7 @@ class OpticalSignalDetector(
         }
 
         // 5. Publish Diagnostics
-        emitDiagnostics(timestampMs, luminance, ambientLuma, onThreshold, offThreshold, frameProcessingTimeMs)
+        emitDiagnostics(timestampMs, luminance, ambientLuma, onThreshold, offThreshold, frameProcessingTimeMs, maxLuma, brightPixelCount)
 
         return confirmedTransition
     }
@@ -278,7 +284,9 @@ class OpticalSignalDetector(
         ambientLuma: Float,
         onThreshold: Float,
         offThreshold: Float,
-        frameProcessingTimeMs: Long
+        frameProcessingTimeMs: Long,
+        maxLuma: Float = measuredLuma,
+        brightPixelCount: Int = 0
     ) {
         val diag = OpticalDiagnostics(
             timestampMs = timestampMs,
@@ -290,7 +298,9 @@ class OpticalSignalDetector(
             isCalibrated = isCalibrated,
             frameProcessingTimeMs = frameProcessingTimeMs,
             totalFramesProcessed = totalFramesProcessed,
-            lastTransition = lastTransition
+            lastTransition = lastTransition,
+            maxLuma = maxLuma,
+            brightPixelCount = brightPixelCount
         )
         _diagnostics.value = diag
         listener?.onDiagnostics(diag)

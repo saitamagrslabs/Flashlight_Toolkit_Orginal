@@ -578,7 +578,7 @@ class OpticalSignalDetectorTest {
             cropTop = 0,
             cropRight = width,
             cropBottom = height,
-            config = config.copy(percentileTarget = 0.95f),
+            config = config.copy(percentileTarget = 0.95f, useBoundedTopPixel = false),
             histogram = histogram
         )
 
@@ -653,5 +653,304 @@ class OpticalSignalDetectorTest {
         assertEquals(1, stateChangedCount)
         assertEquals(1, transitionCount)
         assertEquals(LightState.ON, lastDiag!!.currentState)
+    }
+
+    // =========================================================================
+    // 10. DISTANCE SENSITIVITY & BOUNDED TOP-PIXEL STATISTIC (PHASE R5)
+    // =========================================================================
+
+    private fun createSyntheticFrame(
+        width: Int,
+        height: Int,
+        ambientLuma: Byte = 20,
+        spotPixels: Int = 0,
+        spotLuma: Byte = 230.toByte(),
+        cropRect: Rect? = null
+    ): Pair<ByteBuffer, Int> {
+        val buffer = ByteBuffer.allocate(width * height)
+        val array = ByteArray(width * height) { ambientLuma }
+        val cLeft = cropRect?.left ?: (width * 0.25f).toInt()
+        val cTop = cropRect?.top ?: (height * 0.25f).toInt()
+        val cWidth = (cropRect?.width() ?: (width * 0.5f).toInt()).coerceAtLeast(1)
+        val cHeight = (cropRect?.height() ?: (height * 0.5f).toInt()).coerceAtLeast(1)
+
+        val startX = cLeft + (cWidth / 2)
+        val startY = cTop + (cHeight / 2)
+
+        var placed = 0
+        var radius = 0
+        while (placed < spotPixels && radius < cWidth) {
+            for (dy in -radius..radius) {
+                for (dx in -radius..radius) {
+                    val px = startX + dx
+                    val py = startY + dy
+                    if (px in cLeft until (cLeft + cWidth) && py in cTop until (cTop + cHeight)) {
+                        val idx = py * width + px
+                        if (array[idx] != spotLuma) {
+                            array[idx] = spotLuma
+                            placed++
+                            if (placed >= spotPixels) break
+                        }
+                    }
+                }
+                if (placed >= spotPixels) break
+            }
+            radius++
+        }
+        buffer.put(array)
+        buffer.flip()
+        return Pair(buffer, placed)
+    }
+
+    @Test
+    fun `test bounded top-pixel detects 50-pixel spot in 640x480 frame`() {
+        val width = 640
+        val height = 480
+        val (buffer, placed) = createSyntheticFrame(width, height, spotPixels = 50, spotLuma = 230.toByte())
+        assertEquals(50, placed)
+
+        val histogram = IntArray(256)
+        val r5Config = OpticalDetectorConfig(useBoundedTopPixel = true, spotPixelFraction = 0.0004f, minSpotPixels = 20)
+        val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+            yBuffer = buffer,
+            width = width,
+            height = height,
+            rowStride = width,
+            pixelStride = 1,
+            cropRect = null,
+            config = r5Config,
+            histogram = histogram
+        )
+
+        assertEquals("Peak luminance should match spot", 230.0f, analysis.maxLuma, 0.001f)
+        assertEquals("Bright pixel count should match placed count", 50, analysis.brightPixelCount)
+        assertEquals("Representative luma must detect spot instead of ambient 20", 230.0f, analysis.representativeLuma, 0.001f)
+    }
+
+    @Test
+    fun `test bounded top-pixel detects 100-pixel and 150-pixel spots`() {
+        val width = 640
+        val height = 480
+        val histogram = IntArray(256)
+        val r5Config = OpticalDetectorConfig(useBoundedTopPixel = true)
+
+        for (spotSize in listOf(100, 150)) {
+            val (buffer, _) = createSyntheticFrame(width, height, spotPixels = spotSize, spotLuma = 225.toByte())
+            val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                yBuffer = buffer,
+                width = width,
+                height = height,
+                rowStride = width,
+                pixelStride = 1,
+                cropRect = null,
+                config = r5Config,
+                histogram = histogram
+            )
+            assertEquals("Representative luma for $spotSize px spot", 225.0f, analysis.representativeLuma, 0.001f)
+            assertEquals("Bright pixels for $spotSize px spot", spotSize, analysis.brightPixelCount)
+            assertEquals("Max luma for $spotSize px spot", 225.0f, analysis.maxLuma, 0.001f)
+        }
+    }
+
+    @Test
+    fun `test bounded top-pixel across multiple resolutions`() {
+        val histogram = IntArray(256)
+        val r5Config = OpticalDetectorConfig(useBoundedTopPixel = true, minSpotPixels = 20, maxSpotPixels = 200, spotPixelFraction = 0.0004f)
+        val resolutions = listOf(
+            Pair(320, 240),
+            Pair(640, 480),
+            Pair(1280, 720),
+            Pair(1920, 1080)
+        )
+
+        for ((w, h) in resolutions) {
+            val sampleCount = (w * 0.5f).toInt() * (h * 0.5f).toInt()
+            val expectedMinRequired = (sampleCount * 0.0004f).toInt().coerceIn(20, 200)
+            val spotSize = (expectedMinRequired + 10).coerceAtLeast(30)
+
+            val (buffer, _) = createSyntheticFrame(w, h, spotPixels = spotSize, spotLuma = 240.toByte())
+            val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                yBuffer = buffer,
+                width = w,
+                height = h,
+                rowStride = w,
+                pixelStride = 1,
+                cropRect = null,
+                config = r5Config,
+                histogram = histogram
+            )
+
+            assertEquals("Resolution ${w}x${h} must detect representative spot luma", 240.0f, analysis.representativeLuma, 0.001f)
+            assertEquals("Resolution ${w}x${h} peak luma", 240.0f, analysis.maxLuma, 0.001f)
+            assertTrue("Bright pixel count must be >= spotSize", analysis.brightPixelCount >= spotSize)
+        }
+    }
+
+    @Test
+    fun `test bounded top-pixel rejects isolated hot pixels between 1 and 5`() {
+        val width = 640
+        val height = 480
+        val histogram = IntArray(256)
+        val r5Config = OpticalDetectorConfig(useBoundedTopPixel = true, minSpotPixels = 20)
+
+        for (hotPixelCount in 1..5) {
+            val (buffer, _) = createSyntheticFrame(width, height, spotPixels = hotPixelCount, spotLuma = 255.toByte())
+            val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+                yBuffer = buffer,
+                width = width,
+                height = height,
+                rowStride = width,
+                pixelStride = 1,
+                cropRect = null,
+                config = r5Config,
+                histogram = histogram
+            )
+
+            assertEquals("Max luma captures the hot pixel", 255.0f, analysis.maxLuma, 0.001f)
+            assertEquals("Representative luma must reject $hotPixelCount hot pixels and remain at ambient", 20.0f, analysis.representativeLuma, 0.001f)
+        }
+    }
+
+    @Test
+    fun `test dark ambient cluster does not falsely trigger`() {
+        val width = 640
+        val height = 480
+        val histogram = IntArray(256)
+        val (buffer, _) = createSyntheticFrame(width, height, ambientLuma = 15, spotPixels = 50, spotLuma = 25.toByte())
+        val r5Config = OpticalDetectorConfig(minAbsoluteOnLuma = 35.0f)
+        val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+            yBuffer = buffer,
+            width = width,
+            height = height,
+            rowStride = width,
+            pixelStride = 1,
+            cropRect = null,
+            config = r5Config,
+            histogram = histogram
+        )
+
+        assertEquals("Bright pixel count must be 0 below minAbsoluteOnLuma", 0, analysis.brightPixelCount)
+        assertEquals(25.0f, analysis.representativeLuma, 0.001f)
+
+        // Process through detector
+        val det = OpticalSignalDetector(r5Config).apply { start() }
+        for (i in 0 until 10) { det.processSample(15.0f, i * 33L) }
+        val transition = det.processSample(analysis.representativeLuma, 400L, maxLuma = analysis.maxLuma, brightPixelCount = analysis.brightPixelCount)
+        assertNull("Sub-threshold cluster must not trigger transition", transition)
+        assertEquals(LightState.OFF, det.currentState)
+    }
+
+    @Test
+    fun `test ambient step change does not cause false ON transition`() {
+        val det = OpticalSignalDetector(config).apply { start() }
+        var t = 0L
+        for (i in 0 until 10) {
+            det.processSample(20.0f, t)
+            t += 33L
+        }
+        assertTrue(det.isCalibrated)
+        assertEquals(LightState.OFF, det.currentState)
+
+        // Gentle ambient step from 20 to 24 (within onContrastOffset = 25)
+        val transition = det.processSample(24.0f, t)
+        assertNull("Gentle ambient rise must not trigger ON", transition)
+        assertEquals(LightState.OFF, det.currentState)
+    }
+
+    @Test
+    fun `test 50-pixel spot triggers confirmed ON transition in detector`() {
+        val width = 640
+        val height = 480
+        val histogram = IntArray(256)
+        val r5Config = OpticalDetectorConfig(
+            calibrationFramesCount = 10,
+            onContrastOffset = 25.0f,
+            minAbsoluteOnLuma = 35.0f,
+            minConfirmationMs = 40L,
+            minConfirmationFrames = 2
+        )
+        val det = OpticalSignalDetector(r5Config).apply { start() }
+
+        // Calibrate with ambient frames (luma 20)
+        var t = 0L
+        for (i in 0 until 10) {
+            det.processSample(20.0f, t)
+            t += 33L
+        }
+        assertTrue(det.isCalibrated)
+
+        // Generate 50-pixel spot frame (luma 220)
+        val (buffer, _) = createSyntheticFrame(width, height, ambientLuma = 20, spotPixels = 50, spotLuma = 220.toByte())
+        val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+            yBuffer = buffer,
+            width = width,
+            height = height,
+            rowStride = width,
+            pixelStride = 1,
+            cropRect = null,
+            config = r5Config,
+            histogram = histogram
+        )
+
+        // Feed candidate frame 1
+        t += 33L
+        val t1 = det.processSample(analysis.representativeLuma, t, maxLuma = analysis.maxLuma, brightPixelCount = analysis.brightPixelCount)
+        assertNull("Candidate frame 1 should not confirm yet", t1)
+        assertEquals(LightState.OFF, det.currentState)
+
+        // Feed candidate frame 2 after minConfirmationMs
+        t += 45L
+        val t2 = det.processSample(analysis.representativeLuma, t, maxLuma = analysis.maxLuma, brightPixelCount = analysis.brightPixelCount)
+        assertNotNull("Candidate frame 2 must confirm ON transition", t2)
+        assertEquals(LightState.ON, t2!!.newState)
+        assertEquals(LightState.ON, det.currentState)
+    }
+
+    @Test
+    fun `test close-range full flood is detected identically`() {
+        val width = 640
+        val height = 480
+        val (buffer, _) = createSyntheticFrame(width, height, ambientLuma = 240.toByte(), spotPixels = 0)
+        val histogram = IntArray(256)
+        val analysis = OpticalFrameAnalyzer.extractRoiAnalysisFromBuffer(
+            yBuffer = buffer,
+            width = width,
+            height = height,
+            rowStride = width,
+            pixelStride = 1,
+            cropRect = null,
+            config = OpticalDetectorConfig(),
+            histogram = histogram
+        )
+        assertEquals(240.0f, analysis.representativeLuma, 0.001f)
+        assertEquals(240.0f, analysis.maxLuma, 0.001f)
+        assertEquals(analysis.sampleCount, analysis.brightPixelCount)
+    }
+
+    @Test
+    fun `test OpticalDiagnostics includes maxLuma and brightPixelCount`() {
+        val det = OpticalSignalDetector(config).apply { start() }
+        var t = 0L
+        for (i in 0 until 10) {
+            det.processSample(20.0f, t, maxLuma = 25.0f, brightPixelCount = 0)
+            t += 33L
+        }
+        det.processSample(180.0f, t, maxLuma = 250.0f, brightPixelCount = 75)
+
+        val diag = det.diagnostics.value
+        assertEquals(250.0f, diag.maxLuma, 0.001f)
+        assertEquals(75, diag.brightPixelCount)
+        assertEquals(180.0f, diag.measuredLuma, 0.001f)
+    }
+
+    @Test
+    fun `test reset clears maxLuma and brightPixelCount in diagnostics`() {
+        val det = OpticalSignalDetector(config).apply { start() }
+        det.processSample(200.0f, 100L, maxLuma = 255.0f, brightPixelCount = 100)
+        assertEquals(255.0f, det.diagnostics.value.maxLuma, 0.001f)
+
+        det.reset()
+        assertEquals(0.0f, det.diagnostics.value.maxLuma, 0.001f)
+        assertEquals(0, det.diagnostics.value.brightPixelCount)
     }
 }

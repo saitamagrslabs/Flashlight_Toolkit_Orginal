@@ -17,6 +17,21 @@ import java.nio.ByteBuffer
  * - Passes the measured statistic and monotonic timestamp to [detector].
  * - Always closes the [ImageProxy] in a strict finally block to prevent CameraX buffer starvation.
  */
+/**
+ * Photometric analysis results for a sampled Region of Interest (ROI).
+ *
+ * @property representativeLuma The representative luminance statistic (0.0 .. 255.0) passed to the detector.
+ * @property maxLuma Peak pixel luminance within the sampled ROI (0.0 .. 255.0).
+ * @property brightPixelCount Number of pixels in the ROI exceeding the minimum brightness criterion.
+ * @property sampleCount Total number of pixels sampled in the ROI.
+ */
+data class RoiAnalysisResult(
+    val representativeLuma: Float,
+    val maxLuma: Float,
+    val brightPixelCount: Int,
+    val sampleCount: Int
+)
+
 class OpticalFrameAnalyzer(
     val config: OpticalDetectorConfig = OpticalDetectorConfig(),
     val detector: OpticalSignalDetector = OpticalSignalDetector(config),
@@ -36,16 +51,6 @@ class OpticalFrameAnalyzer(
          * Pure ByteBuffer ROI luminance extractor.
          *
          * Usable in both production CameraX analysis and standalone JVM unit testing.
-         *
-         * @param yBuffer Direct or heap buffer containing 8-bit unsigned luminance values.
-         * @param width Full image width in pixels.
-         * @param height Full image height in pixels.
-         * @param rowStride Bytes per row in the buffer (including padding).
-         * @param pixelStride Bytes per pixel (typically 1 for Y plane).
-         * @param cropRect Active crop rectangle from camera image.
-         * @param config Detector configuration containing ROI fractions and percentile target.
-         * @param histogram Pre-allocated 256-bin integer array to avoid per-frame allocations.
-         * @return The computed percentile luminance (0.0 .. 255.0).
          */
         fun extractLuminanceFromBuffer(
             yBuffer: ByteBuffer,
@@ -57,33 +62,9 @@ class OpticalFrameAnalyzer(
             config: OpticalDetectorConfig,
             histogram: IntArray
         ): Float {
-            val cLeft = try { cropRect?.left ?: 0 } catch (_: Throwable) { 0 }
-            val cTop = try { cropRect?.top ?: 0 } catch (_: Throwable) { 0 }
-            val cRight = try {
-                val r = cropRect?.right ?: width
-                if (r > cLeft) r else width
-            } catch (_: Throwable) {
-                width
-            }
-            val cBottom = try {
-                val b = cropRect?.bottom ?: height
-                if (b > cTop) b else height
-            } catch (_: Throwable) {
-                height
-            }
-            return extractLuminanceFromBuffer(
-                yBuffer = yBuffer,
-                width = width,
-                height = height,
-                rowStride = rowStride,
-                pixelStride = pixelStride,
-                cropLeft = cLeft,
-                cropTop = cTop,
-                cropRight = cRight,
-                cropBottom = cBottom,
-                config = config,
-                histogram = histogram
-            )
+            return extractRoiAnalysisFromBuffer(
+                yBuffer, width, height, rowStride, pixelStride, cropRect, config, histogram
+            ).representativeLuma
         }
 
         fun extractLuminanceFromBuffer(
@@ -99,6 +80,64 @@ class OpticalFrameAnalyzer(
             config: OpticalDetectorConfig,
             histogram: IntArray
         ): Float {
+            return extractRoiAnalysisFromBuffer(
+                yBuffer, width, height, rowStride, pixelStride,
+                cropLeft, cropTop, cropRight, cropBottom, config, histogram
+            ).representativeLuma
+        }
+
+        fun extractRoiAnalysisFromBuffer(
+            yBuffer: ByteBuffer,
+            width: Int,
+            height: Int,
+            rowStride: Int,
+            pixelStride: Int,
+            cropRect: Rect?,
+            config: OpticalDetectorConfig,
+            histogram: IntArray
+        ): RoiAnalysisResult {
+            val cLeft = try { cropRect?.left ?: 0 } catch (_: Throwable) { 0 }
+            val cTop = try { cropRect?.top ?: 0 } catch (_: Throwable) { 0 }
+            val cRight = try {
+                val r = cropRect?.right ?: width
+                if (r > cLeft) r else width
+            } catch (_: Throwable) {
+                width
+            }
+            val cBottom = try {
+                val b = cropRect?.bottom ?: height
+                if (b > cTop) b else height
+            } catch (_: Throwable) {
+                height
+            }
+            return extractRoiAnalysisFromBuffer(
+                yBuffer = yBuffer,
+                width = width,
+                height = height,
+                rowStride = rowStride,
+                pixelStride = pixelStride,
+                cropLeft = cLeft,
+                cropTop = cTop,
+                cropRight = cRight,
+                cropBottom = cBottom,
+                config = config,
+                histogram = histogram
+            )
+        }
+
+        fun extractRoiAnalysisFromBuffer(
+            yBuffer: ByteBuffer,
+            width: Int,
+            height: Int,
+            rowStride: Int,
+            pixelStride: Int,
+            cropLeft: Int,
+            cropTop: Int,
+            cropRight: Int,
+            cropBottom: Int,
+            config: OpticalDetectorConfig,
+            histogram: IntArray
+        ): RoiAnalysisResult {
             // Zero out pre-allocated histogram
             histogram.fill(0)
 
@@ -136,19 +175,71 @@ class OpticalFrameAnalyzer(
                 }
             }
 
-            if (sampleCount == 0) return 0.0f
+            if (sampleCount == 0) return RoiAnalysisResult(0.0f, 0.0f, 0, 0)
 
-            // Compute percentile target from histogram
-            val targetCount = (sampleCount * config.percentileTarget).toInt().coerceIn(1, sampleCount)
-            var accumulated = 0
-            for (bin in 0..255) {
-                accumulated += histogram[bin]
-                if (accumulated >= targetCount) {
-                    return bin.toFloat()
+            var maxLuma = 0.0f
+            var foundMax = false
+            var brightPixelCount = 0
+            val brightFloor = config.minAbsoluteOnLuma.toInt().coerceIn(0, 255)
+            var representativeLuma = 0.0f
+
+            if (config.useBoundedTopPixel) {
+                val requiredTopPixels = (sampleCount * config.spotPixelFraction)
+                    .toInt()
+                    .coerceIn(config.minSpotPixels, config.maxSpotPixels)
+                    .coerceAtMost(sampleCount)
+
+                var accumulatedTop = 0
+                var foundRepresentative = false
+
+                for (bin in 255 downTo 0) {
+                    val count = histogram[bin]
+                    if (count > 0) {
+                        if (!foundMax) {
+                            maxLuma = bin.toFloat()
+                            foundMax = true
+                        }
+                        if (bin >= brightFloor) {
+                            brightPixelCount += count
+                        }
+                        accumulatedTop += count
+                        if (!foundRepresentative && accumulatedTop >= requiredTopPixels) {
+                            representativeLuma = bin.toFloat()
+                            foundRepresentative = true
+                        }
+                    }
+                }
+                if (!foundRepresentative) {
+                    representativeLuma = maxLuma
+                }
+            } else {
+                // Legacy fixed percentile calculation
+                val targetCount = (sampleCount * config.percentileTarget).toInt().coerceIn(1, sampleCount)
+                var accumulated = 0
+                for (bin in 0..255) {
+                    val count = histogram[bin]
+                    if (count > 0) {
+                        maxLuma = bin.toFloat()
+                    }
+                    if (bin >= brightFloor) {
+                        brightPixelCount += count
+                    }
+                    accumulated += count
+                    if (accumulated >= targetCount && representativeLuma == 0.0f) {
+                        representativeLuma = bin.toFloat()
+                    }
+                }
+                if (representativeLuma == 0.0f) {
+                    representativeLuma = 255.0f
                 }
             }
 
-            return 255.0f
+            return RoiAnalysisResult(
+                representativeLuma = representativeLuma,
+                maxLuma = maxLuma,
+                brightPixelCount = brightPixelCount,
+                sampleCount = sampleCount
+            )
         }
     }
 
@@ -172,7 +263,7 @@ class OpticalFrameAnalyzer(
             val rowStride = yPlane.rowStride
             val pixelStride = yPlane.pixelStride
 
-            val luma = extractLuminanceFromBuffer(
+            val analysis = extractRoiAnalysisFromBuffer(
                 yBuffer = buffer,
                 width = image.width,
                 height = image.height,
@@ -187,9 +278,11 @@ class OpticalFrameAnalyzer(
             val processingDurationMs = (System.nanoTime() - startNs) / 1_000_000L
 
             detector.processSample(
-                luminance = luma,
+                luminance = analysis.representativeLuma,
                 timestampMs = nowMs,
-                frameProcessingTimeMs = processingDurationMs
+                frameProcessingTimeMs = processingDurationMs,
+                maxLuma = analysis.maxLuma,
+                brightPixelCount = analysis.brightPixelCount
             )
         } catch (t: Throwable) {
             try {

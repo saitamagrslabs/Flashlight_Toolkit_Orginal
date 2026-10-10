@@ -37,5 +37,9 @@ data class OpticalDetectorConfig(
     val minConfirmationMs: Long = 40L,
     val minConfirmationFrames: Int = 2,
     val maxCandidateIntervalMs: Long = 120L,
-    val ambientAdaptAlpha: Float = 0.005f
+    val ambientAdaptAlpha: Float = 0.005f,
+    val useBoundedTopPixel: Boolean = true,
+    val minSpotPixels: Int = 20,
+    val maxSpotPixels: Int = 200,
+    val spotPixelFraction: Float = 0.0004f
 )
