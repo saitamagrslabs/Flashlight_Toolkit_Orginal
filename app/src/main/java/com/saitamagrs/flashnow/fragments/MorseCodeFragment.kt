@@ -102,7 +102,6 @@ class MorseCodeFragment : BaseAdFragment() {
         morseSenderEngine = MorseSenderEngine(requireContext())
         morseReceiverEngine = MorseReceiverEngine()
         morseEnglishCorrector = MorseEnglishCorrector.fromAssets(requireContext().applicationContext)
-        morseReceiverEngine.englishCorrector = morseEnglishCorrector
 
         setupModeToggle()
         setupSenderUI()
@@ -355,65 +354,22 @@ class MorseCodeFragment : BaseAdFragment() {
 
     private fun observeReceiverEngine() {
         viewLifecycleOwner.lifecycleScope.launch {
-            kotlinx.coroutines.flow.combine(
-                morseReceiverEngine.sourceState,
-                morseReceiverEngine.sourceContrast,
-                morseReceiverEngine.isLightOn
-            ) { sourceState: MorseReceiverEngine.SourceState, contrast: Float, isLightOn: Boolean ->
-                Triple(sourceState, contrast, isLightOn)
-            }.collectLatest { (sourceState, contrast, isLightOn) ->
-                val sourceText = when (sourceState) {
-                    MorseReceiverEngine.SourceState.LOCKED -> "LOCKED"
-                    MorseReceiverEngine.SourceState.SEARCHING -> "SEARCHING"
-                    MorseReceiverEngine.SourceState.NO_SOURCE -> "NO SOURCE"
-                }
-                val lightText = if (isLightOn) "LIGHT: ON" else "LIGHT: OFF"
-                binding.tvLumaMetrics.text = String.format("Source: %s | Contrast: %.0f | %s", sourceText, contrast, lightText)
+            morseReceiverEngine.rawLuminance.collectLatest { luma ->
+                val thresh = morseReceiverEngine.threshold.value
+                val isLightOn = morseReceiverEngine.isLightOn.value
+                val stateText = if (isLightOn) "LIGHT: ON" else "LIGHT: OFF"
+                binding.tvLumaMetrics.text = String.format("Luma: %.1f | Thresh: %.1f | %s", luma, thresh, stateText)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            kotlinx.coroutines.flow.combine(
-                morseReceiverEngine.sessionState,
-                morseReceiverEngine.preambleDetected,
-                morseReceiverEngine.sourceState
-            ) { sessionState: MorseReceiverEngine.SessionState, synced: Boolean, sourceState: MorseReceiverEngine.SourceState ->
-                Triple(sessionState, synced, sourceState)
-            }.collectLatest { (sessionState, synced, sourceState) ->
-                when (sessionState) {
-                    MorseReceiverEngine.SessionState.WAITING -> {
-                        when (sourceState) {
-                            MorseReceiverEngine.SourceState.LOCKED -> {
-                                binding.tvReceiverSync.text = "LIGHT SOURCE LOCKED"
-                                binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
-                            }
-                            MorseReceiverEngine.SourceState.SEARCHING -> {
-                                binding.tvReceiverSync.text = "Searching for light source..."
-                                binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnPrimaryBlue))
-                            }
-                            MorseReceiverEngine.SourceState.NO_SOURCE -> {
-                                binding.tvReceiverSync.text = "Waiting for signal"
-                                binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnTextSecondary))
-                            }
-                        }
-                    }
-                    MorseReceiverEngine.SessionState.RECEIVING -> {
-                        if (synced) {
-                            binding.tvReceiverSync.text = "Receiving (Synced '...')"
-                            binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
-                        } else {
-                            binding.tvReceiverSync.text = "Syncing preamble..."
-                            binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnPrimaryBlue))
-                        }
-                    }
-                    MorseReceiverEngine.SessionState.ENDING -> {
-                        binding.tvReceiverSync.text = "Ending transmission..."
-                        binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
-                    }
-                    MorseReceiverEngine.SessionState.READY -> {
-                        binding.tvReceiverSync.text = "Ready (Armed)"
-                        binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
-                    }
+            morseReceiverEngine.preambleDetected.collectLatest { synced ->
+                if (synced) {
+                    binding.tvReceiverSync.text = "Preamble: SYNCED ('...')"
+                    binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
+                } else {
+                    binding.tvReceiverSync.text = "Waiting for preamble ('...')"
+                    binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentRed))
                 }
             }
         }
@@ -424,13 +380,33 @@ class MorseCodeFragment : BaseAdFragment() {
             }
         }
 
-        // Dedicated, unconditional automatic decoded text display collector
+        // 1. Dedicated, unconditional raw decoded text display collector
+        viewLifecycleOwner.lifecycleScope.launch {
+            morseReceiverEngine.decodedText.collect { decoded ->
+                binding.tvDecodedMessage.text = decoded.ifEmpty { "[Decoded text will appear here]" }
+            }
+        }
+
+        // 2. Independent, isolated English word correction observer
         viewLifecycleOwner.lifecycleScope.launch {
             morseReceiverEngine.decodedText.collectLatest { decoded ->
-                if (decoded.isBlank()) {
-                    binding.tvDecodedMessage.text = "[Decoded text will appear here]"
+                if (decoded.isNotBlank()) {
+                    try {
+                        val result = withContext(Dispatchers.Default) {
+                            morseEnglishCorrector.correct(decoded)
+                        }
+                        if (result.hasSuggestion) {
+                            binding.tvSuggestedMessage.text = result.suggestedText
+                            binding.cardSuggestion.visibility = View.VISIBLE
+                        } else {
+                            binding.cardSuggestion.visibility = View.GONE
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error performing Morse English correction", e)
+                        binding.cardSuggestion.visibility = View.GONE
+                    }
                 } else {
-                    binding.tvDecodedMessage.text = decoded
+                    binding.cardSuggestion.visibility = View.GONE
                 }
             }
         }
