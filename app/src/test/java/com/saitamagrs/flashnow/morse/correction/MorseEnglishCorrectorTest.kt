@@ -149,4 +149,45 @@ class MorseEnglishCorrectorTest {
             assertEquals("DANGER", result)
         }
     }
+
+    // ================= Switch & Casing Preservation Tests =================
+
+    @Test
+    fun testAutoCorrectPreservesCasing() {
+        // Uppercase
+        assertEquals("HELLO WORLD", corrector.autoCorrectMessage("HEILO WORID", isFinal = true))
+        // Lowercase
+        assertEquals("hello world", corrector.autoCorrectMessage("heilo worid", isFinal = true))
+        // Titlecase
+        assertEquals("Hello World", corrector.autoCorrectMessage("Heilo Worid", isFinal = true))
+    }
+
+    @Test
+    fun testAutoCorrectPreservesPunctuationAndNumbers() {
+        // Word with punctuation attached should preserve punctuation and casing
+        assertEquals("HELLO!", corrector.autoCorrectMessage("HEILO!", isFinal = true))
+        assertEquals("HELLO, WORLD.", corrector.autoCorrectMessage("HEILO, WORID.", isFinal = true))
+        // Numbers
+        assertEquals("123 456", corrector.autoCorrectMessage("123 456", isFinal = true))
+        assertEquals("911 EMERGENCY!", corrector.autoCorrectMessage("911 EMERGENSY!", isFinal = true))
+    }
+
+    @Test
+    fun testSwitchToggleBehavior() {
+        val rawMessage = "HEILO WORID"
+
+        // When Switch is OFF: return exact raw message without modification
+        fun renderMessage(raw: String, isAutoCorrectionEnabled: Boolean): String {
+            return if (!isAutoCorrectionEnabled) {
+                raw
+            } else {
+                corrector.autoCorrectMessage(raw, isFinal = true)
+            }
+        }
+
+        assertEquals("HEILO WORID", renderMessage(rawMessage, isAutoCorrectionEnabled = false))
+        assertEquals("HELLO WORLD", renderMessage(rawMessage, isAutoCorrectionEnabled = true))
+        // Toggling back to OFF immediately returns raw
+        assertEquals("HEILO WORID", renderMessage(rawMessage, isAutoCorrectionEnabled = false))
+    }
 }

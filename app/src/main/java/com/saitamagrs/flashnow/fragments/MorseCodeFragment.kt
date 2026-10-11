@@ -36,6 +36,7 @@ import com.saitamagrs.flashnow.morse.sender.MorseSenderEngine
 import com.saitamagrs.flashnow.utils.FlashlightController
 import com.saitamagrs.flashnow.utils.MorseCodeManager
 import com.saitamagrs.flashnow.utils.PermissionManager
+import android.content.Context
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -46,6 +47,8 @@ class MorseCodeFragment : BaseAdFragment() {
 
     companion object {
         private const val TAG = "MorseCodeFragment"
+        private const val PREFS_MORSE = "flashnow_morse_prefs"
+        private const val KEY_AUTO_CORRECTION = "morse_auto_correction_enabled"
     }
 
     private var _binding: FragmentMorseCodeBinding? = null
@@ -62,6 +65,7 @@ class MorseCodeFragment : BaseAdFragment() {
     private var cameraExecutor: ExecutorService? = null
     private var hasCameraPermission = false
     private var isReceiverActive = false
+    private var isAutoCorrectionEnabled = false
 
     private val requestCameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -250,6 +254,15 @@ class MorseCodeFragment : BaseAdFragment() {
     // ================= RECEIVER LOGIC =================
 
     private fun setupReceiverUI() {
+        val prefs = requireContext().getSharedPreferences(PREFS_MORSE, Context.MODE_PRIVATE)
+        isAutoCorrectionEnabled = prefs.getBoolean(KEY_AUTO_CORRECTION, false)
+        binding.switchAutoCorrection.isChecked = isAutoCorrectionEnabled
+        binding.switchAutoCorrection.setOnCheckedChangeListener { _, isChecked ->
+            isAutoCorrectionEnabled = isChecked
+            prefs.edit().putBoolean(KEY_AUTO_CORRECTION, isChecked).apply()
+            updateDecodedMessageDisplay()
+        }
+
         binding.tvReceiverSync.text = "Waiting for signal"
         binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnTextSecondary))
         binding.tvDecodedMessage.text = "[Decoded text will appear here]"
@@ -270,16 +283,7 @@ class MorseCodeFragment : BaseAdFragment() {
 
         binding.btnResetReceiver.setOnClickListener {
             morseReceiverEngine.reset()
-            binding.tvDecodedMessage.text = "[Decoded text will appear here]"
-            binding.cardSuggestion.visibility = View.GONE
-        }
-
-        binding.btnAcceptSuggestion.setOnClickListener {
-            val suggestion = binding.tvSuggestedMessage.text.toString()
-            if (suggestion.isNotBlank()) {
-                binding.tvDecodedMessage.text = suggestion
-                binding.cardSuggestion.visibility = View.GONE
-            }
+            updateDecodedMessageDisplay()
         }
     }
 
@@ -407,7 +411,23 @@ class MorseCodeFragment : BaseAdFragment() {
             binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnTextSecondary))
             binding.tvLumaMetrics.text = "Luma: 0.0 | Thresh: 0.0 | Light: OFF"
             binding.tvReceiverDebug.text = "Debug: Receiver ready"
+            updateDecodedMessageDisplay()
         }
+    }
+
+    private fun updateDecodedMessageDisplay() {
+        if (_binding == null) return
+        val raw = morseReceiverEngine.rawDecodedText.value
+        val isFinal = morseReceiverEngine.sessionState.value == MorseReceiverEngine.SessionState.WAITING ||
+                morseReceiverEngine.sessionState.value == MorseReceiverEngine.SessionState.READY
+        val textToDisplay = if (raw.isBlank()) {
+            "[Decoded text will appear here]"
+        } else if (isAutoCorrectionEnabled) {
+            morseEnglishCorrector.autoCorrectMessage(raw, isFinal)
+        } else {
+            raw
+        }
+        binding.tvDecodedMessage.text = textToDisplay
     }
 
     private fun observeReceiverEngine() {
@@ -443,6 +463,7 @@ class MorseCodeFragment : BaseAdFragment() {
                         binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnAccentGreen))
                     }
                 }
+                updateDecodedMessageDisplay()
             }
         }
 
@@ -453,23 +474,8 @@ class MorseCodeFragment : BaseAdFragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            combine(morseReceiverEngine.decodedText, morseReceiverEngine.rawDecodedText) { decoded, raw ->
-                Pair(decoded, raw)
-            }.collectLatest { (decoded, raw) ->
-                val displayMsg = if (decoded.isBlank()) "[Decoded text will appear here]" else decoded
-                binding.tvDecodedMessage.text = displayMsg
-
-                if (raw.isNotBlank()) {
-                    val result = morseEnglishCorrector.correct(raw)
-                    if (result.hasSuggestion && !result.suggestedText.isNullOrBlank() && result.suggestedText != displayMsg) {
-                        binding.cardSuggestion.visibility = View.VISIBLE
-                        binding.tvSuggestedMessage.text = result.suggestedText
-                    } else {
-                        binding.cardSuggestion.visibility = View.GONE
-                    }
-                } else {
-                    binding.cardSuggestion.visibility = View.GONE
-                }
+            morseReceiverEngine.rawDecodedText.collectLatest {
+                updateDecodedMessageDisplay()
             }
         }
 

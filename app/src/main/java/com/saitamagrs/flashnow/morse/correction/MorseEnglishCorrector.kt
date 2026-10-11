@@ -185,7 +185,8 @@ class MorseEnglishCorrector(
             // Word is invalid, attempt Morse-aware correction
             val correction = correctSingleWord(upperWord)
             if (correction != null && correction.second != CorrectionConfidence.NONE) {
-                correctedTokens.add("$prefix${correction.first}$suffix")
+                val casedWord = applyCasing(cleanedWord, correction.first)
+                correctedTokens.add("$prefix$casedWord$suffix")
             } else {
                 // Low confidence or garbage: preserve raw token
                 correctedTokens.add(token)
@@ -194,6 +195,17 @@ class MorseEnglishCorrector(
 
         val result = correctedTokens.joinToString(" ")
         return if (hasTrailingSpace) "$result " else result
+    }
+
+    private fun applyCasing(original: String, corrected: String): String {
+        return when {
+            original.all { it.isUpperCase() } -> corrected.uppercase()
+            original.all { it.isLowerCase() } -> corrected.lowercase()
+            original.isNotEmpty() && original.first().isUpperCase() && original.drop(1).all { it.isLowerCase() } -> {
+                corrected.lowercase().replaceFirstChar { it.uppercase() }
+            }
+            else -> corrected
+        }
     }
 
     /**
