@@ -2,7 +2,11 @@ package com.saitamagrs.flashnow.morse.receiver
 
 /**
  * Optical signal transition detector using an explicit settling/calibration phase,
- * asymmetric hysteresis, monotonic timestamps, and glitch filtering.
+ * temporal delta-from-resting-baseline measurement, asymmetric hysteresis, monotonic timestamps,
+ * and glitch filtering.
+ *
+ * Distinguishes steady ambient room illumination (even at high brightness or with specular highlights)
+ * from active, timed flashlight pulses by tracking changes relative to the calibrated resting state.
  */
 class OpticalSignalDetector(
     private val onPulseCallback: (Long) -> Unit,
@@ -11,14 +15,14 @@ class OpticalSignalDetector(
     private val onStateChangeCallback: (Boolean) -> Unit = {}
 ) {
     companion object {
-        const val CALIBRATION_FRAMES_REQUIRED = 5
+        const val CALIBRATION_FRAMES_REQUIRED = 10
         const val MIN_GLITCH_DURATION_MS = 25L
         const val ON_THRESHOLD_DELTA = 8.5f
         const val BASE_OFF_THRESHOLD_DELTA = 4.5f
         const val HIGH_CONTRAST_PEAK_THRESHOLD = 40.0f
         const val CLOSE_RANGE_OFF_RATIO = 0.28f
-        const val MIN_OFF_CONTRAST = 6.0f
-        const val MAX_OFF_CONTRAST = 32.0f
+        const val MIN_OFF_THRESHOLD = 4.5f
+        const val MAX_OFF_THRESHOLD = 32.0f
     }
 
     enum class DetectorState {
@@ -40,6 +44,21 @@ class OpticalSignalDetector(
     var restingContrast: Float = 0.0f
         internal set
 
+    var restingSpot: Float = 40.0f
+        internal set
+
+    var restingMean: Float = 40.0f
+        internal set
+
+    var lastTemporalSignal: Float = 0.0f
+        private set
+
+    var lastActiveOffThreshold: Float = BASE_OFF_THRESHOLD_DELTA
+        private set
+
+    val onThreshold: Float get() = ON_THRESHOLD_DELTA
+    val offThreshold: Float get() = lastActiveOffThreshold
+
     var calibrationFramesCount: Int = 0
         internal set
 
@@ -49,7 +68,7 @@ class OpticalSignalDetector(
     private var lastStateChangeTimestamp: Long = 0L
     private var candidateStateIsOn: Boolean? = null
     private var candidateStateTimestamp: Long = 0L
-    private var currentPeakContrast: Float = 0.0f
+    private var currentPeakSignal: Float = 0.0f
 
     val isCalibrated: Boolean get() = calibrationFramesCount >= CALIBRATION_FRAMES_REQUIRED
 
@@ -63,12 +82,16 @@ class OpticalSignalDetector(
         isLightOn = false
         ambientBaseline = 40.0f
         restingContrast = 0.0f
+        restingSpot = 40.0f
+        restingMean = 40.0f
+        lastTemporalSignal = 0.0f
+        lastActiveOffThreshold = BASE_OFF_THRESHOLD_DELTA
         calibrationFramesCount = 0
         transitionCount = 0
         lastStateChangeTimestamp = 0L
         candidateStateIsOn = null
         candidateStateTimestamp = 0L
-        currentPeakContrast = 0.0f
+        currentPeakSignal = 0.0f
     }
 
     /**
@@ -78,26 +101,23 @@ class OpticalSignalDetector(
      * @param brightSignal The peak spot luminance (0..255).
      * @param nowMs Monotonic timestamp in milliseconds.
      * @param backgroundEstimate The median/local background estimate.
+     * @param meanLuma The arithmetic mean luminance across the reticle.
      */
     fun processSample(
         contrast: Float,
         brightSignal: Float,
         nowMs: Long,
-        backgroundEstimate: Float = brightSignal
+        backgroundEstimate: Float = brightSignal,
+        meanLuma: Float = backgroundEstimate
     ) {
-        // 1. Initial settling / calibration phase to establish resting ambient and contrast
+        // 1. Initial settling / calibration phase to establish resting ambient, spot, and contrast
         if (calibrationFramesCount < CALIBRATION_FRAMES_REQUIRED) {
             calibrationFramesCount++
-            ambientBaseline = if (calibrationFramesCount == 1) {
-                backgroundEstimate
-            } else {
-                (ambientBaseline * 0.7f) + (backgroundEstimate * 0.3f)
-            }
-            restingContrast = if (calibrationFramesCount == 1) {
-                contrast
-            } else {
-                (restingContrast * 0.7f) + (contrast * 0.3f)
-            }
+            val weight = if (calibrationFramesCount == 1) 1.0f else 0.25f
+            ambientBaseline = (ambientBaseline * (1f - weight)) + (backgroundEstimate * weight)
+            restingContrast = (restingContrast * (1f - weight)) + (contrast * weight)
+            restingSpot = (restingSpot * (1f - weight)) + (brightSignal * weight)
+            restingMean = (restingMean * (1f - weight)) + (meanLuma * weight)
             lastStateChangeTimestamp = nowMs
             isLightOn = false
             candidateStateIsOn = null
@@ -107,49 +127,51 @@ class OpticalSignalDetector(
             return
         }
 
-        // 2. Slow ambient baseline tracking during confirmed dark intervals (light OFF)
+        // 2. Slow baseline tracking during confirmed dark intervals (light OFF)
         if (!isLightOn && candidateStateIsOn == null) {
-            val restingSignal = if (backgroundEstimate > 0f && backgroundEstimate != brightSignal) {
-                backgroundEstimate
-            } else {
-                brightSignal
-            }
-            val ambientDelta = restingSignal - ambientBaseline
+            val deltaSpot = (brightSignal - restingSpot).coerceAtLeast(0f)
+            val deltaContrast = (contrast - restingContrast).coerceAtLeast(0f)
+            val deltaMean = (meanLuma - restingMean).coerceAtLeast(0f)
+            val candidateSignal = maxOf(deltaContrast, deltaSpot, deltaMean * 2.0f)
 
-            // Only adapt when signal is below ON threshold to prevent chasing an active flashlight
-            if (contrast < ON_THRESHOLD_DELTA) {
-                if (ambientDelta < 0f) {
-                    ambientBaseline = (ambientBaseline * 0.88f) + (restingSignal * 0.12f)
-                } else {
-                    ambientBaseline = (ambientBaseline * 0.90f) + (restingSignal * 0.10f)
-                }
-                restingContrast = (restingContrast * 0.92f) + (contrast * 0.08f)
+            // Only adapt when signal is below half the ON threshold to prevent chasing an active flash rising edge
+            if (candidateSignal < ON_THRESHOLD_DELTA * 0.5f) {
+                val alpha = 0.12f
+                restingSpot = (restingSpot * (1f - alpha)) + (brightSignal * alpha)
+                restingContrast = (restingContrast * (1f - alpha)) + (contrast * alpha)
+                restingMean = (restingMean * (1f - alpha)) + (meanLuma * alpha)
+                ambientBaseline = (ambientBaseline * (1f - alpha)) + (backgroundEstimate * alpha)
             }
         }
 
-        // 3. Track peak contrast for close-range lens flare compensation
+        // 3. Compute temporal signal evidence above calibrated resting baselines
+        val deltaSpot = (brightSignal - restingSpot).coerceAtLeast(0f)
+        val deltaContrast = (contrast - restingContrast).coerceAtLeast(0f)
+        val deltaMean = (meanLuma - restingMean).coerceAtLeast(0f)
+        val temporalSignal = maxOf(deltaSpot, deltaContrast, deltaMean * 2.0f)
+        lastTemporalSignal = temporalSignal
+
+        // 4. Track peak temporal signal for close-range lens flare compensation
         if (isLightOn) {
-            currentPeakContrast = maxOf(currentPeakContrast, contrast)
+            currentPeakSignal = maxOf(currentPeakSignal, temporalSignal)
         }
 
-        // 4. Compute dynamic OFF threshold
-        val activeOffContrast = if (isLightOn && currentPeakContrast > HIGH_CONTRAST_PEAK_THRESHOLD) {
-            (currentPeakContrast * CLOSE_RANGE_OFF_RATIO).coerceIn(MIN_OFF_CONTRAST, MAX_OFF_CONTRAST)
+        // 5. Dynamic OFF threshold calculation
+        val activeOffDelta = if (isLightOn && currentPeakSignal > HIGH_CONTRAST_PEAK_THRESHOLD) {
+            (currentPeakSignal * CLOSE_RANGE_OFF_RATIO).coerceIn(MIN_OFF_THRESHOLD, MAX_OFF_THRESHOLD)
         } else {
             BASE_OFF_THRESHOLD_DELTA
         }
+        lastActiveOffThreshold = activeOffDelta
 
-        // 5. Schmitt trigger / Hysteresis detection
-        val effectiveOffThreshold = restingContrast + activeOffContrast
-        val effectiveOnThreshold = restingContrast + ON_THRESHOLD_DELTA
-
+        // 6. Schmitt trigger / Hysteresis comparison: evaluate temporal signal delta
         val detectedRawOn = if (isLightOn) {
-            contrast > activeOffContrast
+            temporalSignal > activeOffDelta
         } else {
-            contrast >= ON_THRESHOLD_DELTA
+            temporalSignal >= ON_THRESHOLD_DELTA
         }
 
-        // 6. Glitch filtering (persists across frames >= 25ms)
+        // 7. Temporal glitch filtering (persists across frames >= 25ms)
         if (detectedRawOn != isLightOn) {
             if (candidateStateIsOn != detectedRawOn) {
                 candidateStateIsOn = detectedRawOn
@@ -166,15 +188,13 @@ class OpticalSignalDetector(
                     onStateChangeCallback(isLightOn)
 
                     if (isLightOn) {
-                        // OFF -> ON: previous period was a GAP
                         state = DetectorState.RECEIVING
-                        currentPeakContrast = contrast
+                        currentPeakSignal = temporalSignal
                         if (durationMs >= MIN_GLITCH_DURATION_MS) {
                             onGapCallback(durationMs)
                         }
                     } else {
-                        // ON -> OFF: previous period was a PULSE
-                        currentPeakContrast = 0.0f
+                        currentPeakSignal = 0.0f
                         if (durationMs >= MIN_GLITCH_DURATION_MS) {
                             onPulseCallback(durationMs)
                         }

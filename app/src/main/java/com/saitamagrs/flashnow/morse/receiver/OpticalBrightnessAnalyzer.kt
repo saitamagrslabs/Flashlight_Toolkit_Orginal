@@ -13,6 +13,7 @@ import kotlin.math.roundToInt
  */
 data class BrightnessSample(
     val peakLuma: Float,
+    val meanLuma: Float,
     val medianLuma: Float,
     val contrast: Float,
     val sampleCount: Int
@@ -68,25 +69,28 @@ class OpticalBrightnessAnalyzer(
         }
 
         if (sampleCount == 0) {
-            return BrightnessSample(0f, 0f, 0f, 0)
+            return BrightnessSample(0f, 0f, 0f, 0f, 0)
         }
 
-        // 1. Median luminance (50th percentile) represents the resting ambient background of the target area
+        // 1. Median luminance (50th percentile) and Mean luminance of the reticle
         var medianLuma = 0
         var medianAccumulator = 0
+        var sumLuma = 0L
         val medianTarget = sampleCount / 2
         for (i in 0..255) {
-            medianAccumulator += histogram[i]
-            if (medianAccumulator >= medianTarget) {
+            val count = histogram[i]
+            sumLuma += i * count
+            medianAccumulator += count
+            if (medianLuma == 0 && medianAccumulator >= medianTarget) {
                 medianLuma = i
-                break
             }
         }
+        val meanLuma = sumLuma.toFloat() / sampleCount
 
-        // 2. Peak luminance (top 99.5th percentile, minimum 1 pixel for micro-tests, up to 10 pixels for video)
+        // 2. Peak luminance (top spot emitter, min 1 for tests, up to 40 pixels for camera)
         var peakLuma = medianLuma
         var peakAccumulator = 0
-        val topTarget = (sampleCount * 0.005f).roundToInt().coerceIn(1, 10)
+        val topTarget = (sampleCount * 0.008f).roundToInt().coerceIn(1, 40)
         for (i in 255 downTo 0) {
             peakAccumulator += histogram[i]
             if (peakAccumulator >= topTarget) {
@@ -99,6 +103,7 @@ class OpticalBrightnessAnalyzer(
 
         return BrightnessSample(
             peakLuma = peakLuma.toFloat(),
+            meanLuma = meanLuma,
             medianLuma = medianLuma.toFloat(),
             contrast = contrast,
             sampleCount = sampleCount

@@ -476,21 +476,20 @@ class MorseCodeFragment : BaseAdFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             morseReceiverEngine.diagnostics.collectLatest { d ->
                 if (d.frameWidth > 0) {
-                    binding.tvLumaMetrics.text = "Sig:%d Bg:%.1f C:%.1f | T:%.1f L:%s (#%d)".format(
+                    binding.tvLumaMetrics.text = "Sig:%d dS:%.1f | Th:%.1f/%.1f | Light:%s (#%d)".format(
                         d.candidateLuma,
-                        d.localBgLuma,
-                        d.candidateContrast,
+                        d.signalDelta,
                         d.onThreshold,
+                        d.offThreshold,
                         if (d.isLightOn) "ON" else "OFF",
                         d.transitionCount
                     )
-                    binding.tvReceiverDebug.text = "%s | Full:%.0f/%d | ROI:%.0f/%d | Base:%.1f (%dms)".format(
-                        d.sourceState.name,
-                        d.frameMeanLuma,
-                        d.frameMaxLuma,
+                    binding.tvReceiverDebug.text = "%s | Base:%.0f/C:%.0f | ROI:%.0f/%d (%dms)".format(
+                        d.receiverSignalState.name,
+                        d.ambientBaseline,
+                        d.restingContrast,
                         d.roiMeanLuma,
                         d.roiMaxLuma,
-                        d.ambientBaseline,
                         d.frameIntervalMs
                     )
                 } else {

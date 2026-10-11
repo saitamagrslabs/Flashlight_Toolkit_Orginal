@@ -26,12 +26,15 @@ data class ReceiverDiagnostics(
     val localBgLuma: Float = 0f,
     val candidateLuma: Int = 0,
     val candidateContrast: Float = 0f,
+    val signalDelta: Float = 0f,
+    val restingContrast: Float = 0f,
     val ambientBaseline: Float = 0f,
     val onThreshold: Float = 0f,
     val offThreshold: Float = 0f,
     val isLightOn: Boolean = false,
     val transitionCount: Int = 0,
-    val sourceState: MorseReceiverEngine.SourceState = MorseReceiverEngine.SourceState.NO_SOURCE
+    val sourceState: MorseReceiverEngine.SourceState = MorseReceiverEngine.SourceState.NO_SOURCE,
+    val receiverSignalState: MorseReceiverEngine.ReceiverSignalState = MorseReceiverEngine.ReceiverSignalState.CALIBRATING
 )
 
 /**
@@ -40,7 +43,7 @@ data class ReceiverDiagnostics(
  * Clean architectural rebuild based on MorseLight's brightness-transition model:
  * 1. Fixed central reticle region of interest (30% ROI) where user aims at the sender.
  * 2. Explicit camera settling and calibration phase to establish resting ambient and noise floor.
- * 3. Asymmetric hysteresis thresholding and monotonic transition timing.
+ * 3. Temporal delta-from-baseline signal detection with asymmetric hysteresis.
  * 4. Streaming character decoder with preamble synchronization and real-time UI flow emission.
  */
 class MorseReceiverEngine : ImageAnalysis.Analyzer {
@@ -56,6 +59,14 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         NO_SOURCE,
         SEARCHING,
         LOCKED
+    }
+
+    enum class ReceiverSignalState {
+        CALIBRATING,    // Settling camera AE and measuring resting baseline
+        WAITING,        // Armed and ready, waiting for sender optical flash
+        FLASH_DETECTED, // Flashlight pulse actively detected inside reticle
+        RECEIVING,      // Morse transmission in progress (pulses/gaps decoding)
+        DECODED         // Message received and finalized, armed for next message
     }
 
     companion object {
@@ -99,6 +110,9 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
     private val _sourceState = MutableStateFlow(SourceState.NO_SOURCE)
     val sourceState: StateFlow<SourceState> = _sourceState.asStateFlow()
 
+    private val _receiverSignalState = MutableStateFlow(ReceiverSignalState.CALIBRATING)
+    val receiverSignalState: StateFlow<ReceiverSignalState> = _receiverSignalState.asStateFlow()
+
     private val _sourceX = MutableStateFlow(0.5f)
     val sourceX: StateFlow<Float> = _sourceX.asStateFlow()
 
@@ -107,6 +121,9 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
 
     private val _sourceContrast = MutableStateFlow(0.0f)
     val sourceContrast: StateFlow<Float> = _sourceContrast.asStateFlow()
+
+    private val _signalDelta = MutableStateFlow(0.0f)
+    val signalDelta: StateFlow<Float> = _signalDelta.asStateFlow()
 
     private val _isSourceLocked = MutableStateFlow(false)
     val isSourceLocked: StateFlow<Boolean> = _isSourceLocked.asStateFlow()
@@ -144,7 +161,12 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
     private var lastFrameTimestampMs = 0L
 
     fun getAmbientBaseline(): Float = signalDetector.ambientBaseline
-    fun setAmbientBaseline(baseline: Float) { signalDetector.ambientBaseline = baseline }
+    fun setAmbientBaseline(baseline: Float) {
+        signalDetector.ambientBaseline = baseline
+        signalDetector.restingSpot = baseline
+        signalDetector.restingMean = baseline
+        signalDetector.restingContrast = 0.0f
+    }
     fun setCalibrationDone() { signalDetector.setCalibrationDone() }
     fun isCalibrationDone(): Boolean = signalDetector.isCalibrated
 
@@ -191,58 +213,67 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
             contrast = sample.contrast,
             brightSignal = sample.peakLuma,
             nowMs = nowMs,
-            backgroundEstimate = sample.medianLuma
+            backgroundEstimate = sample.medianLuma,
+            meanLuma = sample.meanLuma
         )
 
         val procDuration = (System.nanoTime() - startNano) / 1_000_000L
 
-        // Update SourceState based on detection status
-        val currentSourceState = when {
-            signalDetector.isLightOn -> {
-                _isSourceLocked.value = true
-                SourceState.LOCKED
-            }
-            signalDetector.state == OpticalSignalDetector.DetectorState.RECEIVING -> {
-                _isSourceLocked.value = true
-                SourceState.LOCKED
-            }
-            signalDetector.state == OpticalSignalDetector.DetectorState.READY -> {
+        // Update high-level receiver state and source state
+        val currentReceiverState = when {
+            !signalDetector.isCalibrated -> ReceiverSignalState.CALIBRATING
+            _sessionState.value == SessionState.READY -> ReceiverSignalState.DECODED
+            signalDetector.isLightOn -> ReceiverSignalState.FLASH_DETECTED
+            _sessionState.value == SessionState.RECEIVING -> ReceiverSignalState.RECEIVING
+            else -> ReceiverSignalState.WAITING
+        }
+        _receiverSignalState.value = currentReceiverState
+
+        val currentSourceState = when (currentReceiverState) {
+            ReceiverSignalState.CALIBRATING -> {
                 _isSourceLocked.value = false
                 SourceState.SEARCHING
             }
-            else -> {
+            ReceiverSignalState.WAITING -> {
                 _isSourceLocked.value = false
-                SourceState.NO_SOURCE
+                SourceState.SEARCHING
+            }
+            ReceiverSignalState.FLASH_DETECTED,
+            ReceiverSignalState.RECEIVING,
+            ReceiverSignalState.DECODED -> {
+                _isSourceLocked.value = true
+                SourceState.LOCKED
             }
         }
         _sourceState.value = currentSourceState
         _sourceContrast.value = sample.contrast
+        _signalDelta.value = signalDetector.lastTemporalSignal
         _rawLuminance.value = sample.peakLuma
-
-        val activeOnThreshold = sample.medianLuma + OpticalSignalDetector.ON_THRESHOLD_DELTA
-        val activeOffThreshold = sample.medianLuma + OpticalSignalDetector.BASE_OFF_THRESHOLD_DELTA
-        _threshold.value = if (signalDetector.isLightOn) activeOffThreshold else activeOnThreshold
+        _threshold.value = if (signalDetector.isLightOn) signalDetector.offThreshold else signalDetector.onThreshold
 
         _diagnostics.value = ReceiverDiagnostics(
             frameWidth = width,
             frameHeight = height,
             frameIntervalMs = frameInterval,
             processDurationMs = procDuration,
-            frameMeanLuma = sample.medianLuma,
+            frameMeanLuma = sample.meanLuma,
             frameMaxLuma = sample.peakLuma.toInt(),
-            centerMeanLuma = sample.medianLuma,
+            centerMeanLuma = sample.meanLuma,
             centerMaxLuma = sample.peakLuma.toInt(),
             roiMeanLuma = sample.medianLuma,
             roiMaxLuma = sample.peakLuma.toInt(),
             localBgLuma = sample.medianLuma,
             candidateLuma = sample.peakLuma.toInt(),
             candidateContrast = sample.contrast,
+            signalDelta = signalDetector.lastTemporalSignal,
+            restingContrast = signalDetector.restingContrast,
             ambientBaseline = signalDetector.ambientBaseline,
-            onThreshold = activeOnThreshold,
-            offThreshold = activeOffThreshold,
+            onThreshold = signalDetector.onThreshold,
+            offThreshold = signalDetector.offThreshold,
             isLightOn = signalDetector.isLightOn,
             transitionCount = signalDetector.transitionCount,
-            sourceState = currentSourceState
+            sourceState = currentSourceState,
+            receiverSignalState = currentReceiverState
         )
     }
 
@@ -252,24 +283,23 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
     fun processOpticalSample(
         brightSignal: Float,
         nowMs: Long,
-        backgroundEstimate: Float = brightSignal
+        backgroundEstimate: Float = signalDetector.ambientBaseline,
+        contrast: Float = (brightSignal - backgroundEstimate).coerceAtLeast(0f),
+        meanLuma: Float = backgroundEstimate
     ) {
-        val contrast = if (backgroundEstimate != brightSignal) {
-            (brightSignal - backgroundEstimate).coerceAtLeast(0f)
-        } else {
-            (brightSignal - signalDetector.ambientBaseline).coerceAtLeast(0f)
-        }
-
         signalDetector.processSample(
             contrast = contrast,
             brightSignal = brightSignal,
             nowMs = nowMs,
-            backgroundEstimate = backgroundEstimate
+            backgroundEstimate = backgroundEstimate,
+            meanLuma = meanLuma
         )
 
         _rawLuminance.value = brightSignal
-        _threshold.value = signalDetector.ambientBaseline + OpticalSignalDetector.ON_THRESHOLD_DELTA
+        _threshold.value = signalDetector.onThreshold
         _isLightOn.value = signalDetector.isLightOn
+        _sourceContrast.value = contrast
+        _signalDelta.value = signalDetector.lastTemporalSignal
     }
 
     fun startNewSession() {
@@ -320,11 +350,13 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         _threshold.value = 0.0f
         _isLightOn.value = false
         _sessionState.value = SessionState.WAITING
+        _receiverSignalState.value = ReceiverSignalState.CALIBRATING
         _sourceState.value = SourceState.NO_SOURCE
         _isSourceLocked.value = false
         _sourceX.value = 0.5f
         _sourceY.value = 0.5f
         _sourceContrast.value = 0.0f
+        _signalDelta.value = 0.0f
         _diagnostics.value = ReceiverDiagnostics()
         lastFrameTimestampMs = 0L
         _debugLog.value = "Receiver reset"

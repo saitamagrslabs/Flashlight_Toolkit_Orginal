@@ -4,6 +4,7 @@ import com.saitamagrs.flashnow.morse.core.MorseCodec
 import com.saitamagrs.flashnow.morse.core.MorseTiming
 import com.saitamagrs.flashnow.morse.correction.MorseEnglishCorrector
 import com.saitamagrs.flashnow.morse.receiver.MorseReceiverEngine
+import com.saitamagrs.flashnow.morse.receiver.OpticalSignalDetector
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -862,7 +863,7 @@ class MorseReceiverEngineTest {
     @Test
     fun `test optical pipeline - centered flashlight spot triggers Light ON`() {
         // 1. Calibrate on background 40
-        for (i in 0 until 6) {
+        for (i in 0 until OpticalSignalDetector.CALIBRATION_FRAMES_REQUIRED) {
             val frame = createTestFrame(100, 100, 40)
             receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
         }
@@ -877,21 +878,47 @@ class MorseReceiverEngineTest {
         }
         val flashFrame1 = createTestFrame(100, 100, 40)
         setPixels(flashFrame1, 100, spot, 200)
-        receiver.processFrame(100, 100, flashFrame1, 100, 1, 300L)
+        receiver.processFrame(100, 100, flashFrame1, 100, 1, 500L)
 
-        // Glitch filter: frame 2 at t=335ms
+        // Glitch filter: frame 2 at t=535ms
         val flashFrame2 = createTestFrame(100, 100, 40)
         setPixels(flashFrame2, 100, spot, 200)
-        receiver.processFrame(100, 100, flashFrame2, 100, 1, 335L)
+        receiver.processFrame(100, 100, flashFrame2, 100, 1, 535L)
 
         assertTrue("Centered flashlight spot must trigger Light ON", receiver.isLightOn.value)
         assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
     }
 
     @Test
+    fun `test optical pipeline - steady high ambient and specular spot does NOT trigger Light ON`() {
+        // 1. Calibrate in bright room with a specular highlight of 255 in the reticle
+        val specular = mutableListOf<Pair<Int, Int>>()
+        for (dy in -1..1) {
+            for (dx in -1..1) {
+                specular.add((50 + dx) to (50 + dy))
+            }
+        }
+        for (i in 0 until OpticalSignalDetector.CALIBRATION_FRAMES_REQUIRED) {
+            val frame = createTestFrame(100, 100, 120)
+            setPixels(frame, 100, specular, 255)
+            receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
+        }
+        assertFalse(receiver.isLightOn.value)
+
+        // 2. Steady room scene continues over next frames - must NEVER trigger Light ON
+        for (i in 0 until 10) {
+            val frame = createTestFrame(100, 100, 120)
+            setPixels(frame, 100, specular, 255)
+            receiver.processFrame(100, 100, frame, 100, 1, 500L + i * 33L)
+            assertFalse("Steady specular highlight must not trigger Light ON", receiver.isLightOn.value)
+        }
+        assertEquals(MorseReceiverEngine.SourceState.SEARCHING, receiver.sourceState.value)
+    }
+
+    @Test
     fun `test optical pipeline - peripheral bright object outside reticle does not trigger ON`() {
         // 1. Calibrate on background 40
-        for (i in 0 until 6) {
+        for (i in 0 until OpticalSignalDetector.CALIBRATION_FRAMES_REQUIRED) {
             val frame = createTestFrame(100, 100, 40)
             receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
         }
@@ -901,7 +928,7 @@ class MorseReceiverEngineTest {
         for (i in 0 until 5) {
             val frame = createTestFrame(100, 100, 40)
             setPixels(frame, 100, cornerSpot, 255)
-            receiver.processFrame(100, 100, frame, 100, 1, 300L + i * 33L)
+            receiver.processFrame(100, 100, frame, 100, 1, 500L + i * 33L)
         }
 
         assertFalse("Peripheral light outside central reticle must be ignored", receiver.isLightOn.value)
