@@ -405,6 +405,8 @@ class MorseCodeFragment : BaseAdFragment() {
             binding.btnToggleReceiver.backgroundTintList = ColorStateList.valueOf(getThemeColor(R.attr.fnAccentGreen))
             binding.tvReceiverSync.text = "Receiver Stopped"
             binding.tvReceiverSync.setTextColor(getThemeColor(R.attr.fnTextSecondary))
+            binding.tvLumaMetrics.text = "Luma: 0.0 | Thresh: 0.0 | Light: OFF"
+            binding.tvReceiverDebug.text = "Debug: Receiver ready"
         }
     }
 
@@ -472,34 +474,37 @@ class MorseCodeFragment : BaseAdFragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            combine(
-                morseReceiverEngine.rawLuminance,
-                morseReceiverEngine.threshold,
-                morseReceiverEngine.isLightOn
-            ) { luma, thresh, isLight ->
-                Triple(luma, thresh, isLight)
-            }.collectLatest { (luma, thresh, isLight) ->
-                binding.tvLumaMetrics.text = "Luma: %.1f | Thresh: %.1f | Light: %s".format(
-                    luma,
-                    thresh,
-                    if (isLight) "ON" else "OFF"
-                )
-            }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            combine(
-                morseReceiverEngine.sourceState,
-                morseReceiverEngine.sourceContrast,
-                morseReceiverEngine.debugLog
-            ) { state, contrast, debug ->
-                Triple(state, contrast, debug)
-            }.collectLatest { (state, contrast, debug) ->
-                binding.tvReceiverDebug.text = "Source: %s (Contrast: %.1f) | %s".format(
-                    state.name,
-                    contrast,
-                    debug
-                )
+            morseReceiverEngine.diagnostics.collectLatest { d ->
+                if (d.frameWidth > 0) {
+                    binding.tvLumaMetrics.text = "Sig:%d Bg:%.1f C:%.1f | T:%.1f L:%s (#%d)".format(
+                        d.candidateLuma,
+                        d.localBgLuma,
+                        d.candidateContrast,
+                        d.onThreshold,
+                        if (d.isLightOn) "ON" else "OFF",
+                        d.transitionCount
+                    )
+                    binding.tvReceiverDebug.text = "%s | Full:%.0f/%d | ROI:%.0f/%d | Base:%.1f (%dms)".format(
+                        d.sourceState.name,
+                        d.frameMeanLuma,
+                        d.frameMaxLuma,
+                        d.roiMeanLuma,
+                        d.roiMaxLuma,
+                        d.ambientBaseline,
+                        d.frameIntervalMs
+                    )
+                } else {
+                    binding.tvLumaMetrics.text = "Luma: %.1f | Thresh: %.1f | Light: %s".format(
+                        morseReceiverEngine.rawLuminance.value,
+                        morseReceiverEngine.threshold.value,
+                        if (morseReceiverEngine.isLightOn.value) "ON" else "OFF"
+                    )
+                    binding.tvReceiverDebug.text = "Source: %s (Contrast: %.1f) | %s".format(
+                        morseReceiverEngine.sourceState.value.name,
+                        morseReceiverEngine.sourceContrast.value,
+                        morseReceiverEngine.debugLog.value
+                    )
+                }
             }
         }
     }
