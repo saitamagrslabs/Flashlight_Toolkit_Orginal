@@ -376,11 +376,7 @@ class MainActivity : AppCompatActivity() {
         val isLightTheme = selectedTheme == AppConstants.THEME_LIGHT
 
         val bgRes = if (isLightTheme) R.color.fn_bg_light else R.color.fn_bg_dark
-        val barColor = ContextCompat.getColor(this, bgRes)
-
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.statusBarColor = barColor
-        window.navigationBarColor = barColor
         window.setBackgroundDrawableResource(bgRes)
 
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
