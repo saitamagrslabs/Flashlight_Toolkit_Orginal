@@ -141,12 +141,6 @@ class HomeFragment : BaseAdFragment() {
             flashlightController.addOnFlashlightStateChangeListener(it)
         }
 
-        if (!requireActivity().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
-            hasFlashlight = false
-            handleNoFlashlight()
-            return
-        }
-
         try {
             mediaPlayer = MediaPlayer.create(requireContext(), R.raw.button_sound)
         } catch (e: Exception) {
@@ -157,9 +151,14 @@ class HomeFragment : BaseAdFragment() {
         setupClickListeners()
         observeViewModel()
 
-        // Initial UI update
-        updateFlashlightUI()
-
+        if (!requireActivity().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
+            hasFlashlight = false
+            handleNoFlashlight()
+        } else {
+            hasFlashlight = true
+            // Initial UI update
+            updateFlashlightUI()
+        }
     }
 
     private fun observeViewModel() {

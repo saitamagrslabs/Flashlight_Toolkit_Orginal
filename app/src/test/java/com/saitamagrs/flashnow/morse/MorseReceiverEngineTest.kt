@@ -954,5 +954,102 @@ class MorseReceiverEngineTest {
         assertEquals(0, resetD.candidateLuma)
         assertEquals(MorseReceiverEngine.SessionState.WAITING, receiver.sessionState.value)
     }
+
+    // ================= Phase 3.1A Morse Receiver Regression Tests =================
+
+    @Test
+    fun `Phase 3_1A Test 1 - multi-word decoding preserves single word separator without duplication or character loss`() {
+        // Send preamble
+        sendPreamble()
+        assertTrue(receiver.preambleDetected.value)
+        assertEquals("", receiver.decodedText.value)
+
+        // Transmit Word 1: "HELLO"
+        sendWord("HELLO")
+        assertEquals("HELLO", receiver.decodedText.value)
+
+        // Transmit inter-word gap (Word Gap = 1050ms)
+        receiver.handleGap(MorseTiming.WORD_GAP_MS)
+        assertEquals("HELLO ", receiver.decodedText.value)
+
+        // Transmit Word 2: "WORLD"
+        sendWord("WORLD")
+        assertEquals("HELLO WORLD", receiver.decodedText.value)
+
+        // Complete the session with session timeout
+        receiver.handleIdleGap(MorseReceiverEngine.SESSION_END_TIMEOUT_MS)
+
+        // Assert final state and message preservation
+        assertEquals(MorseReceiverEngine.SessionState.READY, receiver.sessionState.value)
+        assertEquals("HELLO WORLD", receiver.decodedText.value)
+        assertEquals("HELLO WORLD", receiver.rawDecodedText.value)
+        assertEquals("", receiver.currentSymbols.value)
+    }
+
+    @Test
+    fun `Phase 3_1A Test 2 - end-to-end Y decoding verifies full receiver pipeline for YES`() {
+        // Send preamble
+        sendPreamble()
+        assertTrue(receiver.preambleDetected.value)
+
+        // Send 'Y' (-.--) through explicit pulse/gap sequences:
+        // Dash (-), Symbol Gap, Dot (.), Symbol Gap, Dash (-), Symbol Gap, Dash (-)
+        sendDash()
+        sendSymbolGap()
+        sendDot()
+        sendSymbolGap()
+        sendDash()
+        sendSymbolGap()
+        sendDash()
+        sendLetterGap()
+        assertEquals("Y", receiver.decodedText.value)
+
+        // Send 'E' (.)
+        sendDot()
+        sendLetterGap()
+        assertEquals("YE", receiver.decodedText.value)
+
+        // Send 'S' (...)
+        sendDot()
+        sendSymbolGap()
+        sendDot()
+        sendSymbolGap()
+        sendDot()
+
+        // Session timeout finalizes last letter and marks session complete
+        receiver.handleIdleGap(MorseReceiverEngine.SESSION_END_TIMEOUT_MS)
+
+        assertEquals(MorseReceiverEngine.SessionState.READY, receiver.sessionState.value)
+        assertEquals("YES", receiver.decodedText.value)
+        assertEquals("YES", receiver.rawDecodedText.value)
+        assertEquals("", receiver.currentSymbols.value)
+    }
+
+    @Test
+    fun `Phase 3_1A Test 3 - multi-word message containing Y decodes YES READY end-to-end`() {
+        // Send preamble
+        sendPreamble()
+        assertTrue(receiver.preambleDetected.value)
+
+        // Word 1: "YES"
+        sendWord("YES")
+        assertEquals("YES", receiver.decodedText.value)
+
+        // Inter-word gap
+        receiver.handleGap(MorseTiming.WORD_GAP_MS)
+        assertEquals("YES ", receiver.decodedText.value)
+
+        // Word 2: "READY"
+        sendWord("READY")
+        assertEquals("YES READY", receiver.decodedText.value)
+
+        // Session timeout
+        receiver.handleIdleGap(MorseReceiverEngine.SESSION_END_TIMEOUT_MS)
+
+        assertEquals(MorseReceiverEngine.SessionState.READY, receiver.sessionState.value)
+        assertEquals("YES READY", receiver.decodedText.value)
+        assertEquals("YES READY", receiver.rawDecodedText.value)
+        assertEquals("", receiver.currentSymbols.value)
+    }
 }
 
