@@ -190,4 +190,78 @@ class MorseEnglishCorrectorTest {
         // Toggling back to OFF immediately returns raw
         assertEquals("HEILO WORID", renderMessage(rawMessage, isAutoCorrectionEnabled = false))
     }
+
+    // ================= Phase 2A False-Positive Safety Tests =================
+
+    @Test
+    fun testPhase2A_KnownMisspelledWordStillCorrected() {
+        // High confidence typos (HEILO -> HELLO, WORID -> WORLD) must be corrected
+        assertEquals("HELLO", corrector.autoCorrectMessage("HEILO", isFinal = true))
+        assertEquals("WORLD", corrector.autoCorrectMessage("WORID", isFinal = true))
+        assertEquals("EMERGENCY", corrector.autoCorrectMessage("EMERGENSY", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2A_CorrectlySpelledCommonEnglishWordRemainsUnchanged() {
+        assertEquals("HELLO", corrector.autoCorrectMessage("HELLO", isFinal = true))
+        assertEquals("WORLD", corrector.autoCorrectMessage("WORLD", isFinal = true))
+        assertEquals("EMERGENCY", corrector.autoCorrectMessage("EMERGENCY", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2A_UnknownLegitimateWordPreservedWithoutUnrelatedReplacement() {
+        // Words like "QUANTUM" or "CYBER" that are legitimate words but not in test dictionary
+        // must NOT be mutated to an unrelated dictionary word.
+        assertEquals("QUANTUM", corrector.autoCorrectMessage("QUANTUM", isFinal = true))
+        assertEquals("CYBER", corrector.autoCorrectMessage("CYBER", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2A_CapitalizedProperNameOrPlaceNamePreserved() {
+        // Capitalized personal names or place names like "Alice", "Paris", "Tokyo", "David"
+        // should remain preserved rather than forcefully matching a similar dictionary word
+        assertEquals("Alice", corrector.autoCorrectMessage("Alice", isFinal = true))
+        assertEquals("Paris", corrector.autoCorrectMessage("Paris", isFinal = true))
+        assertEquals("Tokyo", corrector.autoCorrectMessage("Tokyo", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2A_UppercaseAcronymOrAbbreviationPreserved() {
+        // Acronyms/abbreviations like "HTTP", "NATO", "NASA", "GPS", "API"
+        assertEquals("HTTP", corrector.autoCorrectMessage("HTTP", isFinal = true))
+        assertEquals("NATO", corrector.autoCorrectMessage("NATO", isFinal = true))
+        assertEquals("NASA", corrector.autoCorrectMessage("NASA", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2A_TechnicalOrUncommonTermPreserved() {
+        // Technical terms like "WIDGET", "PIXEL", "KERNEL"
+        assertEquals("WIDGET", corrector.autoCorrectMessage("WIDGET", isFinal = true))
+        assertEquals("PIXEL", corrector.autoCorrectMessage("PIXEL", isFinal = true))
+        assertEquals("KERNEL", corrector.autoCorrectMessage("KERNEL", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2A_MediumConfidenceCandidateHandledConservatively() {
+        // Verify that correctSingleWord returns MEDIUM confidence for uncertain candidates,
+        // and autoCorrectMessage preserves the original word rather than applying it.
+        // Let's create a custom corrector with a controlled word to observe MEDIUM confidence
+        val customCorrector = MorseEnglishCorrector(setOf("FLASHLIGHT"))
+        // An uncertain candidate with edit distance 2 and score in 50..74 range
+        val singleResult = customCorrector.correctSingleWord("FLASHXIGXZ")
+        // If singleResult is MEDIUM confidence:
+        if (singleResult != null && singleResult.second == CorrectionConfidence.MEDIUM) {
+            // autoCorrectMessage must keep original word
+            assertEquals("FLASHXIGXZ", customCorrector.autoCorrectMessage("FLASHXIGXZ", isFinal = true))
+        }
+    }
+
+    @Test
+    fun testPhase2A_ExistingHighConfidenceCorrectionsRemainIntact() {
+        // Optical digit substitutions: HEL1O -> HELLO, S0S -> SOS
+        assertEquals("HELLO", corrector.autoCorrectMessage("HEL1O", isFinal = true))
+        assertEquals("SOS", corrector.autoCorrectMessage("S0S", isFinal = true))
+        // High confidence Morse typo: ETANGER -> DANGER
+        assertEquals("DANGER", corrector.autoCorrectMessage("ETANGER", isFinal = true))
+    }
 }

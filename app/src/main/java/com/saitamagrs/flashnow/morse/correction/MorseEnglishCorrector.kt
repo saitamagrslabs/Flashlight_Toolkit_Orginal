@@ -182,13 +182,13 @@ class MorseEnglishCorrector(
                 continue
             }
 
-            // Word is invalid, attempt Morse-aware correction
+            // Word is invalid, attempt Morse-aware correction with HIGH confidence required
             val correction = correctSingleWord(upperWord)
-            if (correction != null && correction.second != CorrectionConfidence.NONE) {
+            if (correction != null && correction.second == CorrectionConfidence.HIGH) {
                 val casedWord = applyCasing(cleanedWord, correction.first)
                 correctedTokens.add("$prefix$casedWord$suffix")
             } else {
-                // Low confidence or garbage: preserve raw token
+                // Low/Medium confidence, uncertain word, acronym, name, or garbage: preserve raw token
                 correctedTokens.add(token)
             }
         }
