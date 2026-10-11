@@ -112,7 +112,7 @@ class SettingsFragment : Fragment() {
         // Handle edge-to-edge window insets
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.updatePadding(top = systemBars.top, bottom = systemBars.bottom)
+            v.updatePadding(top = 0, bottom = systemBars.bottom)
             insets
         }
 
