@@ -151,50 +151,58 @@ class MorseEnglishCorrector(
      *   to avoid mutating words while the sender is still transmitting letters.
      */
     fun autoCorrectMessage(rawMessage: String, isFinal: Boolean = false): String {
-        if (rawMessage.isBlank()) return rawMessage
+        if (rawMessage.isEmpty()) return rawMessage
 
-        val hasTrailingSpace = rawMessage.endsWith(" ")
-        val tokens = rawMessage.trim().split("\\s+".toRegex())
-        if (tokens.isEmpty()) return rawMessage
+        // Match non-whitespace tokens along with their exact positions
+        val tokenRegex = "\\S+".toRegex()
+        val matches = tokenRegex.findAll(rawMessage).toList()
+        if (matches.isEmpty()) return rawMessage
 
-        val correctedTokens = mutableListOf<String>()
+        val result = StringBuilder()
+        var lastIndex = 0
 
-        for (index in tokens.indices) {
-            val token = tokens[index]
-            val isLastToken = (index == tokens.size - 1)
+        for (index in matches.indices) {
+            val match = matches[index]
+            val token = match.value
+            val isLastToken = (index == matches.size - 1)
+            val hasTrailingWhitespace = match.range.last < rawMessage.length - 1
 
-            // If it's the last token and we have no trailing space and not finalized, leave as raw
-            if (isLastToken && !hasTrailingSpace && !isFinal) {
-                correctedTokens.add(token)
-                continue
-            }
+            // Append all interstitial whitespace between previous token and current token
+            result.append(rawMessage.substring(lastIndex, match.range.first))
 
-            val (cleanedWord, prefix, suffix) = separatePunctuation(token)
-            if (cleanedWord.isEmpty() || isPureNumericOrPunctuation(cleanedWord)) {
-                correctedTokens.add(token)
-                continue
-            }
-
-            val upperWord = cleanedWord.uppercase()
-            // If already valid in dictionary, keep it untouched
-            if (dictionary.contains(upperWord) || HIGH_PRIORITY_WORDS.contains(upperWord)) {
-                correctedTokens.add(token)
-                continue
-            }
-
-            // Word is invalid, attempt Morse-aware correction with HIGH confidence required
-            val correction = correctSingleWord(upperWord)
-            if (correction != null && correction.second == CorrectionConfidence.HIGH) {
-                val casedWord = applyCasing(cleanedWord, correction.first)
-                correctedTokens.add("$prefix$casedWord$suffix")
+            // If it's the last token without trailing whitespace and reception is not final,
+            // preserve the in-progress word uncorrected.
+            if (isLastToken && !hasTrailingWhitespace && !isFinal) {
+                result.append(token)
             } else {
-                // Low/Medium confidence, uncertain word, acronym, name, or garbage: preserve raw token
-                correctedTokens.add(token)
+                val (cleanedWord, prefix, suffix) = separatePunctuation(token)
+                if (cleanedWord.isEmpty() || isPureNumericOrPunctuation(cleanedWord)) {
+                    result.append(token)
+                } else {
+                    val upperWord = cleanedWord.uppercase()
+                    if (dictionary.contains(upperWord) || HIGH_PRIORITY_WORDS.contains(upperWord)) {
+                        result.append(token)
+                    } else {
+                        val correction = correctSingleWord(upperWord)
+                        if (correction != null && correction.second == CorrectionConfidence.HIGH) {
+                            val casedWord = applyCasing(cleanedWord, correction.first)
+                            result.append("$prefix$casedWord$suffix")
+                        } else {
+                            result.append(token)
+                        }
+                    }
+                }
             }
+
+            lastIndex = match.range.last + 1
         }
 
-        val result = correctedTokens.joinToString(" ")
-        return if (hasTrailingSpace) "$result " else result
+        // Append any trailing whitespace after the final token
+        if (lastIndex < rawMessage.length) {
+            result.append(rawMessage.substring(lastIndex))
+        }
+
+        return result.toString()
     }
 
     private fun applyCasing(original: String, corrected: String): String {

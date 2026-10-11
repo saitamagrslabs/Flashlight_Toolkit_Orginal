@@ -2,6 +2,7 @@ package com.saitamagrs.flashnow.morse.correction
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -243,17 +244,44 @@ class MorseEnglishCorrectorTest {
 
     @Test
     fun testPhase2A_MediumConfidenceCandidateHandledConservatively() {
-        // Verify that correctSingleWord returns MEDIUM confidence for uncertain candidates,
-        // and autoCorrectMessage preserves the original word rather than applying it.
-        // Let's create a custom corrector with a controlled word to observe MEDIUM confidence
-        val customCorrector = MorseEnglishCorrector(setOf("FLASHLIGHT"))
-        // An uncertain candidate with edit distance 2 and score in 50..74 range
-        val singleResult = customCorrector.correctSingleWord("FLASHXIGXZ")
-        // If singleResult is MEDIUM confidence:
-        if (singleResult != null && singleResult.second == CorrectionConfidence.MEDIUM) {
-            // autoCorrectMessage must keep original word
-            assertEquals("FLASHXIGXZ", customCorrector.autoCorrectMessage("FLASHXIGXZ", isFinal = true))
-        }
+        // Deterministic dictionary with "PLANET" (not in HIGH_PRIORITY_WORDS)
+        val customCorrector = MorseEnglishCorrector(setOf("PLANET"))
+        // Input "QLANET":
+        // Length 6, edit distance 1 from "PLANET" ('P' -> 'Q')
+        // Base score = 100 - (1 * 25) = 75
+        // First char 'Q' != 'P' (0 bonus). Last char 'T' == 'T' (+10 anchor bonus).
+        // Morse letter dist: 'Q' (--.-) vs 'P' (.--.) -> dist is 2 (+10 bonus).
+        // That gives 75 + 10 + 10 = 95 (HIGH).
+        // What about distance 2 on length 6?
+        // Let's test "QLANES":
+        // Length 6, edit distance 2 from "PLANET" ('P'->'Q', 'T'->'S')
+        // maxDist for length 6 is 2. Both candidates are length 6.
+        // Base score = 100 - (2 * 25) = 50.
+        // First char 'Q' != 'P' (0). Last char 'S' != 'T' (0).
+        // Double-letter expansion? False.
+        // HIGH_PRIORITY_WORDS contains PLANET? False.
+        // Morse letter dist: 'Q' (--.-) vs 'P' (.--.) is 2, 'S' (...) vs 'T' (-) is 2.
+        // Overall rawMorse vs candMorse:
+        // raw:  "--.- .-.. .- -. . ..."
+        // cand: ".--. .-.. .- -. . -"
+        // Levenshtein between rawMorse and candMorse:
+        // Diff at pos 0 ("--.-" vs ".--." is 2 substitutions) + diff at pos 5 ("..." vs "-" is 2 insertions).
+        // Total morseDist = 4. Since morseDist > 2, NO morse letter bonus!
+        // Unspaced stream:
+        // raw:  "--.---..-...-..." (len 16)
+        // cand: ".--..--..-...-"   (len 14)
+        // Stream distance > 3 (no stream bonus).
+        // Score = 50. Since 50 <= score < 75, confidence is strictly MEDIUM.
+        val candidateResult = customCorrector.correctSingleWord("QLANES")
+
+        // 1. Candidate must not be null
+        assertNotNull("Expected non-null candidate for QLANES", candidateResult)
+        // 2. Candidate word is PLANET
+        assertEquals("PLANET", candidateResult?.first)
+        // 3. Confidence must be exactly MEDIUM
+        assertEquals(CorrectionConfidence.MEDIUM, candidateResult?.second)
+        // 4. autoCorrectMessage must conservatively preserve the original word unchanged
+        assertEquals("QLANES", customCorrector.autoCorrectMessage("QLANES", isFinal = true))
     }
 
     @Test
@@ -263,5 +291,66 @@ class MorseEnglishCorrectorTest {
         assertEquals("SOS", corrector.autoCorrectMessage("S0S", isFinal = true))
         // High confidence Morse typo: ETANGER -> DANGER
         assertEquals("DANGER", corrector.autoCorrectMessage("ETANGER", isFinal = true))
+    }
+
+    // ================= Phase 2B Whitespace Preservation Tests =================
+
+    @Test
+    fun testPhase2B_MultipleConsecutiveSpacesPreserved() {
+        assertEquals("HELLO  WORLD", corrector.autoCorrectMessage("HELLO  WORLD", isFinal = true))
+        assertEquals("HELLO   WORLD", corrector.autoCorrectMessage("HEILO   WORID", isFinal = true))
+        assertEquals("A    B     C", corrector.autoCorrectMessage("A    B     C", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2B_LeadingAndTrailingSpacesPreserved() {
+        assertEquals("  HELLO WORLD  ", corrector.autoCorrectMessage("  HEILO WORID  ", isFinal = true))
+        assertEquals("   HELLO   ", corrector.autoCorrectMessage("   HEILO   ", isFinal = true))
+        assertEquals(" HELLO ", corrector.autoCorrectMessage(" HEILO "))
+    }
+
+    @Test
+    fun testPhase2B_TabBetweenWordsPreserved() {
+        assertEquals("HELLO\tWORLD", corrector.autoCorrectMessage("HEILO\tWORID", isFinal = true))
+        assertEquals("\tHELLO\t\tWORLD\t", corrector.autoCorrectMessage("\tHEILO\t\tWORID\t", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2B_NewlineBetweenWordsPreserved() {
+        assertEquals("HELLO\nWORLD", corrector.autoCorrectMessage("HEILO\nWORID", isFinal = true))
+        assertEquals("LINE1\n\nLINE2\n\n\nLINE3", corrector.autoCorrectMessage("LINE1\n\nLINE2\n\n\nLINE3", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2B_MixedSeparatorsPreserved() {
+        val input = " \t HEILO \n\t WORID \r\n  "
+        val expected = " \t HELLO \n\t WORLD \r\n  "
+        assertEquals(expected, corrector.autoCorrectMessage(input, isFinal = true))
+    }
+
+    @Test
+    fun testPhase2B_WhitespaceOnlyInputByteForByteUnchanged() {
+        assertEquals("", corrector.autoCorrectMessage(""))
+        assertEquals(" ", corrector.autoCorrectMessage(" "))
+        assertEquals("   ", corrector.autoCorrectMessage("   "))
+        assertEquals("\t\n  \r\n\t", corrector.autoCorrectMessage("\t\n  \r\n\t"))
+    }
+
+    @Test
+    fun testPhase2B_PunctuationAroundWordsPreservedWithWhitespace() {
+        assertEquals("  [HELLO] , \n \"WORLD\" ! ", corrector.autoCorrectMessage("  [HEILO] , \n \"WORID\" ! ", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2B_HighConfidenceTypoCorrectedWithSurroundingWhitespace() {
+        assertEquals(" \n\t HELLO \t\n ", corrector.autoCorrectMessage(" \n\t HEL1O \t\n ", isFinal = true))
+        assertEquals("  DANGER  ", corrector.autoCorrectMessage("  ETANGER  ", isFinal = true))
+    }
+
+    @Test
+    fun testPhase2B_MediumConfidenceCandidateUnchangedWithWhitespacePreserved() {
+        val customCorrector = MorseEnglishCorrector(setOf("PLANET"))
+        val input = "  \t QLANES \n\n "
+        assertEquals(input, customCorrector.autoCorrectMessage(input, isFinal = true))
     }
 }
