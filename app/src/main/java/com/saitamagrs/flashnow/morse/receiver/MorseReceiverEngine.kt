@@ -380,8 +380,8 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
                     candidateLuma = localPeak,
                     candidateContrast = localContrast,
                     ambientBaseline = ambientBaseline,
-                    onThreshold = ambientBaseline + ON_THRESHOLD_CONTRAST,
-                    offThreshold = ambientBaseline + activeOffContrast,
+                    onThreshold = localBg + ON_THRESHOLD_CONTRAST,
+                    offThreshold = localBg + activeOffContrast,
                     isLightOn = currentStateIsOn,
                     transitionCount = stateTransitionCount,
                     sourceState = _sourceState.value
@@ -392,10 +392,13 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
                 val lossMs = nowMs - lastSeenSourceTimestamp
                 if (lossMs <= TRACKING_MAX_LOSS_MS) {
                     // Hold lock during transmission gaps
-                    _sourceContrast.value = localContrast
+                    val sourceLuma = getPixel(buffer, trackedSourceX, trackedSourceY, rowStride, pixelStride, limit)
+                    val offSignal = minOf(localPeak.toFloat(), (sourceLuma + 2).toFloat())
+                    val offContrast = (offSignal - localBg).coerceAtLeast(0.0f)
+                    _sourceContrast.value = offContrast
                     _sourceX.value = (trackedSourceX.toFloat() / width).coerceIn(0f, 1f)
                     _sourceY.value = (trackedSourceY.toFloat() / height).coerceIn(0f, 1f)
-                    processOpticalSample(localPeak.toFloat(), nowMs, localBg)
+                    processOpticalSample(offSignal, nowMs, localBg)
 
                     val procDuration = (System.nanoTime() - startNano) / 1_000_000L
                     val activeOffContrast = if (currentStateIsOn && currentPeakContrast > HIGH_CONTRAST_PEAK_THRESHOLD) {
@@ -415,11 +418,11 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
                         roiMeanLuma = centerMean,
                         roiMaxLuma = localPeak,
                         localBgLuma = localBg,
-                        candidateLuma = localPeak,
-                        candidateContrast = localContrast,
+                        candidateLuma = offSignal.toInt(),
+                        candidateContrast = offContrast,
                         ambientBaseline = ambientBaseline,
-                        onThreshold = ambientBaseline + ON_THRESHOLD_CONTRAST,
-                        offThreshold = ambientBaseline + activeOffContrast,
+                        onThreshold = localBg + ON_THRESHOLD_CONTRAST,
+                        offThreshold = localBg + activeOffContrast,
                         isLightOn = currentStateIsOn,
                         transitionCount = stateTransitionCount,
                         sourceState = _sourceState.value
@@ -496,8 +499,8 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
                             val dx = (sx - centerX) / (width / 2f)
                             val dy = (sy - centerY) / (height / 2f)
                             val distNorm = Math.hypot(dx.toDouble(), dy.toDouble()).toFloat().coerceIn(0f, 1f)
-                            val centerBonus = (1.0f - distNorm) * 20.0f
-                            val score = (contrast * 1.5f) + (luma * 0.2f) + minOf(clusterCount.toFloat(), 15.0f) + centerBonus
+                            val centerBonus = (1.0f - distNorm) * 30.0f
+                            val score = (contrast * 2.0f) + (luma * 0.1f) + minOf(clusterCount.toFloat(), 8.0f) + centerBonus
 
                             if (score > bestScore) {
                                 bestScore = score
@@ -593,8 +596,8 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
             candidateLuma = if (bestPeakX >= 0) bestPeak else roiMax,
             candidateContrast = if (bestPeakX >= 0) bestContrast else 0f,
             ambientBaseline = ambientBaseline,
-            onThreshold = ambientBaseline + ON_THRESHOLD_CONTRAST,
-            offThreshold = ambientBaseline + activeOffContrast,
+            onThreshold = (if (bestPeakX >= 0) bestLocalBg else roiMean) + ON_THRESHOLD_CONTRAST,
+            offThreshold = (if (bestPeakX >= 0) bestLocalBg else roiMean) + activeOffContrast,
             isLightOn = currentStateIsOn,
             transitionCount = stateTransitionCount,
             sourceState = _sourceState.value
@@ -610,6 +613,13 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         nowMs: Long,
         backgroundEstimate: Float = brightSignal
     ) {
+        // Establish effective local background: if a valid local background estimate is provided, use it!
+        val effectiveBg = if (backgroundEstimate > 0f && backgroundEstimate != brightSignal) {
+            backgroundEstimate
+        } else {
+            ambientBaseline
+        }
+
         // Initial calibration phase to establish resting baseline
         if (calibrationFramesCount < CALIBRATION_FRAMES_REQUIRED) {
             calibrationFramesCount++
@@ -622,26 +632,34 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
             currentStateIsOn = false
             candidateStateIsOn = null
             _rawLuminance.value = brightSignal
-            _threshold.value = ambientBaseline + ON_THRESHOLD_CONTRAST
+            _threshold.value = effectiveBg + ON_THRESHOLD_CONTRAST
             _isLightOn.value = false
             return
         }
 
-        val rawContrast = brightSignal - ambientBaseline
+        val rawContrast = brightSignal - effectiveBg
         val signalContrast = rawContrast.coerceAtLeast(0.0f)
 
         // Update adaptive ambient baseline (track resting signal level when light is confirmed OFF)
         if (!currentStateIsOn && candidateStateIsOn == null) {
-            if (signalContrast <= RESTING_NOISE_BAND) {
-                if (brightSignal < ambientBaseline) {
+            val restingSignal = if (backgroundEstimate > 0f && backgroundEstimate != brightSignal) {
+                backgroundEstimate
+            } else {
+                brightSignal
+            }
+            val ambientDelta = restingSignal - ambientBaseline
+
+            // Adapt baseline smoothly to resting ambient as long as signal is below ON threshold
+            if (signalContrast < ON_THRESHOLD_CONTRAST) {
+                if (ambientDelta < 0f) {
                     // Scene darkened or flash shut off: track downward smoothly
-                    ambientBaseline = (ambientBaseline * 0.92f) + (brightSignal * 0.08f)
+                    ambientBaseline = (ambientBaseline * 0.88f) + (restingSignal * 0.12f)
                 } else {
-                    // Resting ambient noise band: adapt slowly to natural room changes (tau ~ 2.2s at 30fps)
-                    ambientBaseline = (ambientBaseline * 0.985f) + (brightSignal * 0.015f)
+                    // Resting ambient: adapt smoothly to natural room changes
+                    ambientBaseline = (ambientBaseline * 0.90f) + (restingSignal * 0.10f)
                 }
             } else {
-                // Signal is elevated above resting noise band (> RESTING_NOISE_BAND).
+                // Signal is elevated above resting noise band (>= ON_THRESHOLD_CONTRAST).
                 // This is a candidate or active distant flashlight pulse.
                 // STRICT RULE: FREEZE ambientBaseline! Never adapt upward into active light!
             }
@@ -653,8 +671,8 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
             }
         }
 
-        // Recompute contrast against current baseline
-        val currentContrast = (brightSignal - ambientBaseline).coerceAtLeast(0.0f)
+        // Recompute contrast against current effective background
+        val currentContrast = signalContrast
 
         // Track peak contrast during active illumination for close-range flare compensation
         if (currentStateIsOn) {
@@ -679,9 +697,9 @@ class MorseReceiverEngine : ImageAnalysis.Analyzer {
         }
 
         val activeThreshold = if (currentStateIsOn) {
-            ambientBaseline + activeOffContrast
+            effectiveBg + activeOffContrast
         } else {
-            ambientBaseline + ON_THRESHOLD_CONTRAST
+            effectiveBg + ON_THRESHOLD_CONTRAST
         }
 
         // Glitch filtering (confirm state across consecutive frames >= 25 ms)
