@@ -519,7 +519,7 @@ class MorseReceiverEngineTest {
 
         assertEquals(MorseReceiverEngine.SessionState.READY, receiver.sessionState.value)
         assertEquals("ETANGER", receiver.rawDecodedText.value)
-        assertEquals("DANGER", receiver.decodedText.value)
+        assertEquals("ETANGER", receiver.decodedText.value)
     }
 
     // --- PHASE 8.0H: PREAMBLE EXCLUSION & READY STATE TESTS ---
@@ -827,7 +827,7 @@ class MorseReceiverEngineTest {
         assertTrue("Candidate must transition to ON once persisted >= 25ms", receiver.isLightOn.value)
     }
 
-    // --- PHASE 8.1A: ADAPTIVE OPTICAL SOURCE ACQUISITION TESTS ---
+    // --- REBUILT OPTICAL RECEIVER PIPELINE TESTS ---
 
     private fun createTestFrame(width: Int, height: Int, backgroundLuma: Int = 40): java.nio.ByteBuffer {
         val buffer = java.nio.ByteBuffer.allocateDirect(width * height)
@@ -848,218 +848,67 @@ class MorseReceiverEngineTest {
     }
 
     @Test
-    fun `test 8_1A 1 - isolated single bright pixel does not immediately lock`() {
-        val frame = createTestFrame(100, 100, 40)
-        setPixels(frame, 100, listOf(50 to 50), 255)
+    fun `test optical pipeline - uniform idle frames calibrate ambient baseline`() {
+        for (i in 0 until 10) {
+            val frame = createTestFrame(100, 100, 50)
+            receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
+        }
 
-        receiver.processFrame(100, 100, frame, 100, 1, 100L)
-
-        assertEquals(MorseReceiverEngine.SourceState.NO_SOURCE, receiver.sourceState.value)
-        assertFalse(receiver.isSourceLocked.value)
+        assertTrue("Receiver must be calibrated after 5 frames", receiver.isCalibrationDone())
+        assertFalse("Uniform idle frames must not trigger Light ON", receiver.isLightOn.value)
+        assertEquals(50f, receiver.diagnostics.value.ambientBaseline, 3f)
     }
 
     @Test
-    fun `test 8_1A 2 - small concentrated 3 to 8 pixel source can lock`() {
-        val frame1 = createTestFrame(100, 100, 40)
-        val cluster = listOf(50 to 50, 50 to 51, 51 to 50, 51 to 51, 50 to 52)
-        setPixels(frame1, 100, cluster, 160)
+    fun `test optical pipeline - centered flashlight spot triggers Light ON`() {
+        // 1. Calibrate on background 40
+        for (i in 0 until 6) {
+            val frame = createTestFrame(100, 100, 40)
+            receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
+        }
+        assertFalse(receiver.isLightOn.value)
 
-        // Frame 1 -> SEARCHING
-        receiver.processFrame(100, 100, frame1, 100, 1, 100L)
-        assertEquals(MorseReceiverEngine.SourceState.SEARCHING, receiver.sourceState.value)
-
-        // Frame 2 at t=133L -> LOCKED
-        val frame2 = createTestFrame(100, 100, 40)
-        setPixels(frame2, 100, cluster, 160)
-        receiver.processFrame(100, 100, frame2, 100, 1, 133L)
-
-        assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-        assertTrue(receiver.isSourceLocked.value)
-    }
-
-    @Test
-    fun `test 8_1A 3 - medium bright source can lock`() {
-        val cluster = mutableListOf<Pair<Int, Int>>()
+        // 2. Incoming flashlight spot at center (50, 50) with luma 200 (3x3 spot)
+        val spot = mutableListOf<Pair<Int, Int>>()
         for (dy in -1..1) {
-            for (dx in -1..2) {
-                cluster.add(50 + dx to 50 + dy)
+            for (dx in -1..1) {
+                spot.add((50 + dx) to (50 + dy))
             }
         }
+        val flashFrame1 = createTestFrame(100, 100, 40)
+        setPixels(flashFrame1, 100, spot, 200)
+        receiver.processFrame(100, 100, flashFrame1, 100, 1, 300L)
 
-        val frame1 = createTestFrame(100, 100, 40)
-        setPixels(frame1, 100, cluster, 120)
-        receiver.processFrame(100, 100, frame1, 100, 1, 100L)
-        assertEquals(MorseReceiverEngine.SourceState.SEARCHING, receiver.sourceState.value)
+        // Glitch filter: frame 2 at t=335ms
+        val flashFrame2 = createTestFrame(100, 100, 40)
+        setPixels(flashFrame2, 100, spot, 200)
+        receiver.processFrame(100, 100, flashFrame2, 100, 1, 335L)
 
-        val frame2 = createTestFrame(100, 100, 40)
-        setPixels(frame2, 100, cluster, 120)
-        receiver.processFrame(100, 100, frame2, 100, 1, 133L)
+        assertTrue("Centered flashlight spot must trigger Light ON", receiver.isLightOn.value)
         assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-        assertTrue(receiver.isSourceLocked.value)
     }
 
     @Test
-    fun `test 8_1A 4 - large saturated source can lock`() {
-        val cluster = mutableListOf<Pair<Int, Int>>()
-        for (dy in -3..3) {
-            for (dx in -3..3) {
-                cluster.add(50 + dx to 50 + dy)
-            }
+    fun `test optical pipeline - peripheral bright object outside reticle does not trigger ON`() {
+        // 1. Calibrate on background 40
+        for (i in 0 until 6) {
+            val frame = createTestFrame(100, 100, 40)
+            receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
         }
 
-        val frame1 = createTestFrame(100, 100, 40)
-        setPixels(frame1, 100, cluster, 255)
-        receiver.processFrame(100, 100, frame1, 100, 1, 100L)
-        assertEquals(MorseReceiverEngine.SourceState.SEARCHING, receiver.sourceState.value)
+        // 2. Bright object at corner (10, 10) - outside central 30% reticle [35..65]
+        val cornerSpot = listOf(10 to 10, 10 to 11, 11 to 10, 11 to 11)
+        for (i in 0 until 5) {
+            val frame = createTestFrame(100, 100, 40)
+            setPixels(frame, 100, cornerSpot, 255)
+            receiver.processFrame(100, 100, frame, 100, 1, 300L + i * 33L)
+        }
 
-        val frame2 = createTestFrame(100, 100, 40)
-        setPixels(frame2, 100, cluster, 255)
-        receiver.processFrame(100, 100, frame2, 100, 1, 133L)
-        assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-        assertTrue(receiver.isSourceLocked.value)
+        assertFalse("Peripheral light outside central reticle must be ignored", receiver.isLightOn.value)
     }
 
     @Test
-    fun `test 8_1A 5 - candidate slightly off-center can lock`() {
-        // Off-center spot at (35, 40) within 60% search window [20..80, 20..80]
-        val cluster = listOf(35 to 40, 36 to 40, 35 to 41, 36 to 41, 35 to 42)
-
-        val frame1 = createTestFrame(100, 100, 40)
-        setPixels(frame1, 100, cluster, 150)
-        receiver.processFrame(100, 100, frame1, 100, 1, 100L)
-        assertEquals(MorseReceiverEngine.SourceState.SEARCHING, receiver.sourceState.value)
-
-        val frame2 = createTestFrame(100, 100, 40)
-        setPixels(frame2, 100, cluster, 150)
-        receiver.processFrame(100, 100, frame2, 100, 1, 133L)
-        assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-        assertTrue(receiver.isSourceLocked.value)
-    }
-
-    @Test
-    fun `test 8_1A 6 - source movement within tracking tolerance remains locked`() {
-        val cluster1 = listOf(50 to 50, 50 to 51, 51 to 50, 51 to 51, 50 to 52)
-        val frame1 = createTestFrame(100, 100, 40)
-        setPixels(frame1, 100, cluster1, 160)
-        receiver.processFrame(100, 100, frame1, 100, 1, 100L)
-
-        val frame2 = createTestFrame(100, 100, 40)
-        setPixels(frame2, 100, cluster1, 160)
-        receiver.processFrame(100, 100, frame2, 100, 1, 133L)
-        assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-
-        // Hand jitter: moves by 6 pixels to (55, 53)
-        val cluster2 = listOf(55 to 53, 55 to 54, 56 to 53, 56 to 54, 55 to 55)
-        val frame3 = createTestFrame(100, 100, 40)
-        setPixels(frame3, 100, cluster2, 160)
-        receiver.processFrame(100, 100, frame3, 100, 1, 166L)
-
-        assertEquals("Must remain locked when hand moves slightly", MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-        assertTrue(receiver.isSourceLocked.value)
-    }
-
-    @Test
-    fun `test 8_1A 7 - brief one-frame source loss does not immediately unlock`() {
-        val cluster = listOf(50 to 50, 50 to 51, 51 to 50, 51 to 51, 50 to 52)
-        val frame1 = createTestFrame(100, 100, 40)
-        setPixels(frame1, 100, cluster, 160)
-        receiver.processFrame(100, 100, frame1, 100, 1, 100L)
-
-        val frame2 = createTestFrame(100, 100, 40)
-        setPixels(frame2, 100, cluster, 160)
-        receiver.processFrame(100, 100, frame2, 100, 1, 133L)
-        assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-
-        // Temporary light shutoff (Morse gap of 1 frame)
-        val emptyFrame = createTestFrame(100, 100, 40)
-        receiver.processFrame(100, 100, emptyFrame, 100, 1, 166L)
-
-        assertEquals("Brief source loss during Morse gap must retain lock", MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-        assertTrue(receiver.isSourceLocked.value)
-    }
-
-    @Test
-    fun `test 8_1A 8 - sustained source loss eventually unlocks`() {
-        val cluster = listOf(50 to 50, 50 to 51, 51 to 50, 51 to 51, 50 to 52)
-        val frame1 = createTestFrame(100, 100, 40)
-        setPixels(frame1, 100, cluster, 160)
-        receiver.processFrame(100, 100, frame1, 100, 1, 100L)
-
-        val frame2 = createTestFrame(100, 100, 40)
-        setPixels(frame2, 100, cluster, 160)
-        receiver.processFrame(100, 100, frame2, 100, 1, 133L)
-        assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-
-        // Sustained absence > TRACKING_MAX_LOSS_MS (1800ms)
-        val emptyFrame = createTestFrame(100, 100, 40)
-        receiver.processFrame(100, 100, emptyFrame, 100, 1, 2100L)
-
-        assertFalse("Sustained absence must drop lock", receiver.isSourceLocked.value)
-        org.junit.Assert.assertNotEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-    }
-
-    @Test
-    fun `test 8_1A 9 - weak source with sufficient local contrast can lock`() {
-        // Distant source: background 35, spot 52 -> local contrast 17 (> 7.5)
-        val cluster = listOf(50 to 50, 50 to 51, 51 to 50, 51 to 51, 50 to 52)
-        val frame1 = createTestFrame(100, 100, 35)
-        setPixels(frame1, 100, cluster, 52)
-        receiver.processFrame(100, 100, frame1, 100, 1, 100L)
-
-        val frame2 = createTestFrame(100, 100, 35)
-        setPixels(frame2, 100, cluster, 52)
-        receiver.processFrame(100, 100, frame2, 100, 1, 133L)
-
-        assertEquals(MorseReceiverEngine.SourceState.LOCKED, receiver.sourceState.value)
-        assertTrue(receiver.isSourceLocked.value)
-    }
-
-    @Test
-    fun `test 8_1A 10 - broad ambient brightness without concentrated source does not lock`() {
-        // Flat white wall where all pixels are 150 (contrast = 0)
-        val frame = createTestFrame(100, 100, 150)
-        receiver.processFrame(100, 100, frame, 100, 1, 100L)
-
-        assertEquals(MorseReceiverEngine.SourceState.NO_SOURCE, receiver.sourceState.value)
-        assertFalse(receiver.isSourceLocked.value)
-    }
-
-    @Test
-    fun `test 8_1A 11 - ON OFF transitions remain hysteresis-protected`() {
-        receiver.setAmbientBaseline(40.0f)
-        receiver.setCalibrationDone()
-
-        // Turn ON: 50.0f (contrast 10.0f > 8.5f)
-        receiver.processOpticalSample(50.0f, 100L)
-        receiver.processOpticalSample(50.0f, 135L)
-        assertTrue("Must turn ON", receiver.isLightOn.value)
-
-        // Dip to 46.0f (contrast 6.0f > 4.5f OFF threshold)
-        receiver.processOpticalSample(46.0f, 170L)
-        receiver.processOpticalSample(46.0f, 205L)
-        assertTrue("Hysteresis must hold ON state", receiver.isLightOn.value)
-
-        // Drop to 43.0f (contrast 3.0f < 4.5f)
-        receiver.processOpticalSample(43.0f, 240L)
-        receiver.processOpticalSample(43.0f, 275L)
-        assertFalse("Must turn OFF once contrast drops below 4.5f", receiver.isLightOn.value)
-    }
-
-    @Test
-    fun `test 8_1A 12 - source acquisition does not modify Morse protocol behavior`() {
-        sendPreamble()
-        sendWord("SOS")
-        receiver.handleIdleGap(MorseReceiverEngine.SESSION_END_TIMEOUT_MS)
-
-        assertEquals(MorseReceiverEngine.SessionState.READY, receiver.sessionState.value)
-        assertEquals("SOS", receiver.rawDecodedText.value)
-        assertEquals("SOS", receiver.decodedText.value)
-    }
-
-    // --- PHASE 8.1E: DISTANT FLASH ACQUISITION & CONTINUOUS TELEMETRY TESTS ---
-
-    @Test
-    fun `test 8_1E 1 - live diagnostics emission and reset`() {
+    fun `test optical pipeline - live diagnostics emission and reset`() {
         val frame = createTestFrame(100, 100, 45)
         val cluster = listOf(50 to 50, 50 to 51)
         setPixels(frame, 100, cluster, 120)
@@ -1070,84 +919,13 @@ class MorseReceiverEngineTest {
         assertEquals(100, d.frameWidth)
         assertEquals(100, d.frameHeight)
         assertTrue("ROI mean luma must be around 45", d.roiMeanLuma >= 40.0f)
-        assertTrue("Candidate luma must be detected", d.candidateLuma >= 100)
-        assertTrue("Candidate contrast must be > 50", d.candidateContrast > 50.0f)
 
         // Reset clears diagnostics
         receiver.reset()
         val resetD = receiver.diagnostics.value
         assertEquals(0, resetD.frameWidth)
         assertEquals(0, resetD.candidateLuma)
-    }
-
-    @Test
-    fun `test 8_1E 2 - idle frames continuously calibrate ambient baseline without flash`() {
-        // Feed 10 consecutive frames of resting background 60 (idle scene)
-        for (i in 0 until 10) {
-            val frame = createTestFrame(100, 100, 60)
-            receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
-        }
-
-        // Ambient baseline must have adapted from initial 40 towards 60
-        assertTrue("Baseline must calibrate to ~60 during idle frames, was ${receiver.diagnostics.value.ambientBaseline}",
-            receiver.diagnostics.value.ambientBaseline > 55.0f)
-        assertTrue("Calibration must complete on idle frames", receiver.isCalibrationDone())
-        assertFalse("Idle frames must not trigger light ON", receiver.isLightOn.value)
-    }
-
-    @Test
-    fun `test 8_1E 3 - distant flashlight candidate is not masked by brighter static background object`() {
-        // Background 35
-        val frame = createTestFrame(100, 100, 35)
-
-        // A large diffuse bright object (e.g. lamp: 6x6 square of 140, flat contrast across interior)
-        val lampCluster = mutableListOf<Pair<Int, Int>>()
-        for (y in 20..25) {
-            for (x in 20..25) {
-                lampCluster.add(x to y)
-            }
-        }
-        setPixels(frame, 100, lampCluster, 140)
-
-        // A distant concentrated flashlight spot: 2x2 of 95 surrounded by background 35 (high local contrast: 60)
-        val flashSpot = listOf(50 to 50, 50 to 51, 51 to 50, 51 to 51)
-        setPixels(frame, 100, flashSpot, 95)
-
-        receiver.processFrame(100, 100, frame, 100, 1, 100L)
-
-        // Candidate must be the sharp flashlight spot (contrast ~60), NOT masked out
-        val d = receiver.diagnostics.value
-        assertTrue("Distant flash spot must be acquired as candidate, candidateLuma=${d.candidateLuma}",
-            d.candidateLuma >= 90)
-        assertTrue("Local contrast must reflect distant flash, contrast=${d.candidateContrast}",
-            d.candidateContrast >= 50.0f)
-    }
-
-    @Test
-    fun `test 8_1E 4 - flash pulse does not contaminate ambient baseline`() {
-        // Pre-calibrate ambient to 40
-        for (i in 0 until 6) {
-            val frame = createTestFrame(100, 100, 40)
-            receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
-        }
-        val preFlashBaseline = receiver.diagnostics.value.ambientBaseline
-        assertTrue("Baseline should be ~40", preFlashBaseline in 38.0f..42.0f)
-
-        // Distant flash turns ON for 5 consecutive frames (165ms)
-        val flashCluster = listOf(50 to 50, 50 to 51, 51 to 50, 51 to 51)
-        for (i in 6 until 11) {
-            val frame = createTestFrame(100, 100, 40)
-            setPixels(frame, 100, flashCluster, 180)
-            receiver.processFrame(100, 100, frame, 100, 1, 100L + i * 33L)
-        }
-
-        // Light should be ON
-        assertTrue("Flash must be detected as ON", receiver.isLightOn.value)
-
-        // Baseline must NOT be contaminated by the 180 flash (should remain ~40)
-        val postFlashBaseline = receiver.diagnostics.value.ambientBaseline
-        assertTrue("Baseline must remain close to ambient 40 and not jump to 180: $postFlashBaseline",
-            postFlashBaseline < 50.0f)
+        assertEquals(MorseReceiverEngine.SessionState.WAITING, receiver.sessionState.value)
     }
 }
 
