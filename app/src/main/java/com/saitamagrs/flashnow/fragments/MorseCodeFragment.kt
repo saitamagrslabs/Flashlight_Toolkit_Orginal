@@ -37,6 +37,7 @@ import com.saitamagrs.flashnow.utils.FlashlightController
 import com.saitamagrs.flashnow.utils.MorseCodeManager
 import com.saitamagrs.flashnow.utils.PermissionManager
 import android.content.Context
+import androidx.appcompat.app.AlertDialog
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -66,6 +67,7 @@ class MorseCodeFragment : BaseAdFragment() {
     private var hasCameraPermission = false
     private var isReceiverActive = false
     private var isAutoCorrectionEnabled = false
+    private var tipsDialog: AlertDialog? = null
 
     private val requestCameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -106,6 +108,10 @@ class MorseCodeFragment : BaseAdFragment() {
         morseEnglishCorrector = MorseEnglishCorrector.fromAssets(requireContext().applicationContext)
         morseReceiverEngine = MorseReceiverEngine()
         morseReceiverEngine.englishCorrector = morseEnglishCorrector
+
+        binding.btnReceiverTips.setOnClickListener {
+            showReceiverTipsDialog()
+        }
 
         setupModeToggle()
         setupSenderUI()
@@ -514,6 +520,32 @@ class MorseCodeFragment : BaseAdFragment() {
         }
     }
 
+    private fun showReceiverTipsDialog() {
+        val currentContext = context ?: return
+        if (tipsDialog?.isShowing == true) return
+
+        val message = buildString {
+            append("For best decoding results:\n\n")
+            append("1. Keep some distance: Position the transmitting flashlight and receiving camera approximately 1 metre apart. Avoid placing the flashlight too close to the camera, because excessive brightness can saturate the camera sensor and make the light pulses difficult to distinguish.\n\n")
+            append("2. Avoid bright environments: Reception may be unreliable in direct sunlight, full daylight, or other brightly lit environments where ambient light overwhelms the transmitted flashes.\n\n")
+            append("3. Aim the camera at the light: Keep the transmitting flashlight visible within the receiving camera's view. Avoid moving the camera or flashlight during transmission.\n\n")
+            append("4. Reduce reflections and glare: Avoid reflective surfaces, strong light sources behind the transmitter, and other flashing lights that could interfere with detection.\n\n")
+            append("5. Keep the light pulses clear: Use a steady flashlight and allow the sender to finish transmitting before judging the decoded result. Avoid interrupting the transmission.\n\n")
+            append("6. Check the receiving screen: Make sure the camera preview is active and the receiver has the necessary camera permission. If decoding is unreliable, try adjusting the distance and reducing ambient light.\n\n")
+            append("Tip: Start in a dim indoor environment with the flashlight about 1 metre from the camera. If decoding is unreliable, try a slightly different distance and reduce background light.")
+        }
+
+        tipsDialog = AlertDialog.Builder(currentContext)
+            .setTitle("Morse Receiver Tips")
+            .setMessage(message)
+            .setPositiveButton("Got it") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+
+        tipsDialog?.show()
+    }
+
     override fun onResume() {
         super.onResume()
         hasCameraPermission = PermissionManager.isCameraGranted(requireContext())
@@ -526,6 +558,8 @@ class MorseCodeFragment : BaseAdFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        tipsDialog?.dismiss()
+        tipsDialog = null
         stopReceiver()
         morseSenderEngine.release()
         morseCodeManager.stopFlashing()
