@@ -86,6 +86,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.gridlayout:gridlayout:1.0.0")
     implementation("com.google.android.gms:play-services-ads:22.6.0")
+    implementation("com.google.android.ump:user-messaging-platform:2.2.0")
 
     // CameraX
     val cameraVersion = "1.4.2"

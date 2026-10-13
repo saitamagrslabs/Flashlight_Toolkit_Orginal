@@ -6,6 +6,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import com.saitamagrs.flashnow.MainActivity
 import com.saitamagrs.flashnow.databinding.FragmentPrivacyPolicyBinding
@@ -27,6 +30,13 @@ class PrivacyPolicyFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Ensure bottom navigation bar does not obscure content or action button
+        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.updatePadding(top = 0, bottom = systemBars.bottom)
+            insets
+        }
 
         binding.btnOpenPolicy.setOnClickListener {
             openPrivacyPolicy()

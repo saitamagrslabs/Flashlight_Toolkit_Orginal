@@ -31,6 +31,7 @@ import com.saitamagrs.flashnow.MainActivity
 import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.databinding.FragmentSettingsBinding
 import com.saitamagrs.flashnow.utils.AppConstants
+import com.saitamagrs.flashnow.utils.GoogleMobileAdsConsentManager
 import com.saitamagrs.flashnow.utils.PermissionManager
 import kotlin.math.roundToInt
 
@@ -299,6 +300,23 @@ class SettingsFragment : Fragment() {
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Unable to open privacy policy link", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        // Privacy Options / Consent Management (Google UMP)
+        val consentManager = GoogleMobileAdsConsentManager.getInstance(requireContext())
+        if (consentManager.isPrivacyOptionsRequired) {
+            binding.rowPrivacyOptions.visibility = View.VISIBLE
+            binding.dividerPrivacyOptions.visibility = View.VISIBLE
+            binding.rowPrivacyOptions.setOnClickListener {
+                consentManager.showPrivacyOptionsForm(requireActivity()) { formError ->
+                    if (formError != null) {
+                        Toast.makeText(requireContext(), formError.message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        } else {
+            binding.rowPrivacyOptions.visibility = View.GONE
+            binding.dividerPrivacyOptions.visibility = View.GONE
         }
 
         // Rate App

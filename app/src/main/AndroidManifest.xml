@@ -38,9 +38,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.FlashNow.Starting"
-            android:screenOrientation="portrait"
-            android:launchMode="singleTop"
-            tools:ignore="LockedOrientationActivity" >
+            android:launchMode="singleTop" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

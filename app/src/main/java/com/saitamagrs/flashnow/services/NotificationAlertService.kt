@@ -30,8 +30,10 @@ class NotificationAlertService : NotificationListenerService() {
         super.onListenerConnected()
         Log.d(TAG, "Notification listener connected")
 
-        // Notify that permission is granted
-        sendBroadcast(android.content.Intent(ACTION_NOTIFICATION_ACCESS_CHANGED))
+        // Notify that permission is granted (strictly scoped to this application package)
+        sendBroadcast(android.content.Intent(ACTION_NOTIFICATION_ACCESS_CHANGED).apply {
+            setPackage(packageName)
+        })
     }
 
     override fun onListenerDisconnected() {

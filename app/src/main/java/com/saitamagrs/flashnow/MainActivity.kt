@@ -2,6 +2,7 @@ package com.saitamagrs.flashnow
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -23,6 +24,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.saitamagrs.flashnow.utils.GoogleMobileAdsConsentManager
+import com.saitamagrs.flashnow.utils.MobileAdsManager
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
@@ -55,8 +58,28 @@ class MainActivity : AppCompatActivity() {
         val splashScreen = installSplashScreen()
         applyAppTheme()
         super.onCreate(savedInstanceState)
+
+        // Lock to portrait on phones (< 600dp); allow user rotation on tablets/foldables (>= 600dp)
+        if (resources.configuration.smallestScreenWidthDp < 600) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // UMP GDPR consent flow & AdMob initialization gating
+        val consentManager = GoogleMobileAdsConsentManager.getInstance(this)
+        consentManager.gatherConsent(this) { consentError ->
+            if (consentError != null) {
+                android.util.Log.w("MainActivity", "UMP consent gathering: ${consentError.message}")
+            }
+            if (consentManager.canRequestAds) {
+                MobileAdsManager.initializeIfPermitted(this)
+            }
+        }
+        if (consentManager.canRequestAds) {
+            MobileAdsManager.initializeIfPermitted(this)
+        }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
@@ -387,8 +410,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Clean up flashlight resources when app is completely closed
-        FlashlightManager.release()
+        // Clean up flashlight resources when app is completely closed (not on configuration change)
+        if (isFinishing) {
+            FlashlightManager.release()
+        }
     }
 
 

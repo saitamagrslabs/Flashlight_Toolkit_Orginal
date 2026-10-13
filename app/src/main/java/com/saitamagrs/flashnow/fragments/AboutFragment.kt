@@ -36,10 +36,10 @@ class AboutFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // --- CRITICAL FIX for Edge-to-Edge UI ---
+        // --- Edge-to-Edge UI: Toolbar already handles top insets; only pad navigation bars at bottom ---
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.updatePadding(top = systemBars.top, bottom = systemBars.bottom)
+            v.updatePadding(top = 0, bottom = systemBars.bottom)
             insets
         }
 

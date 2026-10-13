@@ -8,10 +8,12 @@ import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
+import com.saitamagrs.flashnow.utils.GoogleMobileAdsConsentManager
+import com.saitamagrs.flashnow.utils.MobileAdsManager
 
 /**
- * A base fragment that handles the common logic for loading and managing a banner ad.
- * Child fragments must provide their own AdView instance from their binding.
+ * A base fragment that handles common logic for loading and managing a banner ad,
+ * strictly gated by Google UMP consent verification before any ad request is initiated.
  */
 abstract class BaseAdFragment : Fragment() {
 
@@ -23,10 +25,32 @@ abstract class BaseAdFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        loadBannerAd()
+        attemptLoadBannerAd()
+
+        // If Mobile Ads finishes initialization after this view was created (e.g. initial consent grant),
+        // safely trigger the ad request.
+        MobileAdsManager.addInitializationListener {
+            if (isAdded && !isDetached && this.view != null) {
+                activity?.runOnUiThread {
+                    if (isAdded && !isDetached && this.view != null && adView?.visibility != View.VISIBLE) {
+                        attemptLoadBannerAd()
+                    }
+                }
+            }
+        }
     }
 
-    private fun loadBannerAd() {
+    private fun attemptLoadBannerAd() {
+        val currentContext = context ?: return
+        val consentManager = GoogleMobileAdsConsentManager.getInstance(currentContext)
+
+        // Strict UMP consent check: do not request ads unless canRequestAds returns true
+        if (!consentManager.canRequestAds) {
+            Log.d("AdMob", "Ad request deferred: user consent not granted yet in ${this.javaClass.simpleName}")
+            adView?.visibility = View.GONE
+            return
+        }
+
         adView?.let { adView ->
             val adRequest = AdRequest.Builder().build()
             adView.loadAd(adRequest)
@@ -48,9 +72,13 @@ abstract class BaseAdFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // If the ad failed to load previously (e.g., no network), try again when the user returns to the fragment.
-        if (adView?.visibility == View.GONE) {
-            loadBannerAd()
+        val currentContext = context
+        if (currentContext != null) {
+            val consentManager = GoogleMobileAdsConsentManager.getInstance(currentContext)
+            // If the ad failed or was deferred previously, retry when user returns if consent is valid
+            if (consentManager.canRequestAds && adView?.visibility == View.GONE) {
+                attemptLoadBannerAd()
+            }
         }
         adView?.resume()
     }

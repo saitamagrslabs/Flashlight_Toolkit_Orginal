@@ -16,8 +16,8 @@ class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize AdMob SDK
-        MobileAds.initialize(this) {}
+        // Initialize Mobile Ads SDK only if user consent is already available
+        com.saitamagrs.flashnow.utils.MobileAdsManager.initializeIfPermitted(this)
 
         createNotificationChannels()
     }
