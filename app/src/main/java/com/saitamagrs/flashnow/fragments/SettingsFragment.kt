@@ -32,6 +32,7 @@ import com.saitamagrs.flashnow.R
 import com.saitamagrs.flashnow.databinding.FragmentSettingsBinding
 import com.saitamagrs.flashnow.utils.AppConstants
 import com.saitamagrs.flashnow.utils.GoogleMobileAdsConsentManager
+import com.saitamagrs.flashnow.utils.MobileAdsManager
 import com.saitamagrs.flashnow.utils.PermissionManager
 import kotlin.math.roundToInt
 
@@ -310,8 +311,18 @@ class SettingsFragment : Fragment() {
             binding.rowPrivacyOptions.setOnClickListener {
                 consentManager.showPrivacyOptionsForm(requireActivity()) { formError ->
                     if (formError != null) {
-                        Toast.makeText(requireContext(), formError.message, Toast.LENGTH_SHORT).show()
+                        context?.let { ctx ->
+                            Toast.makeText(ctx, formError.message, Toast.LENGTH_SHORT).show()
+                        }
                     }
+                    val currentContext = context ?: return@showPrivacyOptionsForm
+                    val updatedConsentManager = GoogleMobileAdsConsentManager.getInstance(currentContext)
+                    if (updatedConsentManager.canRequestAds) {
+                        MobileAdsManager.initializeIfPermitted(currentContext)
+                    }
+                    val isRequired = updatedConsentManager.isPrivacyOptionsRequired
+                    _binding?.rowPrivacyOptions?.visibility = if (isRequired) View.VISIBLE else View.GONE
+                    _binding?.dividerPrivacyOptions?.visibility = if (isRequired) View.VISIBLE else View.GONE
                 }
             }
         } else {
